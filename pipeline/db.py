@@ -35,10 +35,18 @@ def get_connection() -> PgConnection:
     if not db_url:
         raise ValueError("SUPABASE_DB_URL is not set")
 
+    db_url = _encode_db_password(db_url)
     try:
         return psycopg2.connect(db_url)
-    except psycopg2.OperationalError:
-        return psycopg2.connect(_encode_db_password(db_url))
+    except psycopg2.OperationalError as exc:
+        if "Network is unreachable" in str(exc) and "db." in db_url and ".supabase.co" in db_url:
+            raise psycopg2.OperationalError(
+                f"{exc}\n\n"
+                "Supabase direct connections (db.*.supabase.co) use IPv6, which GitHub "
+                "Actions cannot reach. Set SUPABASE_DB_URL to the Supavisor pooler string "
+                "from Dashboard → Connect → Transaction pooler (port 6543)."
+            ) from exc
+        raise
 
 
 def insert_articles(articles: list[Article]) -> int:

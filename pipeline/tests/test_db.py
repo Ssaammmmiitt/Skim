@@ -3,10 +3,23 @@ from datetime import datetime, timezone
 
 import pytest
 
-from pipeline.db import get_connection, insert_articles
+from pipeline.db import _encode_db_password, get_connection, insert_articles
 from pipeline.models import Article
 
 TEST_URL_PREFIX = "https://skim-test.example.com/"
+
+
+def test_encode_db_password_encodes_at_sign_in_password():
+    url = "postgresql://postgres:pa@ss@db.example.supabase.co:5432/postgres"
+    assert (
+        _encode_db_password(url)
+        == "postgresql://postgres:pa%40ss@db.example.supabase.co:5432/postgres"
+    )
+
+
+def test_encode_db_password_leaves_simple_password_unchanged():
+    url = "postgresql://postgres:secret@db.example.supabase.co:5432/postgres"
+    assert _encode_db_password(url) == url
 
 
 def _make_article(path: str) -> Article:
