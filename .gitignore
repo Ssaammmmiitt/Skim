@@ -20,3 +20,6 @@ Desktop.ini
 
 # Logs
 *.log
+
+# Local development plan (not for GitHub)
+docs/DEVELOPMENT_PLAN.md

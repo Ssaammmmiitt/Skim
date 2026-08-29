@@ -1,0 +1,7 @@
+{
+  "id": 100,
+  "title": "Example article",
+  "url": "https://www.example.com/article?utm_source=twitter",
+  "time": 1700000000,
+  "type": "story"
+}
