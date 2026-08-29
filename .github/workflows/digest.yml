@@ -29,6 +29,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Cache sentence-transformers model
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/torch/sentence_transformers
+            ~/.cache/huggingface
+          key: st-all-MiniLM-L6-v2-v1
+
       - name: Install dependencies
         run: |
           if [ -s pipeline/requirements.txt ]; then
