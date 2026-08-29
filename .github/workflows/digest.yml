@@ -11,9 +11,11 @@ jobs:
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SUPABASE_JWKS_URL: ${{ secrets.SUPABASE_JWKS_URL }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       DIGEST_RECIPIENT: ${{ secrets.DIGEST_RECIPIENT }}
 
@@ -27,10 +29,15 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r pipeline/requirements.txt
+        run: |
+          if [ -s pipeline/requirements.txt ]; then
+            pip install -r pipeline/requirements.txt
+          fi
 
-      - name: Test DB URL secret
-        run: echo "DB URL length: ${#SUPABASE_DB_URL}"
+      - name: Test Supabase URL secret
+        shell: bash
+        run: |
+          echo "Supabase URL length: ${#SUPABASE_URL}"
 
       - name: Run pipeline
         run: python -m pipeline.main
