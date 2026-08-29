@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>HTML Heavy Feed</title>
+    <item>
+      <title>Markup Article</title>
+      <link>https://www.example.com/markup</link>
+      <pubDate>Mon, 01 Jan 2024 12:00:00 GMT</pubDate>
+      <description><![CDATA[<div class="wrap"><h2>Headline</h2><p>First paragraph.</p><br/><p>Second   paragraph with a <a href="https://example.com">link</a>.</p><img src="https://example.com/x.png"/></div>]]></description>
+    </item>
+    <item>
+      <title>Empty Markup Article</title>
+      <link>https://www.example.com/empty-markup</link>
+      <description><![CDATA[<div><img src="https://example.com/only-image.png"/></div>]]></description>
+    </item>
+  </channel>
+</rss>

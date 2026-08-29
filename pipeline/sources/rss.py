@@ -2,8 +2,9 @@ from datetime import datetime, timezone
 from time import struct_time
 
 import feedparser
+from bs4 import BeautifulSoup
 
-from pipeline.config import USER_AGENT
+from pipeline.config import SUMMARY_MAX_CHARS, USER_AGENT
 from pipeline.models import Article
 from pipeline.sources.base import SourceAdapter
 
@@ -53,4 +54,12 @@ class RSSAdapter(SourceAdapter):
         summary = entry.get("summary") or entry.get("description")
         if not summary:
             return None
-        return summary.strip()
+
+        text = BeautifulSoup(summary, "html.parser").get_text(separator=" ")
+        text = " ".join(text.split())
+        if not text:
+            return None
+
+        if len(text) > SUMMARY_MAX_CHARS:
+            text = text[:SUMMARY_MAX_CHARS].rsplit(" ", 1)[0]
+        return text
