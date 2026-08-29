@@ -30,7 +30,9 @@ jobs:
         run: pip install -r pipeline/requirements.txt
 
       - name: Test DB URL secret
-        run: echo "DB URL length: ${#SUPABASE_DB_URL}"
+        shell: bash
+        run: |
+         echo "DB URL length: ${#SUPABASE_DB_URL}"
 
       - name: Run pipeline
         run: python -m pipeline.main
