@@ -9,6 +9,14 @@ jobs:
   digest:
     runs-on: ubuntu-latest
 
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      DIGEST_RECIPIENT: ${{ secrets.DIGEST_RECIPIENT }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,6 +28,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r pipeline/requirements.txt
+
+      - name: Test DB URL secret
+        run: echo "DB URL length: ${#SUPABASE_DB_URL}"
 
       - name: Run pipeline
         run: python -m pipeline.main
