@@ -5,48 +5,57 @@
 ## What is Skim?
 
 Skim is a fully automated system that:
-1. **Scrapes** tech/AI news daily from 5+ free sources (Hacker News, TechCrunch, Ars Technica, The Verge, arXiv)
-2. **Reasons** over articles using LLMs with function calling (classifies topics, scores importance, generates editorial insights)
-3. **Selects** the day's top stories through multi-pass agentic reasoning
-4. **Delivers** a curated HTML email digest every morning
-5. **Serves** a web dashboard with archive browsing and RAG-powered chat ("What happened in AI this week?")
 
-All running on free-tier infrastructure with zero cost.
+1. **Ingests** tech news daily from Hacker News and RSS feeds (TechCrunch, Ars Technica, The Verge, MIT Technology Review)
+2. **Embeds** articles locally with sentence-transformers for semantic search over the full corpus
+3. **Reasons** over articles using LLMs with function calling (classify topics, score importance, generate editorial insights) — *planned*
+4. **Selects** the day's top stories through multi-pass agentic reasoning — *planned*
+5. **Delivers** a curated HTML email digest every morning — *planned*
+6. **Serves** a web dashboard with archive browsing and RAG-powered chat — *planned*
+
+All designed to run on free-tier infrastructure.
 
 ## Tech Stack
 
 | Layer | Technology | Why |
 |-------|-----------|-----|
-| Pipeline | Python 3.11 | Best ecosystem for scraping, NLP, embeddings |
-| Dashboard | Next.js 14 + TypeScript | Industry standard, server components, API routes |
-| Database | Supabase (PostgreSQL + pgvector) | Free tier, relational + vector in one DB |
-| LLM | Groq (Llama 3.3 70B) + Gemini Flash fallback | Free tier, function calling support |
-| Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Runs locally, zero API cost |
+| Pipeline | Python 3.11 | Scraping, NLP, embeddings |
+| Dashboard | Next.js 16 + TypeScript | Server components, API routes |
+| Database | Supabase (PostgreSQL + pgvector) | Relational + vector in one DB |
+| LLM | Groq (Llama 3.3 70B) + Gemini Flash fallback | Free tier, function calling |
+| Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Local, zero API cost |
 | Email | Resend | 3,000 emails/month free |
-| Scheduler | GitHub Actions cron | Free 2,000 min/month |
-| Frontend hosting | Vercel | Free hobby tier, auto-deploy |
+| Scheduler | GitHub Actions cron | Free minutes, built-in secrets |
+| Frontend hosting | Vercel | Free hobby tier |
 
-## Features
+## What's Built
 
-- Automated daily ingestion from 5+ sources with deduplication
-- LLM-powered classification via function calling (topic + importance scoring)
-- Multi-pass agentic reasoning (classify → generate insights → holistic selection)
-- Dual-LLM failover (Groq primary, Gemini fallback)
-- Idempotent pipeline (safe to re-run, no duplicate emails)
-- Graceful degradation (broken sources don't crash the run)
-- Semantic vector search over accumulated corpus
-- RAG chat with source citations
-- Pipeline observability (stats table + failure alerts)
-- Zero infrastructure cost
+**Ingestion**
+- Source adapters for Hacker News and RSS feeds with graceful per-source failure handling
+- URL normalization and deduplication (`ON CONFLICT DO NOTHING`)
+- HTML stripped from RSS summaries, capped at 1,000 characters
+
+**Embeddings**
+- Local `all-MiniLM-L6-v2` embeddings over `title + summary`
+- Idempotent `embed_new_articles()` — only processes rows with `NULL` embeddings
+- Cosine similarity search in Python and via Supabase RPC (`search_similar_articles`)
+
+**Infrastructure**
+- Supabase schema with `articles`, `digests`, and `pipeline_runs` tables
+- GitHub Actions workflow (daily cron + manual trigger) with sentence-transformers model caching
+- Next.js dashboard scaffold with Supabase client wired up
+
+**Tests**
+- 38 pytest tests covering adapters, dedup, DB inserts, embeddings, and similarity search
 
 ## Architecture
 
 ```
-GitHub Actions (cron, daily 6:00 AM NPT)
+GitHub Actions (cron, daily 00:15 UTC)
         │
         ▼
 ┌─────────────────┐
-│ 1. Ingestion    │  RSS feeds + Hacker News API
+│ 1. Ingestion    │  Hacker News API + RSS feeds
 └────────┬────────┘
          ▼
 ┌─────────────────┐
@@ -58,17 +67,16 @@ GitHub Actions (cron, daily 6:00 AM NPT)
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│ 4. Agent Reason │  Groq/Gemini function calling:
-│                 │   classify → generate insight → select top stories
+│ 4. Agent Reason │  Groq/Gemini function calling  (planned)
+│                 │   classify → insight → selection
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│ 5. Compose+Send │  Jinja2 HTML template → Resend email
+│ 5. Compose+Send │  Jinja2 HTML → Resend email     (planned)
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│ 6. Dashboard    │  Next.js + Vercel — browse archive, RAG chat
-│  (reads same DB)│
+│ 6. Dashboard    │  Next.js — archive + RAG chat   (planned)
 └─────────────────┘
 ```
 
@@ -76,62 +84,111 @@ GitHub Actions (cron, daily 6:00 AM NPT)
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Phase 0: Setup | Not Started | Repo structure, Supabase, GH Actions skeleton, API keys |
-| Phase 1: Ingestion | Not Started | Source adapters (HN, RSS), dedup, Postgres storage |
-| Phase 2: Embedding | Not Started | sentence-transformers, pgvector, semantic search |
-| Phase 3: Agent Reasoning | Not Started | Function calling, 3-pass classification/insight/selection |
-| Phase 4: Digest + Email | Not Started | HTML template, Resend, pipeline orchestration |
-| Phase 5: Reliability | Not Started | Cron scheduling, retry logic, monitoring, alerting |
-| Phase 6: Dashboard + RAG | Not Started | Next.js, archive view, RAG chat with citations |
-| Phase 7: Polish | Not Started | Documentation, tests, demo recording |
+| Setup | Done | Repo structure, Supabase, GitHub Actions, API keys |
+| Ingestion | Done | HN + RSS adapters, dedup, Postgres storage |
+| Embeddings | Done | sentence-transformers, pgvector, semantic search RPC |
+| Agent Reasoning | Planned | Function calling, classify / insight / selection |
+| Digest + Email | Planned | HTML template, Resend, full orchestration |
+| Reliability | Planned | Retry logic, pipeline_runs observability, alerting |
+| Dashboard + RAG | Planned | Archive view, RAG chat with citations |
+| Polish | Planned | End-to-end tests, demo |
 
-**Overall Progress: 0/8 phases complete**
+## Repository Layout
+
+```
+Skim/
+├── pipeline/          # Python ingestion + embedding pipeline
+│   ├── sources/       # Hacker News and RSS adapters
+│   ├── ingest.py      # Daily ingestion orchestrator
+│   ├── embed.py       # Embedding + similarity search
+│   ├── db.py          # Postgres connection and queries
+│   └── tests/         # pytest suite
+├── dashboard/         # Next.js frontend
+├── sql/               # Supabase schema and RPC functions
+└── .github/workflows/ # GitHub Actions (digest.yml)
+```
 
 ## Quick Start
 
+### Prerequisites
+
+- Python 3.11+
+- Node.js 20+
+- A Supabase project with `sql/schema.sql` applied
+
+### Database setup
+
+Run `sql/schema.sql` in the Supabase SQL editor. This creates the `articles`, `digests`, and `pipeline_runs` tables, enables pgvector, and adds the `search_similar_articles` RPC.
+
+### Pipeline
+
 ```bash
-# Clone the repo
 git clone <repo-url>
 cd Skim
 
-# Backend pipeline
 cd pipeline
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env  # Fill in your keys
-python -m pipeline.main
+cp env.example .env             # Fill in your keys
 
-# Frontend dashboard
-cd ../dashboard
+# Ingest articles from all sources
+python -m pipeline.ingest
+
+# Embed any articles missing embeddings
+python -c "from pipeline.embed import embed_new_articles; print(embed_new_articles())"
+
+# Run tests (integration tests need a live DB)
+pytest
+```
+
+### Dashboard
+
+```bash
+cd dashboard
 npm install
-cp .env.example .env.local  # Fill in your keys
+cp env.example .env.local       # Fill in Supabase URL + publishable key
 npm run dev
 ```
 
-## Documentation
+### Environment variables
 
-- [Development Plan](docs/DEVELOPMENT_PLAN.md) — Detailed phase-by-phase build plan with all tasks
-- [Architecture](docs/architecture.md) — System diagrams, data flow, decision log (coming soon)
+**Pipeline** (`pipeline/.env`):
+
+| Variable | Purpose |
+|----------|---------|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_PUBLISHABLE_KEY` | Publishable (anon) key |
+| `SUPABASE_SECRET_KEY` | Service role key |
+| `SUPABASE_DB_URL` | Direct Postgres connection string |
+| `GROQ_API_KEY` | Groq LLM API key |
+| `GEMINI_API_KEY` | Gemini fallback API key |
+| `RESEND_API_KEY` | Email delivery |
+| `DIGEST_RECIPIENT` | Digest email address |
+
+**Dashboard** (`dashboard/.env.local`):
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key for client |
+
+### GitHub Actions
+
+Add the pipeline env vars as repository secrets. For `SUPABASE_DB_URL`, use the **Supavisor transaction pooler** (port 6543) from Supabase Dashboard → Connect — GitHub Actions runners are IPv4-only and cannot reach Supabase's direct `db.*.supabase.co` endpoint.
+
+If your database password contains `@`, store it as-is in the secret; the pipeline URL-encodes it automatically.
 
 ## Design Decisions
 
-| Decision | Choice | Alternative Considered | Reasoning |
-|----------|--------|----------------------|-----------|
-| Vector DB | pgvector (in Supabase) | Pinecone, Weaviate | Zero cost, one fewer service, vectors + relational in one DB |
-| Scheduler | GitHub Actions cron | Dedicated server, Railway | Zero cost, zero maintenance, built-in secrets |
-| LLM output | Function calling | Free-form text parsing | Typed JSON guaranteed, no regex parsing needed |
-| Architecture | Multi-pass agent | Single mega-prompt | Each step focused, real dependency chain, partial failure recovery |
-| Embedding | Local model (MiniLM) | OpenAI/Cohere API | Completely free at any volume, no rate limits |
-
-## Future Work
-
-- Personalized ranking via user feedback loop
-- Multi-user support with preference profiles
-- Real-time breaking news alerts
-- Fine-tuned classification model replacing LLM calls
-- RSS source auto-discovery
-- Weekly/monthly trend analysis
+| Decision | Choice | Reasoning |
+|----------|--------|-----------|
+| Vector DB | pgvector in Supabase | One database for relational + vector data, zero extra cost |
+| Scheduler | GitHub Actions cron | Free, no server to maintain, built-in secrets |
+| LLM output | Function calling | Typed JSON, no fragile text parsing |
+| Architecture | Multi-pass agent | Focused steps with partial failure recovery |
+| Embedding | Local MiniLM | Free at any volume, no rate limits |
+| CI database | Supavisor pooler | IPv4-compatible; direct Supabase host is IPv6-only |
 
 ## License
 
