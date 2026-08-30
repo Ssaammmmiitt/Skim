@@ -2,12 +2,16 @@ import json
 import logging
 import os
 import time
+from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 from groq import Groq
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +19,11 @@ GEMINI_MODEL = "gemini-2.5-flash"
 GROQ_MODEL = "openai/gpt-oss-120b"
 
 GEMINI_FALLBACK_STATUS_CODES = {429, 500, 502, 503, 504}
-GEMINI_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+
+# 429 is excluded: Gemini's free tier quota is per-day, so a short backoff never
+# clears it. Rotate to the next key or fall through to Groq instead.
+GEMINI_RETRYABLE_STATUS_CODES = {500, 502, 503, 504}
+GEMINI_QUOTA_STATUS_CODES = {429}
 GEMINI_MAX_RETRIES = 3
 GEMINI_RETRY_BACKOFF_SECONDS = 2
 
@@ -24,26 +32,84 @@ class LLMProviderError(Exception):
     """Raised when both Gemini and Groq fail."""
 
 
+def _parse_csv_keys(env_var: str) -> list[str]:
+    raw = os.environ.get(env_var, "")
+    return [key.strip() for key in raw.split(",") if key.strip()]
+
+
 class LLMClient:
+    """Gemini-primary LLM client with Groq fallback.
+
+    Both providers accept multiple comma-separated API keys via GEMINI_API_KEYS
+    and GROQ_API_KEYS. Gemini keys must come from separate Google Cloud projects
+    to get separate quota buckets, since the free tier meters per project rather
+    than per key.
+    """
+
     def __init__(
         self,
         gemini_client: genai.Client | None = None,
         groq_client: Groq | None = None,
     ):
-        self._gemini = gemini_client or genai.Client(
-            api_key=os.environ["GEMINI_API_KEY"]
-        )
+        self._gemini_keys = _parse_csv_keys("GEMINI_API_KEYS")
+        self._groq_keys = _parse_csv_keys("GROQ_API_KEYS")
+        self._gemini_key_index = 0
+        self._groq_key_index = 0
+
+        if gemini_client is not None:
+            self._gemini = gemini_client
+        elif self._gemini_keys:
+            self._gemini = genai.Client(api_key=self._gemini_keys[0])
+        else:
+            raise LLMProviderError(
+                "GEMINI_API_KEYS is not set; provide one or more comma-separated "
+                "Gemini API keys"
+            )
+
+        self._gemini_is_injected = gemini_client is not None
         self._groq = groq_client
+        self._groq_is_injected = groq_client is not None
         self.provider = "gemini"
+
+    def _advance_gemini_key(self) -> bool:
+        """Switch to the next Gemini key. Returns False when none are left."""
+        if self._gemini_is_injected:
+            return False
+        if self._gemini_key_index + 1 >= len(self._gemini_keys):
+            return False
+
+        self._gemini_key_index += 1
+        self._gemini = genai.Client(api_key=self._gemini_keys[self._gemini_key_index])
+        logger.info(
+            "Rotated to Gemini key %d/%d",
+            self._gemini_key_index + 1,
+            len(self._gemini_keys),
+        )
+        return True
+
+    def _advance_groq_key(self) -> bool:
+        if self._groq_is_injected:
+            return False
+        if self._groq_key_index + 1 >= len(self._groq_keys):
+            return False
+
+        self._groq_key_index += 1
+        self._groq = Groq(api_key=self._groq_keys[self._groq_key_index])
+        logger.info(
+            "Rotated to Groq key %d/%d",
+            self._groq_key_index + 1,
+            len(self._groq_keys),
+        )
+        return True
 
     def _get_groq(self) -> Groq:
         if self._groq is None:
-            groq_key = os.environ.get("GROQ_API_KEY")
-            if not groq_key:
+            if not self._groq_keys:
                 raise LLMProviderError(
-                    "Groq fallback requested but GROQ_API_KEY is not set"
+                    "GROQ_API_KEYS is not set; provide one or more comma-separated "
+                    "Groq API keys for fallback"
                 )
-            self._groq = Groq(api_key=groq_key)
+            self._groq = Groq(api_key=self._groq_keys[self._groq_key_index])
         return self._groq
 
     def chat_with_tools(
@@ -52,36 +118,55 @@ class LLMClient:
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        last_error: genai_errors.APIError | None = None
-
-        for attempt in range(GEMINI_MAX_RETRIES):
-            try:
-                return self._gemini_chat(messages, tools, tool_choice)
-            except genai_errors.APIError as exc:
-                last_error = exc
-                if (
-                    exc.code in GEMINI_RETRYABLE_STATUS_CODES
-                    and attempt < GEMINI_MAX_RETRIES - 1
-                ):
-                    delay = GEMINI_RETRY_BACKOFF_SECONDS * (2**attempt)
-                    logger.warning(
-                        "Gemini failed (%s), retrying in %ss (attempt %d/%d)",
-                        exc,
-                        delay,
-                        attempt + 1,
-                        GEMINI_MAX_RETRIES,
-                    )
-                    time.sleep(delay)
-                    continue
-                break
-
-        if last_error and self._should_fallback_from_gemini(last_error):
-            logger.warning("Gemini failed (%s), falling back to Groq", last_error)
+        try:
+            return self._gemini_chat_all_keys(messages, tools, tool_choice)
+        except genai_errors.APIError as exc:
+            if not self._should_fallback_from_gemini(exc):
+                raise
+            logger.warning("Gemini failed (%s), falling back to Groq", exc)
             return self._groq_chat(messages, tools, tool_choice)
 
-        if last_error:
-            raise last_error
-        raise LLMProviderError("Gemini failed without a response")
+    def _gemini_chat_all_keys(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        tool_choice: str | dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Run the Gemini pass, rotating keys when a key's quota is exhausted."""
+        last_error: genai_errors.APIError | None = None
+
+        while True:
+            for attempt in range(GEMINI_MAX_RETRIES):
+                try:
+                    return self._gemini_chat(messages, tools, tool_choice)
+                except genai_errors.APIError as exc:
+                    last_error = exc
+                    if (
+                        exc.code in GEMINI_RETRYABLE_STATUS_CODES
+                        and attempt < GEMINI_MAX_RETRIES - 1
+                    ):
+                        delay = GEMINI_RETRY_BACKOFF_SECONDS * (2**attempt)
+                        logger.warning(
+                            "Gemini failed (%s), retrying in %ss (attempt %d/%d)",
+                            exc,
+                            delay,
+                            attempt + 1,
+                            GEMINI_MAX_RETRIES,
+                        )
+                        time.sleep(delay)
+                        continue
+                    break
+
+            quota_exhausted = (
+                last_error is not None
+                and last_error.code in GEMINI_QUOTA_STATUS_CODES
+            )
+            if quota_exhausted and self._advance_gemini_key():
+                continue
+
+            if last_error:
+                raise last_error
+            raise LLMProviderError("Gemini failed without a response")
 
     def _should_fallback_from_gemini(self, exc: genai_errors.APIError) -> bool:
         return exc.code in GEMINI_FALLBACK_STATUS_CODES
@@ -144,19 +229,26 @@ class LLMClient:
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None,
     ) -> dict[str, Any]:
-        try:
-            response = self._get_groq().chat.completions.create(
-                model=GROQ_MODEL,
-                messages=self._normalize_messages_for_groq(messages),
-                tools=tools,
-                tool_choice=tool_choice or "auto",
-            )
-            self.provider = "groq"
-            return self._parse_groq_response(response)
-        except Exception as exc:
-            raise LLMProviderError(
-                f"Both Gemini and Groq failed. Groq error: {exc}"
-            ) from exc
+        last_error: Exception | None = None
+
+        while True:
+            try:
+                response = self._get_groq().chat.completions.create(
+                    model=GROQ_MODEL,
+                    messages=self._normalize_messages_for_groq(messages),
+                    tools=tools,
+                    tool_choice=tool_choice or "auto",
+                )
+                self.provider = "groq"
+                return self._parse_groq_response(response)
+            except Exception as exc:
+                last_error = exc
+                if self._advance_groq_key():
+                    logger.warning("Groq key failed (%s), trying next key", exc)
+                    continue
+                raise LLMProviderError(
+                    f"Both Gemini and Groq failed. Groq error: {last_error}"
+                ) from last_error
 
     def _normalize_messages_for_groq(
         self, messages: list[dict[str, Any]]

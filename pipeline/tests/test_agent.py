@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pipeline.agent.llm_client import LLMProviderError
 from pipeline.agent.reasoning import ArticleAgent, chunked, run_agent_reasoning
 from pipeline.db import (
     get_articles_by_urls,
@@ -160,6 +161,79 @@ def test_classify_batch_updates_db_with_mock_llm(test_run_id):
     updated = get_articles_by_urls([article["url"]])[0]
     assert updated["topic"] == "ai_ml"
     assert float(updated["importance_score"]) == 9
+
+
+def test_classify_batch_keeps_progress_when_providers_fail(test_run_id):
+    articles = _insert_and_fetch(
+        [
+            _make_article(f"{test_run_id}-quota-1", "First article", "Summary one."),
+            _make_article(f"{test_run_id}-quota-2", "Second article", "Summary two."),
+        ]
+    )
+
+    mock_llm = MagicMock()
+    mock_llm.chat_with_tools.side_effect = [
+        {
+            "provider": "gemini",
+            "content": None,
+            "tool_calls": [
+                {
+                    "name": "classify_article",
+                    "arguments": {
+                        "article_id": articles[0]["id"],
+                        "topic": "ai_ml",
+                        "importance_score": 7,
+                        "reasoning": "Classified before quota ran out",
+                    },
+                }
+            ],
+        },
+        LLMProviderError("Both Gemini and Groq failed"),
+    ]
+
+    agent = ArticleAgent(llm=mock_llm, batch_size=1, batch_delay_seconds=0)
+    result = agent.classify_batch(articles)
+
+    assert len(result) == 1
+    assert result[0]["article_id"] == articles[0]["id"]
+    stored = get_articles_by_urls([articles[0]["url"]])[0]
+    assert stored["topic"] == "ai_ml"
+
+
+def test_generate_insights_keeps_progress_when_providers_fail(test_run_id):
+    articles = _insert_and_fetch(
+        [
+            _make_article(f"{test_run_id}-ins-quota-1", "First big story", "Summary one."),
+            _make_article(f"{test_run_id}-ins-quota-2", "Second big story", "Summary two."),
+        ]
+    )
+    classified = [_classify_article(article, "ai_ml", 8) for article in articles]
+
+    mock_llm = MagicMock()
+    mock_llm.chat_with_tools.side_effect = [
+        {
+            "provider": "gemini",
+            "content": None,
+            "tool_calls": [
+                {
+                    "name": "generate_insight",
+                    "arguments": {
+                        "article_id": classified[0]["id"],
+                        "insight": "This shifts how teams budget inference costs.",
+                        "key_takeaway": "Revisit inference cost assumptions.",
+                    },
+                }
+            ],
+        },
+        LLMProviderError("Both Gemini and Groq failed"),
+    ]
+
+    agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
+    result = agent.generate_insights(classified)
+
+    assert len(result) == 1
+    stored = get_articles_by_urls([classified[0]["url"]])[0]
+    assert stored["insight"] is not None
 
 
 def test_validate_classification_rejects_unknown_article_id(test_run_id):

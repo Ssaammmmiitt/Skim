@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Any, Iterator
 
-from pipeline.agent.llm_client import LLMClient
+from pipeline.agent.llm_client import LLMClient, LLMProviderError
 from pipeline.agent.prompts import (
     build_classification_messages,
     build_insight_messages,
@@ -19,12 +19,17 @@ from pipeline.db import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BATCH_SIZE = 5
+DEFAULT_BATCH_SIZE = 10
 DEFAULT_BATCH_DELAY_SECONDS = 2
 IMPORTANCE_THRESHOLD_FOR_INSIGHTS = 5
 DEFAULT_DIGEST_SIZE = 8
 MIN_DIGEST_STORIES = 7
 MAX_DIGEST_STORIES = 10
+
+# Gemini's free tier allows 20 requests/day per model, so a single run has to
+# stay well under that across all three passes.
+DEFAULT_CLASSIFY_LIMIT = 60
+DEFAULT_INSIGHT_LIMIT = 8
 
 
 def chunked(items: list[Any], size: int) -> Iterator[list[Any]]:
@@ -52,7 +57,17 @@ class ArticleAgent:
         batches = list(chunked(articles, self.batch_size))
 
         for batch_index, batch in enumerate(batches):
-            batch_results = self._classify_single_batch(batch)
+            try:
+                batch_results = self._classify_single_batch(batch)
+            except LLMProviderError as exc:
+                logger.warning(
+                    "Classification stopped after %d/%d articles: %s",
+                    len(classified),
+                    len(articles),
+                    exc,
+                )
+                return classified
+
             classified.extend(batch_results)
             classified_ids.update(result["article_id"] for result in batch_results)
 
@@ -61,7 +76,12 @@ class ArticleAgent:
 
         missing = [article for article in articles if article["id"] not in classified_ids]
         for index, article in enumerate(missing):
-            retry_results = self._classify_single_batch([article])
+            try:
+                retry_results = self._classify_single_batch([article])
+            except LLMProviderError as exc:
+                logger.warning("Retry pass stopped: %s", exc)
+                return classified
+
             classified.extend(retry_results)
             classified_ids.update(result["article_id"] for result in retry_results)
 
@@ -134,14 +154,24 @@ class ArticleAgent:
 
         insights: list[dict[str, Any]] = []
         for index, article in enumerate(articles):
-            response = self.llm.chat_with_tools(
-                messages=build_insight_messages([article]),
-                tools=[GENERATE_INSIGHT],
-                tool_choice={
-                    "type": "function",
-                    "function": {"name": "generate_insight"},
-                },
-            )
+            try:
+                response = self.llm.chat_with_tools(
+                    messages=build_insight_messages([article]),
+                    tools=[GENERATE_INSIGHT],
+                    tool_choice={
+                        "type": "function",
+                        "function": {"name": "generate_insight"},
+                    },
+                )
+            except LLMProviderError as exc:
+                logger.warning(
+                    "Insight generation stopped after %d/%d articles: %s",
+                    len(insights),
+                    len(articles),
+                    exc,
+                )
+                return insights
+
             if not response["tool_calls"]:
                 logger.warning("No insight generated for article %s", article["id"])
                 continue
@@ -162,7 +192,7 @@ class ArticleAgent:
     def generate_insights_for_top_articles(
         self,
         min_score: float = IMPORTANCE_THRESHOLD_FOR_INSIGHTS,
-        limit: int = 100,
+        limit: int = DEFAULT_INSIGHT_LIMIT,
     ) -> list[dict[str, Any]]:
         articles = get_articles_needing_insights(min_score=min_score, limit=limit)
         return self.generate_insights(articles)
@@ -292,7 +322,11 @@ def run_agent_reasoning(
         return {"articles": [], "selected_article_ids": [], "rationale": ""}
 
     logger.info("Pass 3: selecting digest from %d classified articles", len(all_classified))
-    return agent.select_digest_stories(all_classified, n=n)
+    try:
+        return agent.select_digest_stories(all_classified, n=n)
+    except LLMProviderError as exc:
+        logger.warning("Digest selection unavailable: %s", exc)
+        return {"articles": [], "selected_article_ids": [], "rationale": ""}
 
 
 if __name__ == "__main__":
@@ -305,7 +339,7 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    unclassified = get_unclassified_articles(limit=200)
+    unclassified = get_unclassified_articles(limit=DEFAULT_CLASSIFY_LIMIT)
     selection = run_agent_reasoning(unclassified)
     logger.info(
         "Agent reasoning complete: selected %d stories",
@@ -313,5 +347,3 @@ if __name__ == "__main__":
     )
     if selection["rationale"]:
         logger.info("Selection rationale: %s", selection["rationale"])
-    if not selection["articles"]:
-        raise SystemExit(1)

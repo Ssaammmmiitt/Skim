@@ -16,8 +16,8 @@ jobs:
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       SUPABASE_JWKS_URL: ${{ secrets.SUPABASE_JWKS_URL }}
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
+      GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       DIGEST_RECIPIENT: ${{ secrets.DIGEST_RECIPIENT }}
 

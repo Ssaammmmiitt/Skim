@@ -162,8 +162,8 @@ npm run dev
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable (anon) key |
 | `SUPABASE_SECRET_KEY` | Service role key |
 | `SUPABASE_DB_URL` | Direct Postgres connection string |
-| `GEMINI_API_KEY` | Gemini LLM API key (primary) |
-| `GROQ_API_KEY` | Groq fallback API key |
+| `GEMINI_API_KEYS` | Gemini API keys (primary), comma-separated to rotate on quota exhaustion |
+| `GROQ_API_KEYS` | Groq fallback API keys, comma-separated |
 | `RESEND_API_KEY` | Email delivery |
 | `DIGEST_RECIPIENT` | Digest email address |
 

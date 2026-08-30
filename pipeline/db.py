@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import psycopg2
 from dotenv import load_dotenv
@@ -8,7 +9,7 @@ from urllib.parse import quote
 from pipeline.models import Article
 from pipeline.sources.base import normalize_url
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 
 def _encode_db_password(db_url: str) -> str:
