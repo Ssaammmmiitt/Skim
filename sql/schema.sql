@@ -44,9 +44,12 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
     duration_seconds FLOAT
 );
 
--- Vector similarity search index
-CREATE INDEX IF NOT EXISTS articles_embedding_idx ON articles
-    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+-- Vector similarity search index.
+-- HNSW rather than ivfflat: ivfflat needs a large, well-distributed corpus to
+-- train its lists, and silently loses most recall on a small table.
+DROP INDEX IF EXISTS articles_embedding_idx;
+CREATE INDEX IF NOT EXISTS articles_embedding_hnsw_idx ON articles
+    USING hnsw (embedding vector_cosine_ops);
 
 -- Fast lookups
 CREATE INDEX IF NOT EXISTS articles_digest_date_idx ON articles(digest_date);

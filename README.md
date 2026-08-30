@@ -22,7 +22,7 @@ All designed to run on free-tier infrastructure.
 | Pipeline | Python 3.11 | Scraping, NLP, embeddings |
 | Dashboard | Next.js 16 + TypeScript | Server components, API routes |
 | Database | Supabase (PostgreSQL + pgvector) | Relational + vector in one DB |
-| LLM | Groq (Llama 3.3 70B) + Gemini Flash fallback | Free tier, function calling |
+| LLM | Gemini 2.5 Flash (primary) + Groq fallback | High TPM for RAG; Groq for speed when Gemini is rate-limited |
 | Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Local, zero API cost |
 | Email | Resend | 3,000 emails/month free |
 | Scheduler | GitHub Actions cron | Free minutes, built-in secrets |
@@ -39,6 +39,7 @@ All designed to run on free-tier infrastructure.
 - Local `all-MiniLM-L6-v2` embeddings over `title + summary`
 - Idempotent `embed_new_articles()` — only processes rows with `NULL` embeddings
 - Cosine similarity search in Python and via Supabase RPC (`search_similar_articles`)
+- HNSW index for vector search (ivfflat loses most recall on a small corpus)
 
 **Infrastructure**
 - Supabase schema with `articles`, `digests`, and `pipeline_runs` tables
@@ -136,7 +137,7 @@ cp env.example .env             # Fill in your keys
 python -m pipeline.ingest
 
 # Embed any articles missing embeddings
-python -c "from pipeline.embed import embed_new_articles; print(embed_new_articles())"
+python -m pipeline.embed
 
 # Run tests (integration tests need a live DB)
 pytest
@@ -161,8 +162,8 @@ npm run dev
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable (anon) key |
 | `SUPABASE_SECRET_KEY` | Service role key |
 | `SUPABASE_DB_URL` | Direct Postgres connection string |
-| `GROQ_API_KEY` | Groq LLM API key |
-| `GEMINI_API_KEY` | Gemini fallback API key |
+| `GEMINI_API_KEY` | Gemini LLM API key (primary) |
+| `GROQ_API_KEY` | Groq fallback API key |
 | `RESEND_API_KEY` | Email delivery |
 | `DIGEST_RECIPIENT` | Digest email address |
 

@@ -65,6 +65,26 @@ def embed_new_articles(limit: int = 100) -> int:
     return len(rows)
 
 
+def embed_all_articles(batch_size: int = 100) -> int:
+    total = 0
+    while True:
+        embedded = embed_new_articles(limit=batch_size)
+        total += embedded
+        if embedded == 0:
+            break
+    return total
+
+
+def count_missing_embeddings() -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM articles WHERE embedding IS NULL")
+            return cur.fetchone()[0]
+    finally:
+        conn.close()
+
+
 def search_similar(
     query: str, k: int = 5, min_similarity: float = 0.3
 ) -> list[dict]:
@@ -115,3 +135,17 @@ def search_similar_articles_rpc(
             return [dict(zip(columns, row)) for row in cur.fetchall()]
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+    embedded = embed_all_articles()
+    missing = count_missing_embeddings()
+    logging.info("Embedded %d articles; %d still missing embeddings", embedded, missing)
+    if missing:
+        raise SystemExit(1)

@@ -99,3 +99,129 @@ def get_todays_new_articles() -> list[dict]:
             return [dict(zip(columns, row)) for row in cur.fetchall()]
     finally:
         conn.close()
+
+
+def get_unclassified_articles(limit: int = 100) -> list[dict]:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, url, source, published_at, summary
+                FROM articles
+                WHERE topic IS NULL OR importance_score IS NULL
+                ORDER BY created_at DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def update_article_classification(
+    article_id: int, topic: str, importance_score: float
+) -> None:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE articles
+                SET topic = %s, importance_score = %s
+                WHERE id = %s
+                """,
+                (topic, importance_score, article_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_articles_needing_insights(
+    min_score: float = 5, limit: int = 100
+) -> list[dict]:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, url, source, published_at, summary, topic, importance_score,
+                       insight, key_takeaway
+                FROM articles
+                WHERE importance_score >= %s
+                  AND (insight IS NULL OR key_takeaway IS NULL)
+                ORDER BY importance_score DESC, created_at DESC
+                LIMIT %s
+                """,
+                (min_score, limit),
+            )
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def update_article_insight(
+    article_id: int, insight: str, key_takeaway: str
+) -> None:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE articles
+                SET insight = %s, key_takeaway = %s
+                WHERE id = %s
+                """,
+                (insight, key_takeaway, article_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_todays_classified_articles() -> list[dict]:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, url, source, published_at, summary, topic, importance_score,
+                       insight, key_takeaway
+                FROM articles
+                WHERE created_at::date = CURRENT_DATE
+                  AND topic IS NOT NULL
+                  AND importance_score IS NOT NULL
+                ORDER BY importance_score DESC, created_at DESC
+                """
+            )
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def get_articles_by_urls(urls: list[str]) -> list[dict]:
+    if not urls:
+        return []
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, url, source, published_at, summary, topic, importance_score,
+                       insight, key_takeaway
+                FROM articles
+                WHERE url = ANY(%s)
+                ORDER BY id
+                """,
+                (urls,),
+            )
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+    finally:
+        conn.close()

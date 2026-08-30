@@ -8,6 +8,7 @@ on:
 jobs:
   digest:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -45,3 +46,9 @@ jobs:
 
       - name: Run ingestion
         run: python -m pipeline.ingest
+
+      - name: Embed articles
+        run: python -m pipeline.embed
+
+      - name: Run agent reasoning
+        run: python -m pipeline.agent.reasoning
