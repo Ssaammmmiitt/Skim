@@ -20,17 +20,17 @@ from pipeline.db import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BATCH_SIZE = 10
-DEFAULT_BATCH_DELAY_SECONDS = 2
+DEFAULT_BATCH_SIZE = 5
+DEFAULT_BATCH_DELAY_SECONDS = 1
 IMPORTANCE_THRESHOLD_FOR_INSIGHTS = 5
 DEFAULT_DIGEST_SIZE = 8
 MIN_DIGEST_STORIES = 7
 MAX_DIGEST_STORIES = 10
 
 # Gemini free tier: 20 requests/day per project. With 5 keys that's 100 Gemini
-# calls + unlimited Groq fallback.  Budget: ~80 classify + ~12 insight + 1 select
-# ≈ 93 calls, leaving headroom for retries.
-DEFAULT_CLASSIFY_LIMIT = 80
+# calls + unlimited Groq fallback.  Budget: ~50 classify (10 batches of 5)
+# + ~12 insight + 1 select ≈ 63 calls, leaving headroom for retries.
+DEFAULT_CLASSIFY_LIMIT = 50
 DEFAULT_INSIGHT_LIMIT = 12
 
 # Parallel insight workers — bounded to avoid hitting RPM limits.

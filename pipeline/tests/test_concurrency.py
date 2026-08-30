@@ -819,7 +819,7 @@ class TestConcurrencyLogging:
 class TestPoolUnexpectedExceptions:
 
     def test_timeout_on_gemini_rotates_to_next_key(self, monkeypatch):
-        """A non-APIError (like TimeoutError) marks the slot exhausted and tries next."""
+        """A non-APIError (like TimeoutError) rotates to the next key without exhausting."""
         monkeypatch.setenv("GEMINI_API_KEYS", "k1,k2")
 
         def _factory(api_key: str):
@@ -846,8 +846,8 @@ class TestPoolUnexpectedExceptions:
             [{"function": {"name": "classify_article", "description": "test"}}],
         )
         assert result["provider"] == "gemini"
-        assert llm_client._pool.slots[0].exhausted
-        assert not llm_client._pool.slots[1].exhausted
+        assert not llm_client._pool.slots[0].exhausted
+        assert llm_client._pool.slots[1].calls == 1
 
     def test_all_keys_timeout_falls_to_groq(self, monkeypatch):
         """If all Gemini keys timeout, falls to Groq."""
@@ -878,4 +878,4 @@ class TestPoolUnexpectedExceptions:
             [{"function": {"name": "classify_article", "description": "test"}}],
         )
         assert result["provider"] == "groq"
-        assert llm_client._gemini_exhausted
+        assert not llm_client._gemini_exhausted

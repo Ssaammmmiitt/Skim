@@ -18,7 +18,13 @@ jobs:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
       GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
-      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      GEMINI_FALLBACK_MODELS: gemini-2.0-flash,gemini-3.5-flash-lite
+      GEMINI_HIGH_DEMAND_THRESHOLD: "3"
+      GEMINI_MODEL_RECOVERY_SECONDS: "60"
+      MAILTRAP_API_TOKEN: ${{ secrets.MAILTRAP_API_TOKEN }}
+      MAILTRAP_SENDER_EMAIL: ${{ secrets.MAILTRAP_SENDER_EMAIL }}
+      MAILTRAP_SENDER_NAME: Skim
       DIGEST_RECIPIENT: ${{ secrets.DIGEST_RECIPIENT }}
 
     steps:
@@ -44,11 +50,5 @@ jobs:
             pip install -r pipeline/requirements.txt
           fi
 
-      - name: Run ingestion
-        run: python -m pipeline.ingest
-
-      - name: Embed articles
-        run: python -m pipeline.embed
-
-      - name: Run agent reasoning
-        run: python -m pipeline.agent.reasoning
+      - name: Run Skim pipeline
+        run: python -m pipeline.main

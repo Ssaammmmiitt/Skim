@@ -10,7 +10,7 @@ Skim is a fully automated system that:
 2. **Embeds** articles locally with sentence-transformers for semantic search over the full corpus
 3. **Reasons** over articles using LLMs with function calling (classify topics, score importance, generate editorial insights)
 4. **Selects** the day's top stories through multi-pass agentic reasoning
-5. **Delivers** a curated HTML email digest every morning — *planned*
+5. **Delivers** a curated HTML email digest every morning via Mailtrap
 6. **Serves** a web dashboard with archive browsing and RAG-powered chat — *planned*
 
 All designed to run on free-tier infrastructure.
@@ -24,7 +24,7 @@ All designed to run on free-tier infrastructure.
 | Database | Supabase (PostgreSQL + pgvector) | Relational + vector in one DB |
 | LLM | Gemini 3.6 Flash (primary) + Groq fallback | Structured function calling; Groq when Gemini keys are exhausted |
 | Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Local, zero API cost |
-| Email | Resend | 3,000 emails/month free |
+| Email | Mailtrap HTTP API | Sandbox for dev; verified-domain production sends |
 | Scheduler | GitHub Actions cron | Free minutes, built-in secrets |
 | Frontend hosting | Vercel | Free hobby tier |
 
@@ -43,10 +43,16 @@ All designed to run on free-tier infrastructure.
 
 **Agent reasoning**
 - Three-pass LLM pipeline: classify → insight → story selection
-- `gemini-3.6-flash` primary with Groq `openai/gpt-oss-120b` fallback
+- `gemini-3.6-flash` primary with ordered Gemini fallbacks (`gemini-2.0-flash`, `gemini-3.5-flash-lite`) on high demand, then Groq `openai/gpt-oss-120b`
 - Multi-key rotation: comma-separated `GEMINI_API_KEYS` / `GROQ_API_KEYS` (5 Gemini + 2 Groq)
 - Rotates on quota (429), invalid key (403), or unavailable model (404); skips Gemini for the rest of the run once all keys fail
 - Partial progress on provider failure — bad LLM responses are skipped, not fatal
+
+**Digest + email**
+- Jinja2 HTML email template with inline CSS (`pipeline/templates/digest.html`)
+- Mailtrap REST API delivery with sandbox mode for local dev
+- Full pipeline orchestrator (`python -m pipeline.main`) with digest idempotency via `digests` table
+- `pipeline_runs` logging for each execution
 
 **Infrastructure**
 - Supabase schema with `articles`, `digests`, and `pipeline_runs` tables
@@ -80,7 +86,7 @@ GitHub Actions (cron, daily 00:15 UTC)
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│ 5. Compose+Send │  Jinja2 HTML → Resend email     (planned)
+│ 5. Compose+Send │  Jinja2 HTML → Mailtrap email
 └────────┬────────┘
          ▼
 ┌─────────────────┐
@@ -96,7 +102,7 @@ GitHub Actions (cron, daily 00:15 UTC)
 | Ingestion | Done | HN + RSS adapters, dedup, Postgres storage |
 | Embeddings | Done | sentence-transformers, pgvector, semantic search RPC |
 | Agent Reasoning | Done | Function calling, classify / insight / selection, key rotation |
-| Digest + Email | Planned | HTML template, Resend, full orchestration |
+| Digest + Email | Done | HTML template, Mailtrap send, full orchestration |
 | Reliability | Planned | Retry logic, pipeline_runs observability, alerting |
 | Dashboard + RAG | Planned | Archive view, RAG chat with citations |
 | Polish | Planned | End-to-end tests, demo |
@@ -107,10 +113,14 @@ GitHub Actions (cron, daily 00:15 UTC)
 Skim/
 ├── pipeline/          # Python ingestion + embedding pipeline
 │   ├── sources/       # Hacker News and RSS adapters
-│   ├── agent/       # LLM client, prompts, reasoning orchestrator
+│   ├── agent/         # LLM client, prompts, reasoning orchestrator
 │   ├── ingest.py      # Daily ingestion orchestrator
 │   ├── embed.py       # Embedding + similarity search
 │   ├── db.py          # Postgres connection and queries
+│   ├── compose.py     # Jinja2 HTML digest composition
+│   ├── email_sender.py # Mailtrap email delivery
+│   ├── main.py        # Full pipeline orchestrator
+│   ├── templates/     # Email HTML templates
 │   └── tests/         # pytest suite
 ├── dashboard/         # Next.js frontend
 ├── sql/               # Supabase schema and RPC functions
@@ -141,13 +151,12 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp env.example .env             # Fill in your keys
 
-# Ingest articles from all sources
+# Run the full daily pipeline (ingest → embed → reason → email)
+python -m pipeline.main
+
+# Or run individual stages:
 python -m pipeline.ingest
-
-# Embed any articles missing embeddings
 python -m pipeline.embed
-
-# Run agent reasoning (classify → insight → selection)
 python -m pipeline.agent.reasoning
 
 # Run tests (integration tests need a live DB)
@@ -175,7 +184,16 @@ npm run dev
 | `SUPABASE_DB_URL` | Direct Postgres connection string |
 | `GEMINI_API_KEYS` | Gemini API keys (primary), comma-separated — one key per Google Cloud project for separate free-tier quota |
 | `GROQ_API_KEYS` | Groq fallback API keys, comma-separated — used when all Gemini keys are exhausted |
-| `RESEND_API_KEY` | Email delivery |
+| `HF_TOKEN` | Hugging Face token for faster embedding model downloads (optional but recommended) |
+| `GEMINI_FALLBACK_MODELS` | Comma-separated Gemini fallbacks on high demand (default: `gemini-2.0-flash,gemini-3.5-flash-lite`) |
+| `GEMINI_FALLBACK_MODEL` | Legacy single-fallback override (optional if `GEMINI_FALLBACK_MODELS` is set) |
+| `GEMINI_HIGH_DEMAND_THRESHOLD` | Consecutive 503/504 errors before switching to fallback models (default: `3`) |
+| `GEMINI_MODEL_RECOVERY_SECONDS` | Seconds before retrying primary model after switching to fallback (default: `60`) |
+| `MAILTRAP_API_TOKEN` | Mailtrap API token |
+| `MAILTRAP_SENDER_EMAIL` | Verified sender address (production) |
+| `MAILTRAP_SENDER_NAME` | Sender display name (default: Skim) |
+| `MAILTRAP_SANDBOX` | Set `true` locally to capture emails in Mailtrap sandbox |
+| `MAILTRAP_INBOX_ID` | Sandbox inbox ID (required when `MAILTRAP_SANDBOX=true`) |
 | `DIGEST_RECIPIENT` | Digest email address |
 
 **Dashboard** (`dashboard/.env.local`):
@@ -188,6 +206,12 @@ npm run dev
 ### GitHub Actions
 
 Add the pipeline env vars as repository secrets. For `GEMINI_API_KEYS`, paste all keys comma-separated in a single secret (e.g. `key1,key2,key3,key4,key5`). Keys must come from separate Google Cloud projects — free-tier quota is per project, not per key.
+
+Also add `HF_TOKEN` (Hugging Face read token) for faster embedding model downloads in CI.
+
+`GEMINI_FALLBACK_MODELS`, `GEMINI_HIGH_DEMAND_THRESHOLD`, and `GEMINI_MODEL_RECOVERY_SECONDS` are set directly in the workflow (no secrets needed). Fallback models default to `gemini-2.0-flash,gemini-3.5-flash-lite` — avoid `gemini-2.5-flash`, which returns 404 on newer Google accounts.
+
+For Mailtrap, add `MAILTRAP_API_TOKEN`, `MAILTRAP_SENDER_EMAIL`, and `DIGEST_RECIPIENT`. Verify your sending domain in Mailtrap before enabling production sends in CI.
 
 For `SUPABASE_DB_URL`, use the **Supavisor transaction pooler** (port 6543) from Supabase Dashboard → Connect — GitHub Actions runners are IPv4-only and cannot reach Supabase's direct `db.*.supabase.co` endpoint.
 
@@ -205,6 +229,7 @@ If your database password contains `@`, store it as-is in the secret; the pipeli
 | Key rotation | Comma-separated env vars | 5 Gemini projects × 20 req/day = 100 calls before fallback |
 | Embedding | Local MiniLM | Free at any volume, no rate limits |
 | CI database | Supavisor pooler | IPv4-compatible; direct Supabase host is IPv6-only |
+| Email | Mailtrap API | Sandbox for local dev; verified-domain production sends in CI |
 
 ## License
 

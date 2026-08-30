@@ -1,4 +1,8 @@
+import json
+import logging
 import os
+import time
+from datetime import date
 from pathlib import Path
 
 import psycopg2
@@ -31,23 +35,47 @@ def _encode_db_password(db_url: str) -> str:
     return f"postgresql://{user}:{quote(password, safe='')}@{hostpart}"
 
 
+DB_CONNECT_MAX_RETRIES = 3
+DB_CONNECT_BACKOFF_SECONDS = 2
+
+logger = logging.getLogger(__name__)
+
+
 def get_connection() -> PgConnection:
     db_url = os.environ.get("SUPABASE_DB_URL", "")
     if not db_url:
         raise ValueError("SUPABASE_DB_URL is not set")
 
     db_url = _encode_db_password(db_url)
-    try:
-        return psycopg2.connect(db_url)
-    except psycopg2.OperationalError as exc:
-        if "Network is unreachable" in str(exc) and "db." in db_url and ".supabase.co" in db_url:
-            raise psycopg2.OperationalError(
-                f"{exc}\n\n"
-                "Supabase direct connections (db.*.supabase.co) use IPv6, which GitHub "
-                "Actions cannot reach. Set SUPABASE_DB_URL to the Supavisor pooler string "
-                "from Dashboard → Connect → Transaction pooler (port 6543)."
-            ) from exc
-        raise
+
+    last_error: Exception | None = None
+    for attempt in range(DB_CONNECT_MAX_RETRIES):
+        try:
+            conn = psycopg2.connect(db_url, connect_timeout=10)
+            if attempt > 0:
+                logger.info("DB connection succeeded on retry %d", attempt + 1)
+            return conn
+        except psycopg2.OperationalError as exc:
+            last_error = exc
+            if "Network is unreachable" in str(exc) and "db." in db_url and ".supabase.co" in db_url:
+                raise psycopg2.OperationalError(
+                    f"{exc}\n\n"
+                    "Supabase direct connections (db.*.supabase.co) use IPv6, which GitHub "
+                    "Actions cannot reach. Set SUPABASE_DB_URL to the Supavisor pooler string "
+                    "from Dashboard → Connect → Transaction pooler (port 6543)."
+                ) from exc
+            if attempt < DB_CONNECT_MAX_RETRIES - 1:
+                delay = DB_CONNECT_BACKOFF_SECONDS * (2 ** attempt)
+                logger.warning(
+                    "DB connection failed (attempt %d/%d): %s — retrying in %ds",
+                    attempt + 1,
+                    DB_CONNECT_MAX_RETRIES,
+                    exc,
+                    delay,
+                )
+                time.sleep(delay)
+            else:
+                raise
 
 
 def insert_articles(articles: list[Article]) -> int:
@@ -201,6 +229,118 @@ def get_todays_classified_articles() -> list[dict]:
             )
             columns = [desc[0] for desc in cur.description]
             return [dict(zip(columns, row)) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def digest_already_sent(digest_date: date) -> bool:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM digests WHERE digest_date = %s",
+                (digest_date,),
+            )
+            return cur.fetchone() is not None
+    finally:
+        conn.close()
+
+
+def record_digest_sent(
+    digest_date: date, article_ids: list[int], subject: str
+) -> None:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO digests (digest_date, article_ids, story_count, subject)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (digest_date) DO NOTHING
+                """,
+                (digest_date, article_ids, len(article_ids), subject),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def mark_articles_digest_date(article_ids: list[int], digest_date: date) -> None:
+    if not article_ids:
+        return
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE articles
+                SET digest_date = %s
+                WHERE id = ANY(%s)
+                """,
+                (digest_date, article_ids),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def record_pipeline_start(run_date: date) -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO pipeline_runs (run_date, status)
+                VALUES (%s, 'running')
+                RETURNING id
+                """,
+                (run_date,),
+            )
+            run_id = cur.fetchone()[0]
+        conn.commit()
+        return run_id
+    finally:
+        conn.close()
+
+
+def record_pipeline_complete(
+    run_id: int,
+    *,
+    status: str,
+    articles_ingested: int = 0,
+    articles_embedded: int = 0,
+    digest_sent: bool = False,
+    duration_seconds: float = 0,
+    error: str | None = None,
+) -> None:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            errors_json = json.dumps([{"message": error}]) if error else "[]"
+            cur.execute(
+                """
+                UPDATE pipeline_runs
+                SET completed_at = NOW(),
+                    status = %s,
+                    articles_ingested = %s,
+                    articles_embedded = %s,
+                    digest_sent = %s,
+                    duration_seconds = %s,
+                    errors = %s::jsonb
+                WHERE id = %s
+                """,
+                (
+                    status,
+                    articles_ingested,
+                    articles_embedded,
+                    digest_sent,
+                    duration_seconds,
+                    errors_json,
+                    run_id,
+                ),
+            )
+        conn.commit()
     finally:
         conn.close()
 

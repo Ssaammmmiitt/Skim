@@ -16,16 +16,113 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.6-flash"
+
+def _parse_csv_env(name: str) -> list[str]:
+    return [part.strip() for part in os.environ.get(name, "").split(",") if part.strip()]
+
+
+def _load_fallback_models() -> list[str]:
+    models = _parse_csv_env("GEMINI_FALLBACK_MODELS")
+    if models:
+        return models
+    single = os.environ.get("GEMINI_FALLBACK_MODEL", "").strip()
+    if single:
+        return [single]
+    return ["gemini-2.0-flash", "gemini-3.5-flash-lite"]
+
+
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_FALLBACK_MODELS = _load_fallback_models()
+GEMINI_FALLBACK_MODEL = GEMINI_FALLBACK_MODELS[0]
 GROQ_MODEL = "openai/gpt-oss-120b"
 
 GEMINI_FALLBACK_STATUS_CODES = {403, 404, 429, 500, 502, 503, 504}
 GEMINI_RETRYABLE_STATUS_CODES = {500, 502, 503, 504}
 GEMINI_KEY_ROTATION_STATUS_CODES = {403, 404, 429}
+HIGH_DEMAND_STATUS_CODES = {503, 504}
 GEMINI_MAX_RETRIES = 3
 GEMINI_RETRY_BACKOFF_SECONDS = 2
-GEMINI_REQUEST_TIMEOUT_SECONDS = 120
-GROQ_REQUEST_TIMEOUT_SECONDS = 60
+GEMINI_REQUEST_TIMEOUT_SECONDS = 60
+GROQ_REQUEST_TIMEOUT_SECONDS = 30
+HIGH_DEMAND_SWITCH_THRESHOLD = int(os.environ.get("GEMINI_HIGH_DEMAND_THRESHOLD", "3"))
+MODEL_RECOVERY_COOLDOWN_SECONDS = int(
+    os.environ.get("GEMINI_MODEL_RECOVERY_SECONDS", "60")
+)
+
+
+def _append_missing_fallback_models(models: list[str]) -> None:
+    for fallback in GEMINI_FALLBACK_MODELS:
+        if fallback not in models:
+            models.append(fallback)
+
+
+class _GeminiModelRouter:
+    """Switch to fallback Gemini models on sustained 503/504, recover after cooldown."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._using_fallback = False
+        self._fallback_since = 0.0
+        self._consecutive_high_demand = 0
+
+    def reset(self) -> None:
+        with self._lock:
+            self._using_fallback = False
+            self._fallback_since = 0.0
+            self._consecutive_high_demand = 0
+
+    @property
+    def using_fallback(self) -> bool:
+        with self._lock:
+            return self._using_fallback
+
+    def models_for_request(self) -> list[str]:
+        """Return model(s) to try for the current request, in order."""
+        with self._lock:
+            if not self._using_fallback:
+                return [GEMINI_MODEL]
+
+            elapsed = time.time() - self._fallback_since
+            if elapsed >= MODEL_RECOVERY_COOLDOWN_SECONDS:
+                logger.info(
+                    "Gemini model recovery: trying primary %s after %ds cooldown",
+                    GEMINI_MODEL,
+                    MODEL_RECOVERY_COOLDOWN_SECONDS,
+                )
+                return [GEMINI_MODEL, *GEMINI_FALLBACK_MODELS]
+            return list(GEMINI_FALLBACK_MODELS)
+
+    def record_high_demand_failure(self) -> None:
+        with self._lock:
+            self._consecutive_high_demand += 1
+            if (
+                not self._using_fallback
+                and self._consecutive_high_demand >= HIGH_DEMAND_SWITCH_THRESHOLD
+            ):
+                self._using_fallback = True
+                self._fallback_since = time.time()
+                logger.warning(
+                    "Gemini high demand: switching to fallback models %s "
+                    "(%d consecutive 503/504 failures)",
+                    ", ".join(GEMINI_FALLBACK_MODELS),
+                    self._consecutive_high_demand,
+                )
+
+    def record_success(self, model: str) -> None:
+        with self._lock:
+            self._consecutive_high_demand = 0
+            if model == GEMINI_MODEL and self._using_fallback:
+                self._using_fallback = False
+                logger.info("Gemini primary model %s recovered", GEMINI_MODEL)
+
+    def record_primary_recovery_failure(self) -> None:
+        with self._lock:
+            self._using_fallback = True
+            self._fallback_since = time.time()
+            self._consecutive_high_demand = HIGH_DEMAND_SWITCH_THRESHOLD
+
+
+_model_router = _GeminiModelRouter()
 
 
 class LLMProviderError(Exception):
@@ -33,8 +130,7 @@ class LLMProviderError(Exception):
 
 
 def _parse_csv_keys(env_var: str) -> list[str]:
-    raw = os.environ.get(env_var, "")
-    return [key.strip() for key in raw.split(",") if key.strip()]
+    return _parse_csv_env(env_var)
 
 
 class _GeminiKeySlot:
@@ -132,12 +228,14 @@ class LLMClient:
         self._groq_is_injected = groq_client is not None
         self._groq_calls = 0
         self.provider = "gemini"
+        self._model_router = _model_router
 
         logger.info(
-            "LLMClient ready: %d Gemini keys, %d Groq keys, model=%s",
+            "LLMClient ready: %d Gemini keys, %d Groq keys, model=%s (fallbacks=%s)",
             len(self._gemini_keys),
             len(self._groq_keys),
             GEMINI_MODEL,
+            ", ".join(GEMINI_FALLBACK_MODELS),
         )
 
     @property
@@ -176,26 +274,76 @@ class LLMClient:
         tool_choice: str | dict[str, Any] | None,
     ) -> dict[str, Any]:
         """Retry loop for a single Gemini client (injected or from pool slot)."""
-        last_error: genai_errors.APIError | None = None
-        for attempt in range(GEMINI_MAX_RETRIES):
-            try:
-                return self._gemini_chat(client, messages, tools, tool_choice)
-            except genai_errors.APIError as exc:
-                last_error = exc
-                if exc.code in GEMINI_KEY_ROTATION_STATUS_CODES:
-                    break
-                if (
-                    exc.code in GEMINI_RETRYABLE_STATUS_CODES
-                    and attempt < GEMINI_MAX_RETRIES - 1
-                ):
-                    delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
-                    logger.warning(
-                        "Gemini failed (%s), retrying in %ss (%d/%d)",
-                        exc, delay, attempt + 1, GEMINI_MAX_RETRIES,
+        last_error: genai_errors.APIError | Exception | None = None
+        models = list(self._model_router.models_for_request())
+        model_index = 0
+        attempted_recovery = len(models) > 1 and models[0] == GEMINI_MODEL
+
+        while model_index < len(models):
+            model = models[model_index]
+            for attempt in range(GEMINI_MAX_RETRIES):
+                try:
+                    result = self._gemini_chat(
+                        client, messages, tools, tool_choice, model=model
                     )
-                    time.sleep(delay)
-                    continue
-                break
+                    self._model_router.record_success(model)
+                    return result
+                except genai_errors.APIError as exc:
+                    last_error = exc
+                    if exc.code in GEMINI_KEY_ROTATION_STATUS_CODES:
+                        break
+                    if exc.code in HIGH_DEMAND_STATUS_CODES:
+                        self._model_router.record_high_demand_failure()
+                        if model == GEMINI_MODEL and self._model_router.using_fallback:
+                            _append_missing_fallback_models(models)
+                        if attempt < GEMINI_MAX_RETRIES - 1:
+                            delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                            logger.warning(
+                                "Gemini %s high demand (%s), retrying in %ss (%d/%d)",
+                                model,
+                                exc,
+                                delay,
+                                attempt + 1,
+                                GEMINI_MAX_RETRIES,
+                            )
+                            time.sleep(delay)
+                            continue
+                        break
+                    if (
+                        exc.code in GEMINI_RETRYABLE_STATUS_CODES
+                        and attempt < GEMINI_MAX_RETRIES - 1
+                    ):
+                        delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                        logger.warning(
+                            "Gemini %s failed (%s), retrying in %ss (%d/%d)",
+                            model,
+                            exc,
+                            delay,
+                            attempt + 1,
+                            GEMINI_MAX_RETRIES,
+                        )
+                        time.sleep(delay)
+                        continue
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    break
+
+            if (
+                attempted_recovery
+                and model == GEMINI_MODEL
+                and isinstance(last_error, genai_errors.APIError)
+                and last_error.code in HIGH_DEMAND_STATUS_CODES
+            ):
+                self._model_router.record_primary_recovery_failure()
+                logger.warning(
+                    "Gemini primary %s still unavailable after cooldown, "
+                    "continuing with %s",
+                    GEMINI_MODEL,
+                    ", ".join(GEMINI_FALLBACK_MODELS),
+                )
+
+            model_index += 1
 
         if last_error is not None and self._should_fallback(last_error):
             logger.warning("Gemini failed (%s), falling back to Groq", last_error)
@@ -212,61 +360,126 @@ class LLMClient:
     ) -> dict[str, Any]:
         assert self._pool is not None
         last_error: Exception | None = None
+        attempted_slots: set[int] = set()
 
         while True:
             slot = self._pool.next_slot()
             if slot is None:
                 break
+            if slot.index in attempted_slots:
+                break
+            attempted_slots.add(slot.index)
 
-            for attempt in range(GEMINI_MAX_RETRIES):
-                try:
-                    result = self._gemini_chat(
-                        slot.client, messages, tools, tool_choice
-                    )
-                    slot.increment_calls()
-                    return result
-                except genai_errors.APIError as exc:
-                    last_error = exc
-                    if exc.code in GEMINI_KEY_ROTATION_STATUS_CODES:
+            models = list(self._model_router.models_for_request())
+            attempted_recovery = len(models) > 1 and models[0] == GEMINI_MODEL
+            slot_failed = False
+            model_index = 0
+
+            while model_index < len(models):
+                model = models[model_index]
+                for attempt in range(GEMINI_MAX_RETRIES):
+                    try:
+                        result = self._gemini_chat(
+                            slot.client, messages, tools, tool_choice, model=model
+                        )
+                        slot.increment_calls()
+                        self._model_router.record_success(model)
+                        return result
+                    except genai_errors.APIError as exc:
+                        last_error = exc
+                        if exc.code in GEMINI_KEY_ROTATION_STATUS_CODES:
+                            logger.warning(
+                                "Gemini %s failed (%s), rotating",
+                                slot.label,
+                                exc,
+                            )
+                            self._pool.mark_exhausted(slot)
+                            slot_failed = True
+                            break
+                        if exc.code in HIGH_DEMAND_STATUS_CODES:
+                            self._model_router.record_high_demand_failure()
+                            if model == GEMINI_MODEL and self._model_router.using_fallback:
+                                _append_missing_fallback_models(models)
+                            if attempt < GEMINI_MAX_RETRIES - 1:
+                                delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                                logger.warning(
+                                    "Gemini %s high demand on %s (%s), retrying in %ss (%d/%d)",
+                                    slot.label,
+                                    model,
+                                    exc,
+                                    delay,
+                                    attempt + 1,
+                                    GEMINI_MAX_RETRIES,
+                                )
+                                time.sleep(delay)
+                                continue
+                            logger.warning(
+                                "Gemini %s high demand on %s (%s), rotating key",
+                                slot.label,
+                                model,
+                                exc,
+                            )
+                            break
+                        if (
+                            exc.code in GEMINI_RETRYABLE_STATUS_CODES
+                            and attempt < GEMINI_MAX_RETRIES - 1
+                        ):
+                            delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                            logger.warning(
+                                "Gemini %s failed (%s), retrying in %ss (%d/%d)",
+                                slot.label,
+                                exc,
+                                delay,
+                                attempt + 1,
+                                GEMINI_MAX_RETRIES,
+                            )
+                            time.sleep(delay)
+                            continue
                         logger.warning(
-                            "Gemini %s failed (%s), rotating",
+                            "Gemini %s failed (%s), rotating key",
                             slot.label,
                             exc,
                         )
-                        self._pool.mark_exhausted(slot)
                         break
-                    if (
-                        exc.code in GEMINI_RETRYABLE_STATUS_CODES
-                        and attempt < GEMINI_MAX_RETRIES - 1
-                    ):
-                        delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                    except Exception as exc:
+                        last_error = exc
                         logger.warning(
-                            "Gemini %s failed (%s), retrying in %ss (%d/%d)",
+                            "Gemini %s unexpected error (%s: %s), rotating",
                             slot.label,
+                            type(exc).__name__,
                             exc,
-                            delay,
-                            attempt + 1,
-                            GEMINI_MAX_RETRIES,
                         )
-                        time.sleep(delay)
-                        continue
-                    logger.warning(
-                        "Gemini %s failed (%s), non-retryable",
-                        slot.label,
-                        exc,
-                    )
-                    self._pool.mark_exhausted(slot)
+                        slot_failed = True
+                        break
+
+                if slot_failed:
                     break
-                except Exception as exc:
-                    last_error = exc
+
+                if (
+                    attempted_recovery
+                    and model == GEMINI_MODEL
+                    and isinstance(last_error, genai_errors.APIError)
+                    and last_error.code in HIGH_DEMAND_STATUS_CODES
+                ):
+                    self._model_router.record_primary_recovery_failure()
                     logger.warning(
-                        "Gemini %s unexpected error (%s: %s), rotating",
+                        "Gemini primary %s still unavailable after cooldown on %s, "
+                        "continuing with %s",
+                        GEMINI_MODEL,
                         slot.label,
-                        type(exc).__name__,
-                        exc,
+                        ", ".join(GEMINI_FALLBACK_MODELS),
                     )
-                    self._pool.mark_exhausted(slot)
-                    break
+
+                model_index += 1
+
+            if slot_failed:
+                continue
+
+            if (
+                isinstance(last_error, genai_errors.APIError)
+                and last_error.code in HIGH_DEMAND_STATUS_CODES
+            ):
+                continue
 
         if last_error is not None:
             should_fallback = (
@@ -291,7 +504,10 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None,
+        *,
+        model: str | None = None,
     ) -> dict[str, Any]:
+        active_model = model or GEMINI_MODEL
         contents, system_instruction = self._messages_to_gemini(messages)
         gemini_tools = self._tools_to_gemini(tools)
         config_kwargs: dict[str, Any] = {
@@ -311,7 +527,7 @@ class LLMClient:
             )
 
         response = client.models.generate_content(
-            model=GEMINI_MODEL,
+            model=active_model,
             contents=contents,
             config=types.GenerateContentConfig(**config_kwargs),
         )
@@ -417,6 +633,12 @@ class LLMClient:
             parts = ["Gemini: injected client (no key pool)"]
         if self._groq_calls:
             parts.append(f"Groq fallback: {self._groq_calls} calls")
+        if self._model_router.using_fallback:
+            parts.append(
+                f"Active Gemini models: {', '.join(GEMINI_FALLBACK_MODELS)} (fallback)"
+            )
+        else:
+            parts.append(f"Active Gemini model: {GEMINI_MODEL}")
         if self._gemini_exhausted:
             parts.append("WARNING: all Gemini keys were exhausted during this run")
 

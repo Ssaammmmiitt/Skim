@@ -6,10 +6,18 @@ from google.genai.errors import ClientError, ServerError
 from groq import RateLimitError
 
 from pipeline.agent.llm_client import (
+    GEMINI_FALLBACK_MODEL,
+    GEMINI_FALLBACK_MODELS,
     GEMINI_MAX_RETRIES,
+    GEMINI_MODEL,
+    HIGH_DEMAND_SWITCH_THRESHOLD,
     LLMClient,
     LLMProviderError,
+    MODEL_RECOVERY_COOLDOWN_SECONDS,
     _GeminiKeyPool,
+    _GeminiModelRouter,
+    _load_fallback_models,
+    _model_router,
     _parse_csv_keys,
 )
 from pipeline.agent.prompts import build_classification_messages
@@ -77,6 +85,13 @@ def _groq_tool_response(arguments: dict) -> MagicMock:
 
 
 ALL_5_KEYS = "k1,k2,k3,k4,k5"
+
+
+@pytest.fixture(autouse=True)
+def _reset_gemini_model_router():
+    _model_router.reset()
+    yield
+    _model_router.reset()
 
 
 # ── _parse_csv_keys ──────────────────────────────────────────────────────
@@ -283,7 +298,10 @@ def test_chat_with_tools_exhausts_retries_then_falls_back(monkeypatch):
     result = client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
 
     assert result["provider"] == "groq"
-    assert gemini_client.models.generate_content.call_count == GEMINI_MAX_RETRIES
+    assert (
+        gemini_client.models.generate_content.call_count
+        == GEMINI_MAX_RETRIES * (1 + len(GEMINI_FALLBACK_MODELS))
+    )
 
 
 # ── Key-pool rotation (replaces old _advance_gemini_key tests) ───────────
@@ -553,3 +571,109 @@ def test_chat_with_tools_live_gemini_response():
     assert result["tool_calls"]
     assert result["tool_calls"][0]["name"] == "classify_article"
     assert "topic" in result["tool_calls"][0]["arguments"]
+
+
+# ── Gemini model router ──────────────────────────────────────────────────
+
+def test_load_fallback_models_from_plural_env(monkeypatch):
+    monkeypatch.setenv("GEMINI_FALLBACK_MODELS", "gemini-2.0-flash,gemini-3.5-flash-lite")
+    monkeypatch.delenv("GEMINI_FALLBACK_MODEL", raising=False)
+    assert _load_fallback_models() == ["gemini-2.0-flash", "gemini-3.5-flash-lite"]
+
+
+def test_load_fallback_models_from_singular_env(monkeypatch):
+    monkeypatch.delenv("GEMINI_FALLBACK_MODELS", raising=False)
+    monkeypatch.setenv("GEMINI_FALLBACK_MODEL", "gemini-2.0-flash")
+    assert _load_fallback_models() == ["gemini-2.0-flash"]
+
+
+def test_model_router_switches_to_fallback_after_threshold():
+    router = _GeminiModelRouter()
+    for _ in range(HIGH_DEMAND_SWITCH_THRESHOLD):
+        router.record_high_demand_failure()
+    assert router.using_fallback
+    assert router.models_for_request() == GEMINI_FALLBACK_MODELS
+
+
+def test_model_router_recovers_primary_after_cooldown(monkeypatch):
+    router = _GeminiModelRouter()
+    for _ in range(HIGH_DEMAND_SWITCH_THRESHOLD):
+        router.record_high_demand_failure()
+
+    monkeypatch.setattr(
+        "pipeline.agent.llm_client.time.time",
+        lambda: 1000.0 + MODEL_RECOVERY_COOLDOWN_SECONDS,
+    )
+    router._fallback_since = 1000.0
+
+    assert router.models_for_request() == [GEMINI_MODEL, *GEMINI_FALLBACK_MODELS]
+
+
+def test_model_router_success_on_primary_clears_fallback():
+    router = _GeminiModelRouter()
+    for _ in range(HIGH_DEMAND_SWITCH_THRESHOLD):
+        router.record_high_demand_failure()
+
+    router.record_success(GEMINI_MODEL)
+
+    assert not router.using_fallback
+    assert router.models_for_request() == [GEMINI_MODEL]
+
+
+def test_chat_with_tools_switches_gemini_model_on_high_demand(monkeypatch):
+    gemini_client = MagicMock()
+    gemini_client.models.generate_content.side_effect = (
+        [_gemini_server_error() for _ in range(GEMINI_MAX_RETRIES)]
+        + [
+            _gemini_tool_response(
+                {
+                    "article_id": 1,
+                    "topic": "ai_ml",
+                    "importance_score": 8,
+                    "reasoning": "Fallback model worked",
+                }
+            )
+        ]
+    )
+    monkeypatch.setattr("pipeline.agent.llm_client.time.sleep", lambda seconds: None)
+    client = LLMClient(gemini_client=gemini_client, groq_client=MagicMock())
+
+    result = client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
+
+    assert result["provider"] == "gemini"
+    assert _model_router.using_fallback
+    models_used = [
+        call.kwargs.get("model") or call.args[0]
+        for call in gemini_client.models.generate_content.call_args_list
+    ]
+    assert models_used[:GEMINI_MAX_RETRIES] == [GEMINI_MODEL] * GEMINI_MAX_RETRIES
+    assert models_used[-1] == GEMINI_FALLBACK_MODEL
+
+
+def test_pool_503_rotates_key_without_exhausting(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEYS", "k1,k2")
+
+    def _factory(api_key: str):
+        client = MagicMock()
+        if api_key == "k1":
+            client.models.generate_content.side_effect = _gemini_server_error()
+        else:
+            client.models.generate_content.return_value = _gemini_tool_response(
+                {
+                    "article_id": 1,
+                    "topic": "ai_ml",
+                    "importance_score": 8,
+                    "reasoning": "ok",
+                }
+            )
+        return client
+
+    monkeypatch.setattr("pipeline.agent.llm_client.genai.Client", _factory)
+    monkeypatch.setattr("pipeline.agent.llm_client.time.sleep", lambda seconds: None)
+    client = LLMClient()
+
+    result = client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
+
+    assert result["provider"] == "gemini"
+    assert not client._pool.slots[0].exhausted
+    assert client._pool.slots[1].calls == 1

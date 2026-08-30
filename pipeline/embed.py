@@ -1,6 +1,15 @@
+import logging
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 from pipeline.db import get_connection
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
+logger = logging.getLogger(__name__)
 
 _model: SentenceTransformer | None = None
 
@@ -8,6 +17,11 @@ _model: SentenceTransformer | None = None
 def get_model() -> SentenceTransformer:
     global _model
     if _model is None:
+        if not os.environ.get("HF_TOKEN"):
+            logger.warning(
+                "HF_TOKEN not set; Hugging Face downloads may be slower or rate-limited. "
+                "Create a free token at https://huggingface.co/settings/tokens"
+            )
         _model = SentenceTransformer("all-MiniLM-L6-v2")
     return _model
 
