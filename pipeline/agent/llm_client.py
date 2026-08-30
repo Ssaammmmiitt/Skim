@@ -18,12 +18,13 @@ logger = logging.getLogger(__name__)
 GEMINI_MODEL = "gemini-2.5-flash"
 GROQ_MODEL = "openai/gpt-oss-120b"
 
-GEMINI_FALLBACK_STATUS_CODES = {429, 500, 502, 503, 504}
+GEMINI_FALLBACK_STATUS_CODES = {403, 404, 429, 500, 502, 503, 504}
 
-# 429 is excluded: Gemini's free tier quota is per-day, so a short backoff never
-# clears it. Rotate to the next key or fall through to Groq instead.
+# 429 is excluded from retries: Gemini's free tier quota is per-day, so a short
+# backoff never clears it. Rotate to the next key or fall through to Groq instead.
 GEMINI_RETRYABLE_STATUS_CODES = {500, 502, 503, 504}
-GEMINI_QUOTA_STATUS_CODES = {429}
+# Rotate immediately — no point retrying the same key for these.
+GEMINI_KEY_ROTATION_STATUS_CODES = {403, 404, 429}
 GEMINI_MAX_RETRIES = 3
 GEMINI_RETRY_BACKOFF_SECONDS = 2
 
@@ -157,11 +158,15 @@ class LLMClient:
                         continue
                     break
 
-            quota_exhausted = (
+            key_failed = (
                 last_error is not None
-                and last_error.code in GEMINI_QUOTA_STATUS_CODES
+                and last_error.code in GEMINI_KEY_ROTATION_STATUS_CODES
             )
-            if quota_exhausted and self._advance_gemini_key():
+            if key_failed and self._advance_gemini_key():
+                logger.warning(
+                    "Gemini key failed (%s), trying next key",
+                    last_error,
+                )
                 continue
 
             if last_error:
