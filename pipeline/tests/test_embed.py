@@ -1,11 +1,31 @@
+import numpy as np
 import pytest
+from unittest.mock import MagicMock
 
 from pipeline.embed import embed_texts
 
 EMBEDDING_DIM = 384
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(autouse=True)
+def mock_embed_model(monkeypatch):
+    def fake_encode(texts, **kwargs):
+        vectors = []
+        for text in texts:
+            seed = abs(hash(text)) % (2**31)
+            rng = np.random.RandomState(seed)
+            vector = rng.randn(EMBEDDING_DIM)
+            vector = vector / np.linalg.norm(vector)
+            vectors.append(vector)
+        return np.array(vectors)
+
+    mock_model = MagicMock()
+    mock_model.encode.side_effect = fake_encode
+    monkeypatch.setattr("pipeline.embed.get_model", lambda: mock_model)
+    return mock_model
+
+
+@pytest.fixture
 def hello_embedding():
     return embed_texts(["hello world"])[0]
 

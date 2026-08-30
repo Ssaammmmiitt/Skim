@@ -1,6 +1,6 @@
 import logging
 
-from pipeline.config import RSS_SOURCES
+from pipeline.config import RSS_SOURCES, configure_logging
 from pipeline.db import get_todays_new_articles, insert_articles
 from pipeline.sources.hackernews import HackerNewsAdapter
 from pipeline.sources.rss import RSSAdapter
@@ -35,8 +35,5 @@ def ingest_all_sources(limit: int = 30) -> list[dict]:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
+    configure_logging()
     ingest_all_sources()

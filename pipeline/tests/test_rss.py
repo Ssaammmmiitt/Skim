@@ -1,30 +1,24 @@
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-import feedparser
 import pytest
 
 from pipeline.config import SUMMARY_MAX_CHARS
 from pipeline.sources.rss import RSSAdapter
 
 FIXTURES = Path(__file__).parent / "fixtures"
-FULL_FEED = feedparser.parse((FIXTURES / "sample_rss.xml").read_text())
-SPARSE_FEED = feedparser.parse((FIXTURES / "sample_rss_sparse.xml").read_text())
-HTML_FEED = feedparser.parse((FIXTURES / "sample_rss_html.xml").read_text())
-INVALID_FEED = feedparser.parse("this is not valid xml")
-
-_LONG_BODY = "<p>" + " ".join(["word"] * 1000) + "</p>"
-LONG_FEED = feedparser.parse(
-    "<?xml version='1.0'?><rss version='2.0'><channel><item>"
-    "<title>Long</title><link>https://example.com/long</link>"
-    f"<description><![CDATA[{_LONG_BODY}]]></description>"
-    "</item></channel></rss>"
-)
 
 
-@patch("pipeline.sources.rss.feedparser.parse")
-def test_fetch_parses_full_rss(mock_parse):
-    mock_parse.return_value = FULL_FEED
+def _mock_feed_response(path: Path) -> Mock:
+    response = Mock()
+    response.raise_for_status = Mock()
+    response.content = path.read_bytes()
+    return response
+
+
+@patch("pipeline.sources.rss.requests.get")
+def test_fetch_parses_full_rss(mock_get):
+    mock_get.return_value = _mock_feed_response(FIXTURES / "sample_rss.xml")
 
     articles = RSSAdapter("https://example.com/feed.xml", "testfeed").fetch()
 
@@ -36,9 +30,9 @@ def test_fetch_parses_full_rss(mock_parse):
     assert articles[0].published_at is not None
 
 
-@patch("pipeline.sources.rss.feedparser.parse")
-def test_fetch_handles_missing_fields_and_bad_links(mock_parse):
-    mock_parse.return_value = SPARSE_FEED
+@patch("pipeline.sources.rss.requests.get")
+def test_fetch_handles_missing_fields_and_bad_links(mock_get):
+    mock_get.return_value = _mock_feed_response(FIXTURES / "sample_rss_sparse.xml")
 
     articles = RSSAdapter("https://example.com/feed.xml", "testfeed").fetch()
 
@@ -49,9 +43,9 @@ def test_fetch_handles_missing_fields_and_bad_links(mock_parse):
     assert articles[0].summary is None
 
 
-@patch("pipeline.sources.rss.feedparser.parse")
-def test_fetch_strips_html_from_summary(mock_parse):
-    mock_parse.return_value = HTML_FEED
+@patch("pipeline.sources.rss.requests.get")
+def test_fetch_strips_html_from_summary(mock_get):
+    mock_get.return_value = _mock_feed_response(FIXTURES / "sample_rss_html.xml")
 
     articles = RSSAdapter("https://example.com/feed.xml", "testfeed").fetch()
 
@@ -61,18 +55,28 @@ def test_fetch_strips_html_from_summary(mock_parse):
     assert "  " not in summary
 
 
-@patch("pipeline.sources.rss.feedparser.parse")
-def test_fetch_returns_none_when_summary_is_markup_only(mock_parse):
-    mock_parse.return_value = HTML_FEED
+@patch("pipeline.sources.rss.requests.get")
+def test_fetch_returns_none_when_summary_is_markup_only(mock_get):
+    mock_get.return_value = _mock_feed_response(FIXTURES / "sample_rss_html.xml")
 
     articles = RSSAdapter("https://example.com/feed.xml", "testfeed").fetch()
 
     assert articles[1].summary is None
 
 
-@patch("pipeline.sources.rss.feedparser.parse")
-def test_fetch_truncates_long_summary(mock_parse):
-    mock_parse.return_value = LONG_FEED
+@patch("pipeline.sources.rss.requests.get")
+def test_fetch_truncates_long_summary(mock_get):
+    long_body = "<p>" + " ".join(["word"] * 1000) + "</p>"
+    long_xml = (
+        "<?xml version='1.0'?><rss version='2.0'><channel><item>"
+        "<title>Long</title><link>https://example.com/long</link>"
+        f"<description><![CDATA[{long_body}]]></description>"
+        "</item></channel></rss>"
+    )
+    response = Mock()
+    response.raise_for_status = Mock()
+    response.content = long_xml.encode()
+    mock_get.return_value = response
 
     articles = RSSAdapter("https://example.com/feed.xml", "testfeed").fetch()
 
@@ -80,9 +84,12 @@ def test_fetch_truncates_long_summary(mock_parse):
     assert articles[0].summary.endswith("word")
 
 
-@patch("pipeline.sources.rss.feedparser.parse")
-def test_fetch_invalid_xml_returns_empty_list(mock_parse):
-    mock_parse.return_value = INVALID_FEED
+@patch("pipeline.sources.rss.requests.get")
+def test_fetch_invalid_xml_returns_empty_list(mock_get):
+    response = Mock()
+    response.raise_for_status = Mock()
+    response.content = b"this is not valid xml"
+    mock_get.return_value = response
 
     articles = RSSAdapter("https://example.com/feed.xml", "testfeed").fetch()
 

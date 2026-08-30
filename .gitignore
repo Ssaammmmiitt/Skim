@@ -21,6 +21,22 @@ Desktop.ini
 # Logs
 *.log
 
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+*.egg-info/
+
 # Local development plan (not for GitHub)
 docs/DEVELOPMENT_PLAN.md
 docs/report.md

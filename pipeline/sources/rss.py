@@ -2,10 +2,12 @@ from datetime import datetime, timezone
 from time import struct_time
 
 import feedparser
+import requests
 from bs4 import BeautifulSoup
 
 from pipeline.config import SUMMARY_MAX_CHARS, USER_AGENT
 from pipeline.models import Article
+from pipeline.resilience import retry_with_backoff
 from pipeline.sources.base import SourceAdapter
 
 
@@ -14,10 +16,18 @@ class RSSAdapter(SourceAdapter):
         self.feed_url = feed_url
         self.name = source_name
 
-    def fetch(self, limit: int = 30) -> list[Article]:
-        feed = feedparser.parse(
-            self.feed_url, request_headers={"User-Agent": USER_AGENT}
+    @retry_with_backoff(retryable_exceptions=(requests.RequestException,))
+    def _download_feed(self) -> feedparser.FeedParserDict:
+        response = requests.get(
+            self.feed_url,
+            headers={"User-Agent": USER_AGENT},
+            timeout=30,
         )
+        response.raise_for_status()
+        return feedparser.parse(response.content)
+
+    def fetch(self, limit: int = 30) -> list[Article]:
+        feed = self._download_feed()
         entries = getattr(feed, "entries", []) or []
 
         articles = []

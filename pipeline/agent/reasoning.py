@@ -435,12 +435,10 @@ def run_agent_reasoning(
 if __name__ == "__main__":
     import logging as _logging
 
+    from pipeline.config import configure_logging
     from pipeline.db import get_unclassified_articles
 
-    _logging.basicConfig(
-        level=_logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
+    configure_logging()
 
     unclassified = get_unclassified_articles(limit=DEFAULT_CLASSIFY_LIMIT)
     selection = run_agent_reasoning(unclassified)

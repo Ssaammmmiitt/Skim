@@ -366,3 +366,98 @@ def get_articles_by_urls(urls: list[str]) -> list[dict]:
             return [dict(zip(columns, row)) for row in cur.fetchall()]
     finally:
         conn.close()
+
+
+def get_recent_pipeline_runs(limit: int = 7) -> list[dict]:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT ON (run_date)
+                       run_date, status, articles_ingested, articles_embedded,
+                       digest_sent, duration_seconds, errors
+                FROM pipeline_runs
+                ORDER BY run_date DESC, id DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    runs: list[dict] = []
+    for row in rows:
+        errors = row[6] or []
+        error_message = errors[0].get("message") if errors else None
+        runs.append(
+            {
+                "run_date": row[0],
+                "status": row[1],
+                "articles_ingested": row[2],
+                "articles_embedded": row[3],
+                "digest_sent": row[4],
+                "duration_seconds": row[5],
+                "error_message": error_message,
+            }
+        )
+    return runs
+
+
+def get_recent_digests(limit: int = 7) -> list[dict]:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT digest_date, story_count, subject, sent_at
+                FROM digests
+                ORDER BY digest_date DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def count_total_articles() -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM articles")
+            return cur.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def count_articles_created_on(day: date) -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM articles WHERE created_at::date = %s",
+                (day,),
+            )
+            return cur.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def count_duplicate_article_urls() -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*) FROM (
+                    SELECT url FROM articles GROUP BY url HAVING COUNT(*) > 1
+                ) duplicates
+                """
+            )
+            return cur.fetchone()[0]
+    finally:
+        conn.close()

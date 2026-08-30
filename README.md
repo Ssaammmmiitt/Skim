@@ -119,6 +119,9 @@ Skim/
 │   ├── db.py          # Postgres connection and queries
 │   ├── compose.py     # Jinja2 HTML digest composition
 │   ├── email_sender.py # Mailtrap email delivery
+│   ├── resilience.py  # Exponential backoff retry utility
+│   ├── alert_failure.py # CI failure alert email
+│   ├── degradation.py # Graceful fallback when LLM reasoning fails
 │   ├── main.py        # Full pipeline orchestrator
 │   ├── templates/     # Email HTML templates
 │   └── tests/         # pytest suite
@@ -189,6 +192,7 @@ npm run dev
 | `GEMINI_FALLBACK_MODEL` | Legacy single-fallback override (optional if `GEMINI_FALLBACK_MODELS` is set) |
 | `GEMINI_HIGH_DEMAND_THRESHOLD` | Consecutive 503/504 errors before switching to fallback models (default: `3`) |
 | `GEMINI_MODEL_RECOVERY_SECONDS` | Seconds before retrying primary model after switching to fallback (default: `60`) |
+| `LOG_LEVEL` | Pipeline log verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR` (default: `INFO`) |
 | `MAILTRAP_API_TOKEN` | Mailtrap API token |
 | `MAILTRAP_SENDER_EMAIL` | Verified sender address (production) |
 | `MAILTRAP_SENDER_NAME` | Sender display name (default: Skim) |
@@ -216,6 +220,8 @@ For Mailtrap, add `MAILTRAP_API_TOKEN`, `MAILTRAP_SENDER_EMAIL`, and `DIGEST_REC
 For `SUPABASE_DB_URL`, use the **Supavisor transaction pooler** (port 6543) from Supabase Dashboard → Connect — GitHub Actions runners are IPv4-only and cannot reach Supabase's direct `db.*.supabase.co` endpoint.
 
 If your database password contains `@`, store it as-is in the secret; the pipeline URL-encodes it automatically.
+
+If the pipeline job fails, a follow-up step runs `python -m pipeline.alert_failure` and emails you at `DIGEST_RECIPIENT` with a link to the GitHub Actions logs.
 
 ## Design Decisions
 

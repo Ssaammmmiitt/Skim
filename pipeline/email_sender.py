@@ -4,8 +4,15 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
+from typing import Any
 
 import requests
+from dotenv import load_dotenv
+
+from pipeline.resilience import retry_with_backoff
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +66,27 @@ def _build_payload(*, subject: str, html: str, to: str) -> dict:
     }
 
 
+@retry_with_backoff(retryable_exceptions=(requests.RequestException,))
+def _post_email(
+    *,
+    http: Any,
+    subject: str,
+    html: str,
+    to: str,
+) -> None:
+    response = http.post(
+        _api_url(),
+        headers={
+            "Authorization": f"Bearer {_api_token()}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        json=_build_payload(subject=subject, html=html, to=to),
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+
+
 def send_email(
     *,
     subject: str,
@@ -71,17 +99,12 @@ def send_email(
     http = session or requests
 
     try:
-        response = http.post(
-            _api_url(),
-            headers={
-                "Authorization": f"Bearer {_api_token()}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            json=_build_payload(subject=subject, html=html, to=recipient),
-            timeout=REQUEST_TIMEOUT_SECONDS,
+        _post_email(
+            http=http,
+            subject=subject,
+            html=html,
+            to=recipient,
         )
-        response.raise_for_status()
     except requests.RequestException as exc:
         logger.error("Email send failed: %s", exc)
         return False

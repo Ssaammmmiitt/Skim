@@ -33,11 +33,13 @@ def test_send_email_success(mail_env):
     assert call_kwargs["headers"]["Authorization"] == "Bearer test-token"
 
 
-def test_send_email_failure_returns_false(mail_env):
+def test_send_email_failure_returns_false(mail_env, monkeypatch):
+    monkeypatch.setattr("pipeline.resilience.time.sleep", lambda seconds: None)
     session = MagicMock()
     session.post.side_effect = requests.HTTPError("API error")
 
     assert send_email(subject="Test", html="<p>Hi</p>", session=session) is False
+    assert session.post.call_count == 3
 
 
 def test_send_digest_email_delegates_to_send_email(mail_env):

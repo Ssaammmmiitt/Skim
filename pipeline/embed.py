@@ -5,6 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
+from pipeline.config import configure_logging
 from pipeline.db import get_connection
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -152,12 +153,7 @@ def search_similar_articles_rpc(
 
 
 if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
+    configure_logging()
     embedded = embed_all_articles()
     missing = count_missing_embeddings()
     logging.info("Embedded %d articles; %d still missing embeddings", embedded, missing)
