@@ -15,7 +15,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.5-flash-lite"
+GEMINI_MODEL = "gemini-3.6-flash"
 GROQ_MODEL = "openai/gpt-oss-120b"
 
 GEMINI_FALLBACK_STATUS_CODES = {403, 404, 429, 500, 502, 503, 504}
@@ -69,9 +69,18 @@ class LLMClient:
 
         self._gemini_is_injected = gemini_client is not None
         self._gemini_exhausted = False
+        self._gemini_calls_per_key: dict[int, int] = {}
+        self._groq_calls = 0
         self._groq = groq_client
         self._groq_is_injected = groq_client is not None
         self.provider = "gemini"
+
+        logger.info(
+            "LLMClient ready: %d Gemini keys, %d Groq keys, model=%s",
+            len(self._gemini_keys),
+            len(self._groq_keys),
+            GEMINI_MODEL,
+        )
 
     def _advance_gemini_key(self) -> bool:
         """Switch to the next Gemini key. Returns False when none are left."""
@@ -181,6 +190,20 @@ class LLMClient:
                 raise last_error
             raise LLMProviderError("Gemini failed without a response")
 
+    def log_usage_summary(self) -> None:
+        gemini_total = sum(self._gemini_calls_per_key.values())
+        parts = [
+            f"Gemini: {gemini_total} calls across "
+            f"{len(self._gemini_calls_per_key)}/{len(self._gemini_keys)} keys"
+        ]
+        for idx in sorted(self._gemini_calls_per_key):
+            parts.append(f"  key {idx + 1}: {self._gemini_calls_per_key[idx]} calls")
+        if self._groq_calls:
+            parts.append(f"Groq fallback: {self._groq_calls} calls")
+        if self._gemini_exhausted:
+            parts.append("Note: all Gemini keys were exhausted during this run")
+        logger.info("Usage summary:\n%s", "\n".join(parts))
+
     def _should_fallback_from_gemini(self, exc: genai_errors.APIError) -> bool:
         return exc.code in GEMINI_FALLBACK_STATUS_CODES
 
@@ -211,6 +234,8 @@ class LLMClient:
             config=types.GenerateContentConfig(**config_kwargs),
         )
         self.provider = "gemini"
+        key_idx = self._gemini_key_index
+        self._gemini_calls_per_key[key_idx] = self._gemini_calls_per_key.get(key_idx, 0) + 1
         return self._parse_gemini_response(response)
 
     def _parse_gemini_response(self, response: Any) -> dict[str, Any]:
@@ -253,6 +278,7 @@ class LLMClient:
                     tool_choice=tool_choice or "auto",
                 )
                 self.provider = "groq"
+                self._groq_calls += 1
                 return self._parse_groq_response(response)
             except Exception as exc:
                 last_error = exc

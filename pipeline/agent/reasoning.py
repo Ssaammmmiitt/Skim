@@ -26,10 +26,11 @@ DEFAULT_DIGEST_SIZE = 8
 MIN_DIGEST_STORIES = 7
 MAX_DIGEST_STORIES = 10
 
-# Gemini's free tier allows 20 requests/day per model, so a single run has to
-# stay well under that across all three passes.
-DEFAULT_CLASSIFY_LIMIT = 60
-DEFAULT_INSIGHT_LIMIT = 8
+# Gemini free tier: 20 requests/day per project. With 5 keys that's 100 Gemini
+# calls + unlimited Groq fallback.  Budget: ~80 classify + ~12 insight + 1 select
+# ≈ 93 calls, leaving headroom for retries.
+DEFAULT_CLASSIFY_LIMIT = 80
+DEFAULT_INSIGHT_LIMIT = 12
 
 
 def chunked(items: list[Any], size: int) -> Iterator[list[Any]]:
@@ -105,7 +106,11 @@ class ArticleAgent:
         batch_ids = {article["id"] for article in batch}
         batch_results = []
         for tool_call in response["tool_calls"]:
-            args = self._validate_classification(tool_call["arguments"], batch_ids)
+            try:
+                args = self._validate_classification(tool_call["arguments"], batch_ids)
+            except (ValueError, KeyError, TypeError) as exc:
+                logger.warning("Skipping invalid classification result: %s", exc)
+                continue
             update_article_classification(
                 article_id=args["article_id"],
                 topic=args["topic"],
@@ -176,7 +181,11 @@ class ArticleAgent:
                 logger.warning("No insight generated for article %s", article["id"])
                 continue
 
-            args = self._validate_insight(response["tool_calls"][0]["arguments"], article)
+            try:
+                args = self._validate_insight(response["tool_calls"][0]["arguments"], article)
+            except (ValueError, KeyError, TypeError) as exc:
+                logger.warning("Skipping invalid insight for article %s: %s", article["id"], exc)
+                continue
             update_article_insight(
                 article_id=args["article_id"],
                 insight=args["insight"],
@@ -200,17 +209,22 @@ class ArticleAgent:
     def _validate_insight(
         self, arguments: dict[str, Any], article: dict[str, Any]
     ) -> dict[str, Any]:
-        article_id = int(arguments["article_id"])
-        if article_id != article["id"]:
-            raise ValueError(f"Unexpected article_id {article_id}")
+        returned_id = int(arguments.get("article_id", 0))
+        expected_id = article["id"]
+        if returned_id != expected_id:
+            logger.warning(
+                "LLM returned article_id %d, expected %d — using expected",
+                returned_id,
+                expected_id,
+            )
 
-        insight = str(arguments["insight"]).strip()
-        key_takeaway = str(arguments["key_takeaway"]).strip()
+        insight = str(arguments.get("insight", "")).strip()
+        key_takeaway = str(arguments.get("key_takeaway", "")).strip()
         if not insight or not key_takeaway:
             raise ValueError("insight and key_takeaway must be non-empty")
 
         return {
-            "article_id": article_id,
+            "article_id": expected_id,
             "insight": insight,
             "key_takeaway": key_takeaway,
         }
@@ -323,10 +337,13 @@ def run_agent_reasoning(
 
     logger.info("Pass 3: selecting digest from %d classified articles", len(all_classified))
     try:
-        return agent.select_digest_stories(all_classified, n=n)
+        result = agent.select_digest_stories(all_classified, n=n)
     except LLMProviderError as exc:
         logger.warning("Digest selection unavailable: %s", exc)
-        return {"articles": [], "selected_article_ids": [], "rationale": ""}
+        result = {"articles": [], "selected_article_ids": [], "rationale": ""}
+
+    agent.llm.log_usage_summary()
+    return result
 
 
 if __name__ == "__main__":

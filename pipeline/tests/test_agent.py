@@ -423,22 +423,23 @@ def test_generate_insights_updates_db_with_mock_llm(test_run_id):
     assert updated["key_takeaway"] is not None
 
 
-def test_validate_insight_rejects_wrong_article_id(test_run_id):
+def test_validate_insight_corrects_wrong_article_id(test_run_id):
     articles = _insert_and_fetch(
         [_make_article(f"{test_run_id}-insight-validate", "Test", "Summary")]
     )
     article = _classify_article(articles[0], "ai_ml", 7)
     agent = ArticleAgent(llm=MagicMock(), batch_delay_seconds=0)
 
-    with pytest.raises(ValueError, match="Unexpected article_id"):
-        agent._validate_insight(
-            {
-                "article_id": article["id"] + 999,
-                "insight": "Some insight text.",
-                "key_takeaway": "Takeaway.",
-            },
-            article,
-        )
+    result = agent._validate_insight(
+        {
+            "article_id": article["id"] + 999,
+            "insight": "Some insight text.",
+            "key_takeaway": "Takeaway.",
+        },
+        article,
+    )
+    assert result["article_id"] == article["id"]
+    assert result["insight"] == "Some insight text."
 
 
 def test_validate_insight_rejects_empty_fields(test_run_id):

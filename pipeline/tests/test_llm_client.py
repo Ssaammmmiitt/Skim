@@ -309,32 +309,37 @@ def test_gemini_404_all_keys_falls_to_groq(monkeypatch):
     groq_client.chat.completions.create.assert_called_once()
 
 
-def test_gemini_3_keys_first_succeeds(monkeypatch):
+ALL_5_KEYS = "k1,k2,k3,k4,k5"
+
+
+def test_gemini_5_keys_first_succeeds(monkeypatch):
     constructed, working = _make_gemini_clients(
-        monkeypatch, "key-a,key-b,key-c", exhausted_count=0
+        monkeypatch, ALL_5_KEYS, exhausted_count=0
     )
     client = LLMClient()
     result = client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
 
     assert result["provider"] == "gemini"
-    assert constructed == ["key-a"]
+    assert constructed == ["k1"]
     assert working.models.generate_content.call_count == 1
+    assert not client._gemini_exhausted
 
 
-def test_gemini_3_keys_rotates_through_first_two_exhausted(monkeypatch):
+def test_gemini_5_keys_rotates_through_first_four_exhausted(monkeypatch):
     constructed, working = _make_gemini_clients(
-        monkeypatch, "key-a,key-b,key-c", exhausted_count=2
+        monkeypatch, ALL_5_KEYS, exhausted_count=4
     )
     client = LLMClient()
     result = client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
 
     assert result["provider"] == "gemini"
-    assert constructed == ["key-a", "key-b", "key-c"]
+    assert constructed == ["k1", "k2", "k3", "k4", "k5"]
     assert working.models.generate_content.call_count == 1
+    assert not client._gemini_exhausted
 
 
-def test_gemini_3_keys_all_exhausted_falls_to_groq(monkeypatch):
-    monkeypatch.setenv("GEMINI_API_KEYS", "key-a,key-b,key-c")
+def test_gemini_5_keys_all_exhausted_falls_to_groq(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEYS", ALL_5_KEYS)
     constructed_gemini: list[str] = []
 
     def _factory(api_key: str):
@@ -353,8 +358,38 @@ def test_gemini_3_keys_all_exhausted_falls_to_groq(monkeypatch):
     result = client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
 
     assert result["provider"] == "groq"
-    assert constructed_gemini == ["key-a", "key-b", "key-c"]
+    assert constructed_gemini == ["k1", "k2", "k3", "k4", "k5"]
+    assert client._gemini_exhausted
     groq_client.chat.completions.create.assert_called_once()
+
+
+def test_gemini_exhausted_flag_skips_gemini_on_subsequent_calls(monkeypatch):
+    """Once all keys fail, later calls go straight to Groq — no wasted Gemini hits."""
+    monkeypatch.setenv("GEMINI_API_KEYS", "k1,k2")
+    constructed_gemini: list[str] = []
+
+    def _factory(api_key: str):
+        constructed_gemini.append(api_key)
+        client = MagicMock()
+        client.models.generate_content.side_effect = _gemini_rate_limit_error()
+        return client
+
+    monkeypatch.setattr("pipeline.agent.llm_client.genai.Client", _factory)
+
+    groq_client = MagicMock()
+    groq_client.chat.completions.create.return_value = _groq_tool_response(
+        {"article_id": 1, "topic": "ai_ml", "importance_score": 7, "reasoning": "ok"}
+    )
+    client = LLMClient(groq_client=groq_client)
+
+    client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
+    assert client._gemini_exhausted
+    assert constructed_gemini == ["k1", "k2"]
+
+    client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
+    client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
+    assert constructed_gemini == ["k1", "k2"]  # no new Gemini clients
+    assert groq_client.chat.completions.create.call_count == 3
 
 
 def test_groq_2_keys_first_fails_second_works(monkeypatch):
@@ -393,8 +428,8 @@ def test_groq_2_keys_both_fail_raises_provider_error(monkeypatch):
     assert constructed_groq == ["groq-a", "groq-b"]
 
 
-def test_full_rotation_3_gemini_2_groq_all_exhausted(monkeypatch):
-    monkeypatch.setenv("GEMINI_API_KEYS", "g1,g2,g3")
+def test_full_rotation_5_gemini_2_groq_all_exhausted(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEYS", ALL_5_KEYS)
     monkeypatch.setenv("GROQ_API_KEYS", "q1,q2")
     constructed_gemini: list[str] = []
     constructed_groq: list[str] = []
@@ -419,12 +454,12 @@ def test_full_rotation_3_gemini_2_groq_all_exhausted(monkeypatch):
     with pytest.raises(LLMProviderError, match="Both Gemini and Groq failed"):
         client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
 
-    assert constructed_gemini == ["g1", "g2", "g3"]
+    assert constructed_gemini == ["k1", "k2", "k3", "k4", "k5"]
     assert constructed_groq == ["q1", "q2"]
 
 
-def test_full_rotation_3_gemini_exhausted_2nd_groq_works(monkeypatch):
-    monkeypatch.setenv("GEMINI_API_KEYS", "g1,g2,g3")
+def test_full_rotation_5_gemini_exhausted_2nd_groq_works(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEYS", ALL_5_KEYS)
     constructed_gemini: list[str] = []
 
     def _gemini_factory(api_key: str):
@@ -443,8 +478,19 @@ def test_full_rotation_3_gemini_exhausted_2nd_groq_works(monkeypatch):
     result = client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
 
     assert result["provider"] == "groq"
-    assert constructed_gemini == ["g1", "g2", "g3"]
+    assert constructed_gemini == ["k1", "k2", "k3", "k4", "k5"]
     assert constructed_groq == ["q1", "q2"]
+
+
+def test_usage_summary_tracks_calls(monkeypatch):
+    constructed, _ = _make_gemini_clients(monkeypatch, "k1,k2", exhausted_count=0)
+    client = LLMClient()
+
+    client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
+    client.chat_with_tools(SAMPLE_MESSAGES, [SAMPLE_TOOL])
+
+    assert client._gemini_calls_per_key == {0: 2}
+    assert client._groq_calls == 0
 
 
 def test_missing_groq_keys_raises_when_gemini_exhausted(monkeypatch):
