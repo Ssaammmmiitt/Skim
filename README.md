@@ -11,7 +11,7 @@ Skim is a fully automated system that:
 3. **Reasons** over articles using LLMs with function calling (classify topics, score importance, generate editorial insights)
 4. **Selects** the day's top stories through multi-pass agentic reasoning
 5. **Delivers** a curated HTML email digest every morning via Mailtrap
-6. **Serves** a web dashboard with archive browsing and RAG-powered chat — *planned*
+6. **Serves** a web dashboard (archive + RAG chat) with **Google OAuth** and **email OTP signup**, admin-approved access, and per-user digest preferences
 
 All designed to run on free-tier infrastructure.
 
@@ -26,6 +26,7 @@ All designed to run on free-tier infrastructure.
 | Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Local, zero API cost |
 | Email | Mailtrap HTTP API | Sandbox for dev; verified-domain production sends |
 | Scheduler | GitHub Actions cron | Free minutes, built-in secrets |
+| Auth | Supabase Auth (Google OAuth + email OTP) | Signup approval workflow, RLS |
 | Frontend hosting | Vercel | Free hobby tier |
 
 ## What's Built
@@ -49,18 +50,32 @@ All designed to run on free-tier infrastructure.
 - Partial progress on provider failure — bad LLM responses are skipped, not fatal
 
 **Digest + email**
-- Jinja2 HTML email template with inline CSS (`pipeline/templates/digest.html`)
+- Jinja2 HTML templates: classic, cyan (Skim dark), minimal
+- Per-subscriber theme, format (full/brief/headlines), topic filters, max stories
 - Mailtrap REST API delivery with sandbox mode for local dev
 - Full pipeline orchestrator (`python -m pipeline.main`) with digest idempotency via `digests` table
 - `pipeline_runs` logging for each execution
 
+**Dashboard (Phase 6)**
+- Google sign-up/sign-in (name, email, avatar from Google profile)
+- Email **sign-up** via registration OTP; email **sign-in** via login OTP for approved users
+- Wait page (`/pending`) with **contact admin** mailto until approved
+- Admin signup notification email + `/admin` approval queue (superuser)
+- Settings page for digest theme/format preferences
+- Auth middleware — no access to app or APIs until `profiles.status = active`
+- `GET /api/digests` — digest articles by date (Phase 6B.1)
+
+**Reliability (Phase 5)**
+- Retry utility, failure alerts, graceful degradation, structured logging, health check
+- GitHub Actions test workflow (`pytest -m "not integration"`)
+
 **Infrastructure**
-- Supabase schema with `articles`, `digests`, and `pipeline_runs` tables
+- Supabase schema: `articles`, `digests`, `pipeline_runs`, `profiles`, preferences
 - GitHub Actions workflow (daily cron + manual trigger) with sentence-transformers model caching
-- Next.js dashboard scaffold with Supabase client wired up
+- Next.js 16 dashboard with Supabase SSR auth
 
 **Tests**
-- 110+ pytest tests covering adapters, dedup, DB inserts, embeddings, similarity search, LLM client rotation, and agent reasoning
+- 148+ pytest unit tests; integration tests for live DB/API
 
 ## Architecture
 
@@ -102,10 +117,11 @@ GitHub Actions (cron, daily 00:15 UTC)
 | Ingestion | Done | HN + RSS adapters, dedup, Postgres storage |
 | Embeddings | Done | sentence-transformers, pgvector, semantic search RPC |
 | Agent Reasoning | Done | Function calling, classify / insight / selection, key rotation |
-| Digest + Email | Done | HTML template, Mailtrap send, full orchestration |
-| Reliability | Planned | Retry logic, pipeline_runs observability, alerting |
-| Dashboard + RAG | Planned | Archive view, RAG chat with citations |
-| Polish | Planned | End-to-end tests, demo |
+| Digest + Email | Done | HTML templates, Mailtrap, per-user themes, orchestration |
+| Reliability | Done | Retry, health check, alerts, CI tests |
+| **Auth + Admin** | **Done** | Google OAuth, email OTP signup, approval workflow — [setup guide](docs/phase6_auth_admin_preferences.md) |
+| Dashboard + RAG | **In progress** | Home, archive, RAG chat UI; search API |
+| Polish | Planned | Onboard ~10 users, demo |
 
 ## Repository Layout
 
@@ -125,9 +141,10 @@ Skim/
 │   ├── main.py        # Full pipeline orchestrator
 │   ├── templates/     # Email HTML templates
 │   └── tests/         # pytest suite
-├── dashboard/         # Next.js frontend
-├── sql/               # Supabase schema and RPC functions
-└── .github/workflows/ # GitHub Actions (digest.yml)
+├── dashboard/         # Next.js frontend (auth, admin, settings)
+├── sql/               # Supabase schema + auth migration
+├── docs/              # phase6_auth_admin_preferences.md — read before DB auth setup
+└── .github/workflows/ # digest.yml, test.yml
 ```
 
 ## Quick Start
@@ -140,7 +157,12 @@ Skim/
 
 ### Database setup
 
-Run `sql/schema.sql` in the Supabase SQL editor. This creates the `articles`, `digests`, and `pipeline_runs` tables, enables pgvector, and adds the `search_similar_articles` RPC.
+Run in the Supabase SQL editor **in this order**:
+
+1. `sql/schema.sql` — articles, digests, pgvector, `search_similar_articles` RPC
+2. `sql/002_users_auth_preferences.sql` — profiles, approval workflow, digest preferences, RLS
+
+Then configure Supabase Auth (Google + Email OTP) and dashboard env vars. **Full checklist:** [`docs/phase6_auth_admin_preferences.md`](docs/phase6_auth_admin_preferences.md)
 
 ### Pipeline
 
@@ -168,12 +190,16 @@ pytest
 
 ### Dashboard
 
+See [`dashboard/README.md`](dashboard/README.md) for auth-specific setup.
+
 ```bash
 cd dashboard
 npm install
-cp env.example .env.local       # Fill in Supabase URL + publishable key
+cp .env.example .env.local       # Supabase keys + SKIM_SUPERUSER_EMAIL + SKIM_ADMIN_CONTACT_EMAIL
 npm run dev
 ```
+
+Visit `/login` — Google or email sign-up/sign-in. New users land on `/pending` until the superuser approves them in `/admin`.
 
 ### Environment variables
 
@@ -198,7 +224,8 @@ npm run dev
 | `MAILTRAP_SENDER_NAME` | Sender display name (default: Skim) |
 | `MAILTRAP_SANDBOX` | Set `true` locally to capture emails in Mailtrap sandbox |
 | `MAILTRAP_INBOX_ID` | Sandbox inbox ID (required when `MAILTRAP_SANDBOX=true`) |
-| `DIGEST_RECIPIENT` | Digest email address |
+| `DIGEST_RECIPIENT` | Fallback digest recipient when `digest_subscribers` table is empty |
+| `SKIM_SUPERUSER_EMAIL` | Superuser email (also set in dashboard env) |
 
 **Dashboard** (`dashboard/.env.local`):
 
@@ -206,6 +233,11 @@ npm run dev
 |----------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key for client |
+| `SKIM_SUPERUSER_EMAIL` | Your email — auto-approved, Admin access |
+| `SKIM_ADMIN_CONTACT_EMAIL` | Wait-page contact + signup alert recipient |
+| `NEXT_PUBLIC_SITE_URL` | Public URL (links in admin alert emails) |
+| `MAILTRAP_API_TOKEN` | Optional — sends admin email on new signup |
+| `MAILTRAP_SENDER_EMAIL` | Verified sender for admin alerts |
 
 ### GitHub Actions
 
@@ -236,6 +268,7 @@ If the pipeline job fails, a follow-up step runs `python -m pipeline.alert_failu
 | Embedding | Local MiniLM | Free at any volume, no rate limits |
 | CI database | Supavisor pooler | IPv4-compatible; direct Supabase host is IPv6-only |
 | Email | Mailtrap API | Sandbox for local dev; verified-domain production sends in CI |
+| Auth | Supabase + approval workflow | Google profile data; OTP for email registration; admin gate |
 
 ## License
 

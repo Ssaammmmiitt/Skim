@@ -15,6 +15,15 @@ def _article(article_id: int, title: str) -> dict:
     }
 
 
+DEFAULT_SUBSCRIBER = {
+    "email": "reader@example.com",
+    "theme": "cyan",
+    "format": "full",
+    "max_stories": 8,
+    "topic_filters": None,
+}
+
+
 @pytest.fixture
 def pipeline_mocks():
     patches = {
@@ -27,7 +36,11 @@ def pipeline_mocks():
         "record_pipeline_complete": patch("pipeline.main.record_pipeline_complete"),
         "record_digest_sent": patch("pipeline.main.record_digest_sent"),
         "mark_articles_digest_date": patch("pipeline.main.mark_articles_digest_date"),
-        "send_digest_email": patch("pipeline.main.send_digest_email", return_value=True),
+        "get_digest_subscribers": patch(
+            "pipeline.main.get_digest_subscribers",
+            return_value=[DEFAULT_SUBSCRIBER],
+        ),
+        "send_email": patch("pipeline.main.send_email", return_value=True),
         "ingest_all_sources": patch("pipeline.main.ingest_all_sources"),
         "embed_all_articles": patch(
             "pipeline.main.embed_all_articles", return_value=0
@@ -50,8 +63,8 @@ def test_run_pipeline_sends_fallback_digest_on_llm_failure(pipeline_mocks):
 
     run_pipeline()
 
-    pipeline_mocks["send_digest_email"].assert_called_once()
-    html = pipeline_mocks["send_digest_email"].call_args[0][0]
+    pipeline_mocks["send_email"].assert_called_once()
+    html = pipeline_mocks["send_email"].call_args.kwargs["html"]
     assert "HN story" in html
     assert "Summary for HN story" in html
     pipeline_mocks["record_digest_sent"].assert_called_once()
@@ -65,7 +78,7 @@ def test_run_pipeline_sends_quiet_day_digest(pipeline_mocks):
 
     run_pipeline()
 
-    html = pipeline_mocks["send_digest_email"].call_args[0][0]
+    html = pipeline_mocks["send_email"].call_args.kwargs["html"]
     assert "Quiet day" in html
     pipeline_mocks["record_digest_sent"].assert_called_once()
 
@@ -81,7 +94,7 @@ def test_run_pipeline_continues_when_embedding_fails(pipeline_mocks):
 
     run_pipeline()
 
-    pipeline_mocks["send_digest_email"].assert_called_once()
+    pipeline_mocks["send_email"].assert_called_once()
     pipeline_mocks["record_pipeline_complete"].assert_called_once()
     assert (
         pipeline_mocks["record_pipeline_complete"].call_args.kwargs["articles_embedded"]
@@ -95,7 +108,7 @@ def test_run_pipeline_exits_when_digest_already_sent(pipeline_mocks):
     run_pipeline()
 
     pipeline_mocks["ingest_all_sources"].assert_not_called()
-    pipeline_mocks["send_digest_email"].assert_not_called()
+    pipeline_mocks["send_email"].assert_not_called()
 
 
 def test_run_pipeline_raises_and_records_failure_when_ingest_crashes(pipeline_mocks):
@@ -106,4 +119,4 @@ def test_run_pipeline_raises_and_records_failure_when_ingest_crashes(pipeline_mo
 
     pipeline_mocks["record_pipeline_complete"].assert_called_once()
     assert pipeline_mocks["record_pipeline_complete"].call_args.kwargs["status"] == "failed"
-    pipeline_mocks["send_digest_email"].assert_not_called()
+    pipeline_mocks["send_email"].assert_not_called()

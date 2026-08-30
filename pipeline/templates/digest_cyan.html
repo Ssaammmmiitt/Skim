@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skim — {{ date }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0f1419;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f1419;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#1a2332;border-radius:20px;overflow:hidden;border:1px solid #243044;">
+          <tr>
+            <td style="padding:28px 28px 20px;background-color:#0f1419;color:#f0f9ff;border-bottom:2px solid #06b6d4;">
+              <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#22d3ee;">Daily Tech Digest</p>
+              <h1 style="margin:0;font-size:28px;font-weight:700;line-height:1.2;">Skim</h1>
+              <p style="margin:10px 0 0;font-size:15px;color:#94a3b8;">{{ date }} · {{ story_count }} stor{{ 'y' if story_count == 1 else 'ies' }}</p>
+            </td>
+          </tr>
+          {% if show_rationale and rationale %}
+          <tr>
+            <td style="padding:18px 28px;background-color:#164e63;border-bottom:1px solid #243044;">
+              <p style="margin:0;font-size:14px;line-height:1.6;color:#cbd5e1;"><strong style="color:#67e8f9;">Editor's note:</strong> {{ rationale }}</p>
+            </td>
+          </tr>
+          {% endif %}
+          {% if stories %}
+          {% set border_color = '#243044' %}
+          {% set meta_color = '#22d3ee' %}
+          {% set title_color = '#f0f9ff' %}
+          {% set takeaway_color = '#cbd5e1' %}
+          {% set body_color = '#94a3b8' %}
+          {% set link_color = '#67e8f9' %}
+          {% for story in stories %}
+          {% include '_digest_story_row.html' %}
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td style="padding:32px 28px;text-align:center;">
+              <p style="margin:0;font-size:16px;line-height:1.6;color:#94a3b8;">Quiet day — no stories matched your preferences today.</p>
+            </td>
+          </tr>
+          {% endif %}
+          {% if show_stats_footer %}
+          <tr>
+            <td style="padding:20px 28px;background-color:#0f1419;">
+              {% if topics_summary %}
+              <p style="margin:0 0 8px;font-size:12px;color:#94a3b8;">Topics: {{ topics_summary }}</p>
+              {% endif %}
+              {% if stats %}
+              <p style="margin:0;font-size:12px;color:#64748b;">
+                Pipeline: {{ stats.get('articles_ingested', 0) }} ingested · {{ stats.get('articles_embedded', 0) }} embedded · {{ stats.get('duration_seconds', 0) }}s
+              </p>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+        </table>
+        <p style="margin:16px 0 0;font-size:12px;color:#64748b;">Curated by Skim · Change theme in Settings</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

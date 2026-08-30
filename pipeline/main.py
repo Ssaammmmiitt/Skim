@@ -10,13 +10,14 @@ from pipeline.compose import compose_digest
 from pipeline.config import configure_logging
 from pipeline.db import (
     digest_already_sent,
+    get_digest_subscribers,
     mark_articles_digest_date,
     record_digest_sent,
     record_pipeline_complete,
     record_pipeline_start,
 )
 from pipeline.degradation import select_digest_articles
-from pipeline.email_sender import send_digest_email
+from pipeline.email_sender import send_email
 from pipeline.embed import embed_all_articles
 from pipeline.ingest import ingest_all_sources
 
@@ -69,23 +70,42 @@ def run_pipeline() -> None:
             "degraded": degraded,
         }
 
-        html = compose_digest(
-            digest_articles,
-            stats=stats,
-            rationale=rationale,
-            digest_date=datetime.now(timezone.utc),
-        )
-
         date_str = datetime.now(timezone.utc).strftime("%b %d, %Y")
         subject = f"Skim — {date_str}"
+        subscribers = get_digest_subscribers()
+        if not subscribers:
+            raise ValueError("No digest subscribers configured")
 
-        if send_digest_email(html, subject):
+        sent_count = 0
+        for subscriber in subscribers:
+            html = compose_digest(
+                digest_articles,
+                stats=stats,
+                rationale=rationale,
+                digest_date=datetime.now(timezone.utc),
+                theme=subscriber.get("theme"),
+                format_name=subscriber.get("format"),
+                topic_filters=subscriber.get("topic_filters"),
+                max_stories=subscriber.get("max_stories"),
+            )
+            if send_email(
+                subject=subject,
+                html=html,
+                to=subscriber["email"],
+            ):
+                sent_count += 1
+            else:
+                logger.error("Failed to send digest to %s", subscriber["email"])
+
+        if sent_count > 0:
             article_ids = [article["id"] for article in digest_articles]
             record_digest_sent(run_date, article_ids, subject)
             mark_articles_digest_date(article_ids, run_date)
             digest_sent = True
             logger.info(
-                "Digest sent with %d stories for %s%s",
+                "Digest sent to %d/%d subscribers with %d stories for %s%s",
+                sent_count,
+                len(subscribers),
                 len(digest_articles),
                 run_date,
                 " (degraded)" if degraded else "",

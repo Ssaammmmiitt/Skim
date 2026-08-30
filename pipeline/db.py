@@ -461,3 +461,55 @@ def count_duplicate_article_urls() -> int:
             return cur.fetchone()[0]
     finally:
         conn.close()
+
+
+def get_digest_subscribers() -> list[dict]:
+    """Active subscribers with digest preferences. Falls back to DIGEST_RECIPIENT env."""
+    from pipeline.digest_preferences import subscriber_defaults
+
+    fallback = os.environ.get("DIGEST_RECIPIENT", "").strip()
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT ds.email,
+                       COALESCE(p.theme, 'cyan') AS theme,
+                       COALESCE(p.format, 'full') AS format,
+                       COALESCE(p.max_stories, 8) AS max_stories,
+                       p.topic_filters
+                FROM digest_subscribers ds
+                JOIN profiles pr ON pr.id = ds.user_id
+                LEFT JOIN user_digest_preferences p ON p.user_id = ds.user_id
+                WHERE ds.active = TRUE
+                  AND pr.status = 'active'
+                  AND COALESCE(p.email_enabled, TRUE) = TRUE
+                ORDER BY ds.email
+                """
+            )
+            rows = cur.fetchall()
+    except Exception as exc:
+        logger.warning("Could not load digest_subscribers (%s); using env fallback", exc)
+        if fallback:
+            return [subscriber_defaults(fallback)]
+        return []
+    finally:
+        conn.close()
+
+    if not rows:
+        if fallback:
+            return [subscriber_defaults(fallback)]
+        return []
+
+    subscribers: list[dict] = []
+    for row in rows:
+        subscribers.append(
+            {
+                "email": row[0],
+                "theme": row[1],
+                "format": row[2],
+                "max_stories": row[3],
+                "topic_filters": list(row[4]) if row[4] else None,
+            }
+        )
+    return subscribers

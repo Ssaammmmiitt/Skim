@@ -1,3 +1,66 @@
+export interface SearchResult {
+  id: number;
+  title: string;
+  url: string;
+  source: string;
+  published_at: string | null;
+  topic: string | null;
+  importance_score: number | null;
+  summary?: string | null;
+  insight?: string | null;
+}
+
+export interface ChatSource {
+  id: number;
+  title: string;
+  url: string;
+  source: string;
+  published_at: string | null;
+  topic: string | null;
+}
+
+export type ChatRole = "user" | "assistant";
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  sources?: ChatSource[];
+}
+
+export interface ChatApiResponse {
+  answer: string;
+  sources: ChatSource[];
+  remaining: number;
+  used: number;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  query: string;
+}
+
+export interface DigestArticle {
+  id: number;
+  title: string;
+  url: string;
+  source: string;
+  published_at: string | null;
+  summary: string | null;
+  topic: string | null;
+  importance_score: number | null;
+  insight: string | null;
+  key_takeaway: string | null;
+}
+
+export interface DigestResponse {
+  date: string;
+  articles: DigestArticle[];
+  sent_at: string | null;
+  subject: string | null;
+  story_count: number;
+}
+
 export interface Article {
   id: number;
   title: string;

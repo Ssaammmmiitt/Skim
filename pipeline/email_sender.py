@@ -96,6 +96,8 @@ def send_email(
 ) -> bool:
     """Send an HTML email. Returns True on success, False on failure."""
     recipient = to or _recipient()
+    _api_token()
+    _sender_email()
     http = session or requests
 
     try:

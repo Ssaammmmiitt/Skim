@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Skim Dashboard
 
-## Getting Started
+Next.js app for browsing digests, managing preferences, and (soon) RAG chat. **All routes require admin approval** except `/login` and `/pending`.
 
-First, run the development server:
+## Auth model
+
+| Method | Use case | After success |
+|---|---|---|
+| **Google OAuth** | Sign up or sign in | Pending → wait page; superuser → dashboard |
+| **Email OTP (Sign up)** | New account registration only | Wait page until admin approves |
+| **Email OTP (Sign in)** | Returning approved users | Dashboard (or wait page if still pending) |
+
+Full setup guide: [`docs/phase6_auth_admin_preferences.md`](../docs/phase6_auth_admin_preferences.md)
+
+## Prerequisites
+
+- Node.js 20+
+- Supabase project with `sql/schema.sql` and `sql/002_users_auth_preferences.sql` applied
+- Google OAuth credentials configured in Supabase
+- Email OTP enabled in Supabase (6-digit code)
+
+## Local development
 
 ```bash
+cd dashboard
+npm install
+cp .env.example .env.local   # fill in values below
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to `/login`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Anon/publishable key |
+| `SKIM_SUPERUSER_EMAIL` | Yes | Your email — auto-approved as superuser |
+| `SKIM_ADMIN_CONTACT_EMAIL` | Yes | Email on wait page + signup alert recipient |
+| `MAILTRAP_API_TOKEN` | For alerts | Sends admin email on new signup |
+| `MAILTRAP_SENDER_EMAIL` | For alerts | Verified sender address |
+| `MAILTRAP_SENDER_NAME` | No | Default: `Skim` |
 
-## Learn More
+## User journey (summary)
 
-To learn more about Next.js, take a look at the following resources:
+```
+Sign up (Google or email OTP)
+        │
+        ▼
+   /pending  ──► Contact admin (mailto) ──► Admin notified by email
+        │                                        │
+        │                              Admin approves in /admin
+        ▼                                        │
+   Dashboard + digests ◄─────────────────────────┘
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Google** collects email, full name, and avatar automatically. **Email signup** collects email only (OTP for registration). **Email sign-in** uses OTP for returning approved users — not for new registrations.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Pages
 
-## Deploy on Vercel
+| Route | Who can access |
+|---|---|
+| `/login` | Everyone |
+| `/pending` | Authenticated, not yet approved |
+| `/`, `/archive`, `/chat`, `/settings` | Approved users only |
+| `/admin` | Superuser only |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API (active users only)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Endpoint | Description |
+|---|---|
+| `GET /api/digests` | Today's digest (`?date=YYYY-MM-DD` optional) |
+| `GET /api/digests/dates` | List of dates with archived digests |
+| `GET /api/search` | Keyword search (`?q=OpenAI`) |
+| `GET /api/chat` | Chat quota remaining |
+| `POST /api/chat` | RAG Q&A (`{ message, history? }`) |
+| `GET /api/settings/preferences` | User digest preferences |
+| `PUT /api/settings/preferences` | Update digest preferences |
+| `GET /api/admin/users?status=pending` | Admin: list pending users |
+| `POST /api/admin/users` | Admin: approve/reject user |
+
+Unauthenticated requests return `401`. Pending users receive `403` on all API routes.
+
+## Design
+
+UI follows [`Design.md`](./Design.md) — dark canvas, cyan accents, Skim brand.
+
+## Tests
+
+```bash
+cd dashboard
+npm test          # run once
+npm run test:watch  # watch mode
+```
+
+**57 unit tests** cover components, lib helpers, and API route handlers (Vitest + Testing Library).

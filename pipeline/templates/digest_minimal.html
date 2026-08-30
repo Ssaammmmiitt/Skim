@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skim — {{ date }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:Georgia,'Times New Roman',serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+          <tr>
+            <td style="padding:0 0 16px;border-bottom:1px solid #111;">
+              <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#666;">Skim</p>
+              <h1 style="margin:0;font-size:22px;font-weight:400;color:#111;">{{ date }}</h1>
+              <p style="margin:6px 0 0;font-size:13px;color:#666;">{{ story_count }} stor{{ 'y' if story_count == 1 else 'ies' }}</p>
+            </td>
+          </tr>
+          {% if stories %}
+          {% for story in stories %}
+          <tr>
+            <td style="padding:20px 0;border-bottom:1px solid #eee;">
+              <p style="margin:0 0 6px;font-size:11px;color:#888;text-transform:uppercase;">{{ story.topic_label }} · {{ story.source }}</p>
+              <h2 style="margin:0 0 8px;font-size:17px;font-weight:600;line-height:1.35;">
+                <a href="{{ story.url }}" style="color:#111;text-decoration:none;">{{ story.title }}</a>
+              </h2>
+              {% if show_takeaways and story.key_takeaway %}
+              <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#333;">{{ story.key_takeaway }}</p>
+              {% endif %}
+              {% if show_insights and story.insight %}
+              <p style="margin:0;font-size:14px;line-height:1.55;color:#444;">{{ story.insight }}</p>
+              {% elif show_summaries and story.summary %}
+              <p style="margin:0;font-size:14px;line-height:1.55;color:#444;">{{ story.summary }}</p>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td style="padding:28px 0;color:#666;">Quiet day — no stories matched your preferences.</td>
+          </tr>
+          {% endif %}
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

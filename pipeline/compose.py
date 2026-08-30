@@ -8,6 +8,16 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from pipeline.digest_preferences import (
+    DEFAULT_FORMAT,
+    DEFAULT_THEME,
+    THEME_TEMPLATE,
+    filter_articles_for_user,
+    format_flags,
+    normalize_format,
+    normalize_theme,
+)
+
 TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 
 TOPIC_LABELS: dict[str, str] = {
@@ -50,21 +60,38 @@ def compose_digest(
     stats: dict[str, Any] | None = None,
     rationale: str = "",
     digest_date: datetime | None = None,
+    *,
+    theme: str | None = None,
+    format_name: str | None = None,
+    topic_filters: list[str] | None = None,
+    max_stories: int | None = None,
 ) -> str:
     """Render the daily digest as email-safe HTML."""
     when = digest_date or datetime.now(timezone.utc)
+    resolved_theme = normalize_theme(theme or DEFAULT_THEME)
+    resolved_format = normalize_format(format_name or DEFAULT_FORMAT)
+    filtered = filter_articles_for_user(
+        articles,
+        topic_filters=topic_filters,
+        max_stories=max_stories or 8,
+    )
+
     env = Environment(
         loader=FileSystemLoader(TEMPLATE_DIR),
         autoescape=select_autoescape(["html", "xml"]),
     )
-    template = env.get_template("digest.html")
-    stories = _prepare_stories(articles)
+    template = env.get_template(THEME_TEMPLATE[resolved_theme])
+    stories = _prepare_stories(filtered)
+    flags = format_flags(resolved_format)
 
     return template.render(
         date=when.strftime("%B %d, %Y"),
         stories=stories,
         story_count=len(stories),
         rationale=rationale.strip(),
-        topics_summary=_topics_summary(articles) if articles else "",
+        topics_summary=_topics_summary(filtered) if filtered else "",
         stats=stats or {},
+        theme=resolved_theme,
+        format=resolved_format,
+        **flags,
     )
