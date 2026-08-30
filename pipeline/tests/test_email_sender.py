@@ -69,7 +69,7 @@ def test_send_email_uses_sandbox_url(mail_env, monkeypatch):
     assert session.post.call_args.args[0] == SANDBOX_API_URL
 
 
-def test_send_email_missing_token(monkeypatch):
+def test_send_email_missing_token(mail_env, monkeypatch):
     monkeypatch.delenv("MAILTRAP_API_TOKEN", raising=False)
     with pytest.raises(ValueError, match="MAILTRAP_API_TOKEN"):
         send_email(subject="Test", html="<p>Hi</p>", session=MagicMock())
