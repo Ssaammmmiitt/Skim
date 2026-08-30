@@ -1,5 +1,6 @@
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Iterator
 
 from pipeline.agent.llm_client import LLMClient, LLMProviderError
@@ -31,6 +32,10 @@ MAX_DIGEST_STORIES = 10
 # ≈ 93 calls, leaving headroom for retries.
 DEFAULT_CLASSIFY_LIMIT = 80
 DEFAULT_INSIGHT_LIMIT = 12
+
+# Parallel insight workers — bounded to avoid hitting RPM limits.
+# With 5 Gemini keys, 3 workers gives good throughput without burning keys.
+INSIGHT_CONCURRENCY = 3
 
 
 def chunked(items: list[Any], size: int) -> Iterator[list[Any]]:
@@ -153,49 +158,129 @@ class ArticleAgent:
             "reasoning": arguments.get("reasoning", ""),
         }
 
-    def generate_insights(self, articles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _generate_single_insight(
+        self, article: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Generate insight for one article. Returns validated args or None.
+
+        Thread-safe: each call goes through ``LLMClient.chat_with_tools`` which
+        uses the shared key pool for Gemini and a lock-protected Groq fallback.
+        """
+        article_id = article["id"]
+        try:
+            response = self.llm.chat_with_tools(
+                messages=build_insight_messages([article]),
+                tools=[GENERATE_INSIGHT],
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": "generate_insight"},
+                },
+            )
+        except LLMProviderError as exc:
+            logger.warning(
+                "Insight generation failed for article %s: %s",
+                article_id,
+                exc,
+            )
+            return None
+        except Exception as exc:
+            logger.error(
+                "Unexpected error calling LLM for article %s: %s",
+                article_id,
+                exc,
+                exc_info=True,
+            )
+            return None
+
+        if not response["tool_calls"]:
+            logger.warning("No insight generated for article %s", article_id)
+            return None
+
+        try:
+            args = self._validate_insight(response["tool_calls"][0]["arguments"], article)
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Skipping invalid insight for article %s: %s", article_id, exc)
+            return None
+
+        update_article_insight(
+            article_id=args["article_id"],
+            insight=args["insight"],
+            key_takeaway=args["key_takeaway"],
+        )
+        logger.debug(
+            "Insight generated for article %s via %s",
+            article_id,
+            response.get("provider", "unknown"),
+        )
+        return args
+
+    def generate_insights(
+        self,
+        articles: list[dict[str, Any]],
+        concurrency: int = INSIGHT_CONCURRENCY,
+    ) -> list[dict[str, Any]]:
         if not articles:
             return []
 
+        if concurrency <= 1:
+            return self._generate_insights_sequential(articles)
+
+        workers = min(concurrency, len(articles))
+        logger.info(
+            "Generating insights for %d articles with %d parallel workers",
+            len(articles),
+            workers,
+        )
+
+        results: dict[int, dict[str, Any]] = {}
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            future_to_article = {
+                pool.submit(self._generate_single_insight, article): article
+                for article in articles
+            }
+            for future in as_completed(future_to_article):
+                article = future_to_article[future]
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    logger.warning(
+                        "Unexpected error generating insight for article %s: %s",
+                        article["id"],
+                        exc,
+                    )
+                    continue
+                if result is not None:
+                    results[article["id"]] = result
+
+        ordered = [results[a["id"]] for a in articles if a["id"] in results]
+        failed_count = len(articles) - len(ordered)
+        if failed_count == 0:
+            logger.info("Insights complete: all %d articles succeeded", len(articles))
+        elif len(ordered) > 0:
+            logger.warning(
+                "Insights complete: %d/%d succeeded, %d failed",
+                len(ordered),
+                len(articles),
+                failed_count,
+            )
+        else:
+            logger.error(
+                "Insights complete: ALL %d articles failed — check API keys and provider health",
+                len(articles),
+            )
+        return ordered
+
+    def _generate_insights_sequential(
+        self, articles: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Fallback sequential path (used when concurrency=1 or in tests)."""
         insights: list[dict[str, Any]] = []
         for index, article in enumerate(articles):
-            try:
-                response = self.llm.chat_with_tools(
-                    messages=build_insight_messages([article]),
-                    tools=[GENERATE_INSIGHT],
-                    tool_choice={
-                        "type": "function",
-                        "function": {"name": "generate_insight"},
-                    },
-                )
-            except LLMProviderError as exc:
-                logger.warning(
-                    "Insight generation stopped after %d/%d articles: %s",
-                    len(insights),
-                    len(articles),
-                    exc,
-                )
-                return insights
-
-            if not response["tool_calls"]:
-                logger.warning("No insight generated for article %s", article["id"])
-                continue
-
-            try:
-                args = self._validate_insight(response["tool_calls"][0]["arguments"], article)
-            except (ValueError, KeyError, TypeError) as exc:
-                logger.warning("Skipping invalid insight for article %s: %s", article["id"], exc)
-                continue
-            update_article_insight(
-                article_id=args["article_id"],
-                insight=args["insight"],
-                key_takeaway=args["key_takeaway"],
-            )
-            insights.append(args)
-
+            result = self._generate_single_insight(article)
+            if result is not None:
+                insights.append(result)
             if index < len(articles) - 1 and self.batch_delay_seconds:
                 time.sleep(self.batch_delay_seconds)
-
         return insights
 
     def generate_insights_for_top_articles(
@@ -333,6 +418,7 @@ def run_agent_reasoning(
 
     all_classified = get_todays_classified_articles()
     if not all_classified:
+        agent.llm.log_usage_summary()
         return {"articles": [], "selected_article_ids": [], "rationale": ""}
 
     logger.info("Pass 3: selecting digest from %d classified articles", len(all_classified))

@@ -229,7 +229,7 @@ def test_generate_insights_keeps_progress_when_providers_fail(test_run_id):
     ]
 
     agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
-    result = agent.generate_insights(classified)
+    result = agent.generate_insights(classified, concurrency=1)
 
     assert len(result) == 1
     stored = get_articles_by_urls([classified[0]["url"]])[0]
@@ -378,7 +378,7 @@ def test_classify_unclassified_articles_processes_db_rows(
 
 def test_generate_insights_returns_empty_for_no_articles():
     agent = ArticleAgent(llm=MagicMock(), batch_delay_seconds=0)
-    assert agent.generate_insights([]) == []
+    assert agent.generate_insights([], concurrency=1) == []
     agent.llm.chat_with_tools.assert_not_called()
 
 
@@ -414,7 +414,7 @@ def test_generate_insights_updates_db_with_mock_llm(test_run_id):
     }
 
     agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
-    result = agent.generate_insights([article])
+    result = agent.generate_insights([article], concurrency=1)
 
     assert len(result) == 1
     assert "egress" in result[0]["insight"].lower()

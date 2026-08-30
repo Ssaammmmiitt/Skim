@@ -8,8 +8,8 @@ Skim is a fully automated system that:
 
 1. **Ingests** tech news daily from Hacker News and RSS feeds (TechCrunch, Ars Technica, The Verge, MIT Technology Review)
 2. **Embeds** articles locally with sentence-transformers for semantic search over the full corpus
-3. **Reasons** over articles using LLMs with function calling (classify topics, score importance, generate editorial insights) — *planned*
-4. **Selects** the day's top stories through multi-pass agentic reasoning — *planned*
+3. **Reasons** over articles using LLMs with function calling (classify topics, score importance, generate editorial insights)
+4. **Selects** the day's top stories through multi-pass agentic reasoning
 5. **Delivers** a curated HTML email digest every morning — *planned*
 6. **Serves** a web dashboard with archive browsing and RAG-powered chat — *planned*
 
@@ -22,7 +22,7 @@ All designed to run on free-tier infrastructure.
 | Pipeline | Python 3.11 | Scraping, NLP, embeddings |
 | Dashboard | Next.js 16 + TypeScript | Server components, API routes |
 | Database | Supabase (PostgreSQL + pgvector) | Relational + vector in one DB |
-| LLM | Gemini 2.5 Flash (primary) + Groq fallback | High TPM for RAG; Groq for speed when Gemini is rate-limited |
+| LLM | Gemini 3.6 Flash (primary) + Groq fallback | Structured function calling; Groq when Gemini keys are exhausted |
 | Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Local, zero API cost |
 | Email | Resend | 3,000 emails/month free |
 | Scheduler | GitHub Actions cron | Free minutes, built-in secrets |
@@ -41,13 +41,20 @@ All designed to run on free-tier infrastructure.
 - Cosine similarity search in Python and via Supabase RPC (`search_similar_articles`)
 - HNSW index for vector search (ivfflat loses most recall on a small corpus)
 
+**Agent reasoning**
+- Three-pass LLM pipeline: classify → insight → story selection
+- `gemini-3.6-flash` primary with Groq `openai/gpt-oss-120b` fallback
+- Multi-key rotation: comma-separated `GEMINI_API_KEYS` / `GROQ_API_KEYS` (5 Gemini + 2 Groq)
+- Rotates on quota (429), invalid key (403), or unavailable model (404); skips Gemini for the rest of the run once all keys fail
+- Partial progress on provider failure — bad LLM responses are skipped, not fatal
+
 **Infrastructure**
 - Supabase schema with `articles`, `digests`, and `pipeline_runs` tables
 - GitHub Actions workflow (daily cron + manual trigger) with sentence-transformers model caching
 - Next.js dashboard scaffold with Supabase client wired up
 
 **Tests**
-- 38 pytest tests covering adapters, dedup, DB inserts, embeddings, and similarity search
+- 110+ pytest tests covering adapters, dedup, DB inserts, embeddings, similarity search, LLM client rotation, and agent reasoning
 
 ## Architecture
 
@@ -68,7 +75,7 @@ GitHub Actions (cron, daily 00:15 UTC)
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│ 4. Agent Reason │  Groq/Gemini function calling  (planned)
+│ 4. Agent Reason │  Gemini 3.6 Flash + Groq function calling
 │                 │   classify → insight → selection
 └────────┬────────┘
          ▼
@@ -88,7 +95,7 @@ GitHub Actions (cron, daily 00:15 UTC)
 | Setup | Done | Repo structure, Supabase, GitHub Actions, API keys |
 | Ingestion | Done | HN + RSS adapters, dedup, Postgres storage |
 | Embeddings | Done | sentence-transformers, pgvector, semantic search RPC |
-| Agent Reasoning | Planned | Function calling, classify / insight / selection |
+| Agent Reasoning | Done | Function calling, classify / insight / selection, key rotation |
 | Digest + Email | Planned | HTML template, Resend, full orchestration |
 | Reliability | Planned | Retry logic, pipeline_runs observability, alerting |
 | Dashboard + RAG | Planned | Archive view, RAG chat with citations |
@@ -100,6 +107,7 @@ GitHub Actions (cron, daily 00:15 UTC)
 Skim/
 ├── pipeline/          # Python ingestion + embedding pipeline
 │   ├── sources/       # Hacker News and RSS adapters
+│   ├── agent/       # LLM client, prompts, reasoning orchestrator
 │   ├── ingest.py      # Daily ingestion orchestrator
 │   ├── embed.py       # Embedding + similarity search
 │   ├── db.py          # Postgres connection and queries
@@ -139,6 +147,9 @@ python -m pipeline.ingest
 # Embed any articles missing embeddings
 python -m pipeline.embed
 
+# Run agent reasoning (classify → insight → selection)
+python -m pipeline.agent.reasoning
+
 # Run tests (integration tests need a live DB)
 pytest
 ```
@@ -162,8 +173,8 @@ npm run dev
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable (anon) key |
 | `SUPABASE_SECRET_KEY` | Service role key |
 | `SUPABASE_DB_URL` | Direct Postgres connection string |
-| `GEMINI_API_KEYS` | Gemini API keys (primary), comma-separated to rotate on quota exhaustion |
-| `GROQ_API_KEYS` | Groq fallback API keys, comma-separated |
+| `GEMINI_API_KEYS` | Gemini API keys (primary), comma-separated — one key per Google Cloud project for separate free-tier quota |
+| `GROQ_API_KEYS` | Groq fallback API keys, comma-separated — used when all Gemini keys are exhausted |
 | `RESEND_API_KEY` | Email delivery |
 | `DIGEST_RECIPIENT` | Digest email address |
 
@@ -176,7 +187,9 @@ npm run dev
 
 ### GitHub Actions
 
-Add the pipeline env vars as repository secrets. For `SUPABASE_DB_URL`, use the **Supavisor transaction pooler** (port 6543) from Supabase Dashboard → Connect — GitHub Actions runners are IPv4-only and cannot reach Supabase's direct `db.*.supabase.co` endpoint.
+Add the pipeline env vars as repository secrets. For `GEMINI_API_KEYS`, paste all keys comma-separated in a single secret (e.g. `key1,key2,key3,key4,key5`). Keys must come from separate Google Cloud projects — free-tier quota is per project, not per key.
+
+For `SUPABASE_DB_URL`, use the **Supavisor transaction pooler** (port 6543) from Supabase Dashboard → Connect — GitHub Actions runners are IPv4-only and cannot reach Supabase's direct `db.*.supabase.co` endpoint.
 
 If your database password contains `@`, store it as-is in the secret; the pipeline URL-encodes it automatically.
 
@@ -188,6 +201,8 @@ If your database password contains `@`, store it as-is in the secret; the pipeli
 | Scheduler | GitHub Actions cron | Free, no server to maintain, built-in secrets |
 | LLM output | Function calling | Typed JSON, no fragile text parsing |
 | Architecture | Multi-pass agent | Focused steps with partial failure recovery |
+| LLM provider | Gemini primary, Groq fallback | Gemini free tier is generous; Groq covers exhaustion |
+| Key rotation | Comma-separated env vars | 5 Gemini projects × 20 req/day = 100 calls before fallback |
 | Embedding | Local MiniLM | Free at any volume, no rate limits |
 | CI database | Supavisor pooler | IPv4-compatible; direct Supabase host is IPv6-only |
 

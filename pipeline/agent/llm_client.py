@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -19,14 +20,12 @@ GEMINI_MODEL = "gemini-3.6-flash"
 GROQ_MODEL = "openai/gpt-oss-120b"
 
 GEMINI_FALLBACK_STATUS_CODES = {403, 404, 429, 500, 502, 503, 504}
-
-# 429 is excluded from retries: Gemini's free tier quota is per-day, so a short
-# backoff never clears it. Rotate to the next key or fall through to Groq instead.
 GEMINI_RETRYABLE_STATUS_CODES = {500, 502, 503, 504}
-# Rotate immediately — no point retrying the same key for these.
 GEMINI_KEY_ROTATION_STATUS_CODES = {403, 404, 429}
 GEMINI_MAX_RETRIES = 3
 GEMINI_RETRY_BACKOFF_SECONDS = 2
+GEMINI_REQUEST_TIMEOUT_SECONDS = 120
+GROQ_REQUEST_TIMEOUT_SECONDS = 60
 
 
 class LLMProviderError(Exception):
@@ -38,13 +37,73 @@ def _parse_csv_keys(env_var: str) -> list[str]:
     return [key.strip() for key in raw.split(",") if key.strip()]
 
 
+class _GeminiKeySlot:
+    """One Gemini API key with its own client and usage counter. Thread-safe."""
+
+    def __init__(self, api_key: str, index: int, total: int):
+        self.client = genai.Client(api_key=api_key)
+        self.index = index
+        self.total = total
+        self.calls = 0
+        self.exhausted = False
+        self._lock = threading.Lock()
+
+    def mark_exhausted(self) -> None:
+        with self._lock:
+            self.exhausted = True
+
+    def increment_calls(self) -> None:
+        with self._lock:
+            self.calls += 1
+
+    @property
+    def label(self) -> str:
+        return f"key {self.index + 1}/{self.total}"
+
+
+class _GeminiKeyPool:
+    """Round-robin pool distributing requests across Gemini keys.
+
+    Thread-safe: concurrent workers can call ``next_slot()`` and each gets a
+    different live key. When a key is marked exhausted the pool skips it.
+    """
+
+    def __init__(self, keys: list[str]):
+        self._slots = [_GeminiKeySlot(k, i, len(keys)) for i, k in enumerate(keys)]
+        self._cursor = 0
+        self._lock = threading.Lock()
+        self.all_exhausted = False
+
+    def next_slot(self) -> _GeminiKeySlot | None:
+        with self._lock:
+            if self.all_exhausted:
+                return None
+            n = len(self._slots)
+            for _ in range(n):
+                slot = self._slots[self._cursor % n]
+                self._cursor += 1
+                if not slot.exhausted:
+                    return slot
+            self.all_exhausted = True
+            return None
+
+    def mark_exhausted(self, slot: _GeminiKeySlot) -> None:
+        slot.mark_exhausted()
+        with self._lock:
+            if all(s.exhausted for s in self._slots):
+                self.all_exhausted = True
+                logger.warning("All %d Gemini keys exhausted", len(self._slots))
+
+    @property
+    def slots(self) -> list[_GeminiKeySlot]:
+        return list(self._slots)
+
+
 class LLMClient:
     """Gemini-primary LLM client with Groq fallback.
 
-    Both providers accept multiple comma-separated API keys via GEMINI_API_KEYS
-    and GROQ_API_KEYS. Gemini keys must come from separate Google Cloud projects
-    to get separate quota buckets, since the free tier meters per project rather
-    than per key.
+    Supports concurrent use from multiple threads. Gemini keys are distributed
+    via a round-robin pool so parallel workers spread load across quota buckets.
     """
 
     def __init__(
@@ -54,25 +113,24 @@ class LLMClient:
     ):
         self._gemini_keys = _parse_csv_keys("GEMINI_API_KEYS")
         self._groq_keys = _parse_csv_keys("GROQ_API_KEYS")
-        self._gemini_key_index = 0
-        self._groq_key_index = 0
 
         if gemini_client is not None:
-            self._gemini = gemini_client
+            self._pool: _GeminiKeyPool | None = None
+            self._injected_gemini = gemini_client
         elif self._gemini_keys:
-            self._gemini = genai.Client(api_key=self._gemini_keys[0])
+            self._pool = _GeminiKeyPool(self._gemini_keys)
+            self._injected_gemini = None
         else:
             raise LLMProviderError(
                 "GEMINI_API_KEYS is not set; provide one or more comma-separated "
                 "Gemini API keys"
             )
 
-        self._gemini_is_injected = gemini_client is not None
-        self._gemini_exhausted = False
-        self._gemini_calls_per_key: dict[int, int] = {}
-        self._groq_calls = 0
+        self._groq_keys_index = 0
+        self._groq_lock = threading.Lock()
         self._groq = groq_client
         self._groq_is_injected = groq_client is not None
+        self._groq_calls = 0
         self.provider = "gemini"
 
         logger.info(
@@ -82,46 +140,17 @@ class LLMClient:
             GEMINI_MODEL,
         )
 
-    def _advance_gemini_key(self) -> bool:
-        """Switch to the next Gemini key. Returns False when none are left."""
-        if self._gemini_is_injected:
+    @property
+    def _gemini_exhausted(self) -> bool:
+        if self._pool is None:
             return False
-        if self._gemini_key_index + 1 >= len(self._gemini_keys):
-            return False
+        return self._pool.all_exhausted
 
-        self._gemini_key_index += 1
-        self._gemini = genai.Client(api_key=self._gemini_keys[self._gemini_key_index])
-        logger.info(
-            "Rotated to Gemini key %d/%d",
-            self._gemini_key_index + 1,
-            len(self._gemini_keys),
-        )
-        return True
-
-    def _advance_groq_key(self) -> bool:
-        if self._groq_is_injected:
-            return False
-        if self._groq_key_index + 1 >= len(self._groq_keys):
-            return False
-
-        self._groq_key_index += 1
-        self._groq = Groq(api_key=self._groq_keys[self._groq_key_index])
-        logger.info(
-            "Rotated to Groq key %d/%d",
-            self._groq_key_index + 1,
-            len(self._groq_keys),
-        )
-        return True
-
-    def _get_groq(self) -> Groq:
-        if self._groq is None:
-            if not self._groq_keys:
-                raise LLMProviderError(
-                    "GROQ_API_KEYS is not set; provide one or more comma-separated "
-                    "Groq API keys for fallback"
-                )
-            self._groq = Groq(api_key=self._groq_keys[self._groq_key_index])
-        return self._groq
+    @property
+    def _gemini_calls_per_key(self) -> dict[int, int]:
+        if self._pool is None:
+            return {}
+        return {s.index: s.calls for s in self._pool.slots if s.calls > 0}
 
     def chat_with_tools(
         self,
@@ -129,43 +158,91 @@ class LLMClient:
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        if self._gemini_exhausted:
+        if self._pool is not None and self._pool.all_exhausted:
             return self._groq_chat(messages, tools, tool_choice)
 
-        try:
-            return self._gemini_chat_all_keys(messages, tools, tool_choice)
-        except genai_errors.APIError as exc:
-            if not self._should_fallback_from_gemini(exc):
-                raise
-            self._gemini_exhausted = True
-            logger.warning(
-                "All Gemini keys exhausted (%s), using Groq for remaining calls",
-                exc,
+        if self._injected_gemini is not None:
+            return self._gemini_with_retries(
+                self._injected_gemini, messages, tools, tool_choice
             )
-            return self._groq_chat(messages, tools, tool_choice)
 
-    def _gemini_chat_all_keys(
+        return self._gemini_with_pool(messages, tools, tool_choice)
+
+    def _gemini_with_retries(
+        self,
+        client: genai.Client,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        tool_choice: str | dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Retry loop for a single Gemini client (injected or from pool slot)."""
+        last_error: genai_errors.APIError | None = None
+        for attempt in range(GEMINI_MAX_RETRIES):
+            try:
+                return self._gemini_chat(client, messages, tools, tool_choice)
+            except genai_errors.APIError as exc:
+                last_error = exc
+                if exc.code in GEMINI_KEY_ROTATION_STATUS_CODES:
+                    break
+                if (
+                    exc.code in GEMINI_RETRYABLE_STATUS_CODES
+                    and attempt < GEMINI_MAX_RETRIES - 1
+                ):
+                    delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                    logger.warning(
+                        "Gemini failed (%s), retrying in %ss (%d/%d)",
+                        exc, delay, attempt + 1, GEMINI_MAX_RETRIES,
+                    )
+                    time.sleep(delay)
+                    continue
+                break
+
+        if last_error is not None and self._should_fallback(last_error):
+            logger.warning("Gemini failed (%s), falling back to Groq", last_error)
+            return self._groq_chat(messages, tools, tool_choice)
+        if last_error:
+            raise last_error
+        raise LLMProviderError("Gemini failed without a response")
+
+    def _gemini_with_pool(
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None,
     ) -> dict[str, Any]:
-        """Run the Gemini pass, rotating keys when a key's quota is exhausted."""
-        last_error: genai_errors.APIError | None = None
+        assert self._pool is not None
+        last_error: Exception | None = None
 
         while True:
+            slot = self._pool.next_slot()
+            if slot is None:
+                break
+
             for attempt in range(GEMINI_MAX_RETRIES):
                 try:
-                    return self._gemini_chat(messages, tools, tool_choice)
+                    result = self._gemini_chat(
+                        slot.client, messages, tools, tool_choice
+                    )
+                    slot.increment_calls()
+                    return result
                 except genai_errors.APIError as exc:
                     last_error = exc
+                    if exc.code in GEMINI_KEY_ROTATION_STATUS_CODES:
+                        logger.warning(
+                            "Gemini %s failed (%s), rotating",
+                            slot.label,
+                            exc,
+                        )
+                        self._pool.mark_exhausted(slot)
+                        break
                     if (
                         exc.code in GEMINI_RETRYABLE_STATUS_CODES
                         and attempt < GEMINI_MAX_RETRIES - 1
                     ):
-                        delay = GEMINI_RETRY_BACKOFF_SECONDS * (2**attempt)
+                        delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
                         logger.warning(
-                            "Gemini failed (%s), retrying in %ss (attempt %d/%d)",
+                            "Gemini %s failed (%s), retrying in %ss (%d/%d)",
+                            slot.label,
                             exc,
                             delay,
                             attempt + 1,
@@ -173,42 +250,44 @@ class LLMClient:
                         )
                         time.sleep(delay)
                         continue
+                    logger.warning(
+                        "Gemini %s failed (%s), non-retryable",
+                        slot.label,
+                        exc,
+                    )
+                    self._pool.mark_exhausted(slot)
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning(
+                        "Gemini %s unexpected error (%s: %s), rotating",
+                        slot.label,
+                        type(exc).__name__,
+                        exc,
+                    )
+                    self._pool.mark_exhausted(slot)
                     break
 
-            key_failed = (
-                last_error is not None
-                and last_error.code in GEMINI_KEY_ROTATION_STATUS_CODES
-            )
-            if key_failed and self._advance_gemini_key():
+        if last_error is not None:
+            should_fallback = (
+                isinstance(last_error, genai_errors.APIError)
+                and self._should_fallback(last_error)
+            ) or not isinstance(last_error, genai_errors.APIError)
+            if should_fallback:
                 logger.warning(
-                    "Gemini key failed (%s), trying next key",
+                    "All Gemini keys exhausted (%s), using Groq for remaining calls",
                     last_error,
                 )
-                continue
+                return self._groq_chat(messages, tools, tool_choice)
+            raise last_error
+        raise LLMProviderError("Gemini failed without a response")
 
-            if last_error:
-                raise last_error
-            raise LLMProviderError("Gemini failed without a response")
-
-    def log_usage_summary(self) -> None:
-        gemini_total = sum(self._gemini_calls_per_key.values())
-        parts = [
-            f"Gemini: {gemini_total} calls across "
-            f"{len(self._gemini_calls_per_key)}/{len(self._gemini_keys)} keys"
-        ]
-        for idx in sorted(self._gemini_calls_per_key):
-            parts.append(f"  key {idx + 1}: {self._gemini_calls_per_key[idx]} calls")
-        if self._groq_calls:
-            parts.append(f"Groq fallback: {self._groq_calls} calls")
-        if self._gemini_exhausted:
-            parts.append("Note: all Gemini keys were exhausted during this run")
-        logger.info("Usage summary:\n%s", "\n".join(parts))
-
-    def _should_fallback_from_gemini(self, exc: genai_errors.APIError) -> bool:
+    def _should_fallback(self, exc: genai_errors.APIError) -> bool:
         return exc.code in GEMINI_FALLBACK_STATUS_CODES
 
     def _gemini_chat(
         self,
+        client: genai.Client,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None,
@@ -220,6 +299,9 @@ class LLMClient:
             "automatic_function_calling": types.AutomaticFunctionCallingConfig(
                 disable=True
             ),
+            "http_options": types.HttpOptions(
+                timeout=GEMINI_REQUEST_TIMEOUT_SECONDS * 1000
+            ),
         }
         if system_instruction:
             config_kwargs["system_instruction"] = system_instruction
@@ -228,14 +310,12 @@ class LLMClient:
                 function_calling_config=types.FunctionCallingConfig(mode="ANY")
             )
 
-        response = self._gemini.models.generate_content(
+        response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=contents,
             config=types.GenerateContentConfig(**config_kwargs),
         )
         self.provider = "gemini"
-        key_idx = self._gemini_key_index
-        self._gemini_calls_per_key[key_idx] = self._gemini_calls_per_key.get(key_idx, 0) + 1
         return self._parse_gemini_response(response)
 
     def _parse_gemini_response(self, response: Any) -> dict[str, Any]:
@@ -261,6 +341,37 @@ class LLMClient:
             "tool_calls": tool_calls,
         }
 
+    def _get_groq(self) -> Groq:
+        if self._groq is None:
+            if not self._groq_keys:
+                raise LLMProviderError(
+                    "GROQ_API_KEYS is not set; provide one or more comma-separated "
+                    "Groq API keys for fallback"
+                )
+            self._groq = Groq(
+                api_key=self._groq_keys[self._groq_keys_index],
+                timeout=GROQ_REQUEST_TIMEOUT_SECONDS,
+            )
+        return self._groq
+
+    def _advance_groq_key(self) -> bool:
+        if self._groq_is_injected:
+            return False
+        with self._groq_lock:
+            if self._groq_keys_index + 1 >= len(self._groq_keys):
+                return False
+            self._groq_keys_index += 1
+            self._groq = Groq(
+                api_key=self._groq_keys[self._groq_keys_index],
+                timeout=GROQ_REQUEST_TIMEOUT_SECONDS,
+            )
+            logger.info(
+                "Rotated to Groq key %d/%d",
+                self._groq_keys_index + 1,
+                len(self._groq_keys),
+            )
+            return True
+
     def _groq_chat(
         self,
         messages: list[dict[str, Any]],
@@ -278,7 +389,8 @@ class LLMClient:
                     tool_choice=tool_choice or "auto",
                 )
                 self.provider = "groq"
-                self._groq_calls += 1
+                with self._groq_lock:
+                    self._groq_calls += 1
                 return self._parse_groq_response(response)
             except Exception as exc:
                 last_error = exc
@@ -288,6 +400,29 @@ class LLMClient:
                 raise LLMProviderError(
                     f"Both Gemini and Groq failed. Groq error: {last_error}"
                 ) from last_error
+
+    def log_usage_summary(self) -> None:
+        if self._pool is not None:
+            gemini_total = sum(s.calls for s in self._pool.slots)
+            active = sum(1 for s in self._pool.slots if s.calls > 0)
+            exhausted_count = sum(1 for s in self._pool.slots if s.exhausted)
+            parts = [
+                f"Gemini: {gemini_total} calls across {active}/{len(self._pool.slots)} keys "
+                f"({exhausted_count} exhausted)"
+            ]
+            for slot in self._pool.slots:
+                status = "exhausted" if slot.exhausted else "ok"
+                parts.append(f"  {slot.label}: {slot.calls} calls ({status})")
+        else:
+            parts = ["Gemini: injected client (no key pool)"]
+        if self._groq_calls:
+            parts.append(f"Groq fallback: {self._groq_calls} calls")
+        if self._gemini_exhausted:
+            parts.append("WARNING: all Gemini keys were exhausted during this run")
+
+        total = (sum(s.calls for s in self._pool.slots) if self._pool else 0) + self._groq_calls
+        parts.append(f"Total API calls: {total}")
+        logger.info("Usage summary:\n%s", "\n".join(parts))
 
     def _normalize_messages_for_groq(
         self, messages: list[dict[str, Any]]
