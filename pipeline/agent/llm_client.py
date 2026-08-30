@@ -15,7 +15,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 GROQ_MODEL = "openai/gpt-oss-120b"
 
 GEMINI_FALLBACK_STATUS_CODES = {403, 404, 429, 500, 502, 503, 504}
@@ -68,6 +68,7 @@ class LLMClient:
             )
 
         self._gemini_is_injected = gemini_client is not None
+        self._gemini_exhausted = False
         self._groq = groq_client
         self._groq_is_injected = groq_client is not None
         self.provider = "gemini"
@@ -119,12 +120,19 @@ class LLMClient:
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        if self._gemini_exhausted:
+            return self._groq_chat(messages, tools, tool_choice)
+
         try:
             return self._gemini_chat_all_keys(messages, tools, tool_choice)
         except genai_errors.APIError as exc:
             if not self._should_fallback_from_gemini(exc):
                 raise
-            logger.warning("Gemini failed (%s), falling back to Groq", exc)
+            self._gemini_exhausted = True
+            logger.warning(
+                "All Gemini keys exhausted (%s), using Groq for remaining calls",
+                exc,
+            )
             return self._groq_chat(messages, tools, tool_choice)
 
     def _gemini_chat_all_keys(
