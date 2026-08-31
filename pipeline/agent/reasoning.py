@@ -11,6 +11,7 @@ from pipeline.agent.prompts import (
 )
 from pipeline.agent.tools import CLASSIFY_ARTICLE, GENERATE_INSIGHT, SELECT_TOP_STORIES, TOPIC_CATEGORIES
 from pipeline.db import (
+    get_articles_by_ids,
     get_articles_needing_insights,
     get_todays_classified_articles,
     get_unclassified_articles,
@@ -23,9 +24,12 @@ logger = logging.getLogger(__name__)
 DEFAULT_BATCH_SIZE = 5
 DEFAULT_BATCH_DELAY_SECONDS = 1
 IMPORTANCE_THRESHOLD_FOR_INSIGHTS = 5
+INSIGHT_THRESHOLD_FLOOR = 3.0
 DEFAULT_DIGEST_SIZE = 8
 MIN_DIGEST_STORIES = 7
 MAX_DIGEST_STORIES = 10
+# Ensure enough insight candidates for a full digest on light ingestion days.
+MIN_INSIGHT_CANDIDATES = DEFAULT_DIGEST_SIZE + 2
 
 # Gemini free tier: 20 requests/day per project. With 5 keys that's 100 Gemini
 # calls + unlimited Groq fallback.  Budget: ~50 classify (10 batches of 5)
@@ -41,6 +45,36 @@ INSIGHT_CONCURRENCY = 3
 def chunked(items: list[Any], size: int) -> Iterator[list[Any]]:
     for index in range(0, len(items), size):
         yield items[index : index + size]
+
+
+def resolve_insight_candidates(
+    min_score: float = IMPORTANCE_THRESHOLD_FOR_INSIGHTS,
+    limit: int = DEFAULT_INSIGHT_LIMIT,
+    target_count: int = MIN_INSIGHT_CANDIDATES,
+) -> tuple[list[dict[str, Any]], float]:
+    """Pick articles for insight generation, lowering the score floor if needed."""
+    thresholds: list[float] = []
+    for value in (min_score, INSIGHT_THRESHOLD_FLOOR, 1.0):
+        if value not in thresholds:
+            thresholds.append(value)
+
+    articles: list[dict[str, Any]] = []
+    used_threshold = thresholds[-1]
+
+    for threshold in thresholds:
+        articles = get_articles_needing_insights(min_score=threshold, limit=limit)
+        used_threshold = threshold
+        if len(articles) >= target_count:
+            break
+
+    if len(articles) < target_count:
+        logger.info(
+            "Only %d articles need insights (target %d) — using all available candidates",
+            len(articles),
+            target_count,
+        )
+
+    return articles, used_threshold
 
 
 class ArticleAgent:
@@ -287,9 +321,50 @@ class ArticleAgent:
         self,
         min_score: float = IMPORTANCE_THRESHOLD_FOR_INSIGHTS,
         limit: int = DEFAULT_INSIGHT_LIMIT,
+        target_count: int = MIN_INSIGHT_CANDIDATES,
     ) -> list[dict[str, Any]]:
-        articles = get_articles_needing_insights(min_score=min_score, limit=limit)
+        articles, used_threshold = resolve_insight_candidates(
+            min_score=min_score,
+            limit=limit,
+            target_count=target_count,
+        )
+        if not articles:
+            logger.info("No articles need insights at any threshold")
+            return []
+
+        logger.info(
+            "Generating insights for %d articles (score >= %.1f)",
+            len(articles),
+            used_threshold,
+        )
         return self.generate_insights(articles)
+
+    def ensure_insights_for_articles(
+        self, articles: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Backfill insights for digest stories that were selected without them."""
+        if not articles:
+            return []
+
+        missing = [
+            article
+            for article in articles
+            if not article.get("insight") or not article.get("key_takeaway")
+        ]
+        if not missing:
+            return articles
+
+        logger.info(
+            "Pass 2b: backfilling insights for %d/%d digest stories",
+            len(missing),
+            len(articles),
+        )
+        self.generate_insights(missing)
+
+        refreshed = get_articles_by_ids([article["id"] for article in articles])
+        if len(refreshed) == len(articles):
+            return refreshed
+        return articles
 
     def _validate_insight(
         self, arguments: dict[str, Any], article: dict[str, Any]
@@ -424,6 +499,11 @@ def run_agent_reasoning(
     logger.info("Pass 3: selecting digest from %d classified articles", len(all_classified))
     try:
         result = agent.select_digest_stories(all_classified, n=n)
+        if result["articles"]:
+            result["articles"] = agent.ensure_insights_for_articles(result["articles"])
+            result["selected_article_ids"] = [
+                article["id"] for article in result["articles"]
+            ]
     except LLMProviderError as exc:
         logger.warning("Digest selection unavailable: %s", exc)
         result = {"articles": [], "selected_article_ids": [], "rationale": ""}

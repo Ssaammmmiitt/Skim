@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "@/app/api/chat/route";
 
 const requireActiveUser = vi.fn();
-const searchArticles = vi.fn();
+const hybridRetrieve = vi.fn();
 const generateChatAnswer = vi.fn();
 const checkChatRateLimit = vi.fn();
 const incrementChatUsage = vi.fn();
@@ -12,11 +12,11 @@ vi.mock("@/lib/auth/require-active-user", () => ({
   requireActiveUser: () => requireActiveUser(),
 }));
 
-vi.mock("@/lib/search", () => ({
-  searchArticles: (...args: unknown[]) => searchArticles(...args),
+vi.mock("@/lib/retrieval", () => ({
+  hybridRetrieve: (...args: unknown[]) => hybridRetrieve(...args),
 }));
 
-vi.mock("@/lib/chat/gemini", () => ({
+vi.mock("@/lib/chat/llm-client", () => ({
   generateChatAnswer: (...args: unknown[]) => generateChatAnswer(...args),
 }));
 
@@ -39,7 +39,7 @@ describe("/api/chat", () => {
       used: 1,
       remaining: 19,
     });
-    searchArticles.mockResolvedValue([
+    hybridRetrieve.mockResolvedValue([
       {
         id: 1,
         title: "OpenAI update",
@@ -49,9 +49,17 @@ describe("/api/chat", () => {
         summary: "Summary",
         insight: "Insight",
         topic: "ai_ml",
+        similarity: 0.82,
+        fts_rank: null,
+        rrf_score: 0.015,
+        retrieval_method: "hybrid",
       },
     ]);
-    generateChatAnswer.mockResolvedValue("Here is what happened.");
+    generateChatAnswer.mockResolvedValue({
+      answer: "Here is what happened.",
+      provider: "gemini",
+      model: "gemini-3.6-flash",
+    });
     incrementChatUsage.mockResolvedValue(undefined);
     getChatUsage.mockResolvedValue(1);
   });
@@ -75,7 +83,33 @@ describe("/api/chat", () => {
     expect(response.status).toBe(200);
     expect(body.answer).toBe("Here is what happened.");
     expect(body.sources).toHaveLength(1);
+    expect(body.retrieval_method).toBe("hybrid");
+    expect(hybridRetrieve).toHaveBeenCalledWith(
+      {},
+      "What happened in AI?",
+      expect.objectContaining({ limit: 8, history: [] })
+    );
     expect(incrementChatUsage).toHaveBeenCalledWith("user-1");
+  });
+
+  it("POST passes conversation history to retrieval", async () => {
+    const history = [
+      { role: "user" as const, content: "Tell me about OpenAI" },
+      { role: "assistant" as const, content: "OpenAI released a new model." },
+    ];
+
+    await POST(
+      new Request("http://localhost/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "What about funding?", history }),
+      })
+    );
+
+    expect(hybridRetrieve).toHaveBeenCalledWith(
+      {},
+      "What about funding?",
+      expect.objectContaining({ history })
+    );
   });
 
   it("POST returns 429 when rate limited", async () => {

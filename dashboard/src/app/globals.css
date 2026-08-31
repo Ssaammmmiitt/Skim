@@ -1,11 +1,204 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0f1419;
-  --foreground: #f0f9ff;
+/* ── Theme tokens (CSS variables switch for light/dark) ───────────────── */
+:root,
+html.dark {
+  --skim-canvas: #0f1419;
+  --skim-foreground: #f0f9ff;
+  --skim-surface: #1a2332;
+  --skim-surface-raised: #243044;
+  --skim-image-frame: #2d3a4f;
+  --skim-cyan-bright: #22d3ee;
+  --skim-cyan-core: #06b6d4;
+  --skim-cyan-deep: #0891b2;
+  --skim-cyan-glow: #67e8f9;
+  --skim-cyan-muted: #164e63;
+  --skim-secondary: #94a3b8;
+  --skim-muted: #64748b;
+  --skim-subtle: #cbd5e1;
+  --skim-error: #f87171;
+  --skim-error-surface: #450a0a;
+  --skim-warning: #fbbf24;
+  --skim-success: #34d399;
+  color-scheme: dark;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+html.light {
+  --skim-canvas: #f1f5f9;
+  --skim-foreground: #0f172a;
+  --skim-surface: #ffffff;
+  --skim-surface-raised: #e2e8f0;
+  --skim-image-frame: #cbd5e1;
+  --skim-cyan-bright: #0891b2;
+  --skim-cyan-core: #06b6d4;
+  --skim-cyan-deep: #0e7490;
+  --skim-cyan-glow: #155e75;
+  --skim-cyan-muted: #cffafe;
+  --skim-secondary: #475569;
+  --skim-muted: #64748b;
+  --skim-subtle: #334155;
+  --skim-error: #dc2626;
+  --skim-error-surface: #fee2e2;
+  --skim-warning: #d97706;
+  --skim-success: #059669;
+  color-scheme: light;
+}
+
+@theme {
+  --color-canvas: var(--skim-canvas);
+  --color-foreground: var(--skim-foreground);
+  --color-surface: var(--skim-surface);
+  --color-surface-raised: var(--skim-surface-raised);
+  --color-image-frame: var(--skim-image-frame);
+  --color-cyan-bright: var(--skim-cyan-bright);
+  --color-cyan-core: var(--skim-cyan-core);
+  --color-cyan-deep: var(--skim-cyan-deep);
+  --color-cyan-glow: var(--skim-cyan-glow);
+  --color-cyan-muted: var(--skim-cyan-muted);
+  --color-secondary: var(--skim-secondary);
+  --color-muted: var(--skim-muted);
+  --color-subtle: var(--skim-subtle);
+  --color-error: var(--skim-error);
+  --color-error-surface: var(--skim-error-surface);
+  --color-warning: var(--skim-warning);
+  --color-success: var(--skim-success);
+
+  --color-topic-ai: #164e63;
+  --color-topic-ai-text: #67e8f9;
+  --color-topic-web: #134e4a;
+  --color-topic-web-text: #5eead4;
+  --color-topic-cloud: #1e3a5f;
+  --color-topic-cloud-text: #7dd3fc;
+  --color-topic-security: #450a0a;
+  --color-topic-security-text: #fca5a5;
+  --color-topic-startups: #422006;
+  --color-topic-startups-text: #fcd34d;
+  --color-topic-code: #1e293b;
+  --color-topic-code-text: #94a3b8;
+  --color-topic-science: #312e81;
+  --color-topic-science-text: #c4b5fd;
+
+  --radius-card: 1.25rem;
+  --radius-pill: 9999px;
+  --tracking-eyebrow: 0.18em;
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .skim-eyebrow {
+    @apply text-xs font-medium uppercase tracking-eyebrow text-cyan-bright;
+  }
+
+  .skim-heading {
+    @apply text-3xl font-bold text-foreground sm:text-4xl;
+  }
+
+  .skim-subheading {
+    @apply text-xl font-bold leading-snug text-foreground;
+  }
+
+  .skim-body {
+    @apply text-sm text-secondary;
+  }
+
+  .skim-caption {
+    @apply text-xs text-muted;
+  }
+
+  .skim-card {
+    @apply rounded-card border border-surface-raised bg-surface;
+  }
+
+  .skim-card-dashed {
+    @apply rounded-card border border-dashed border-surface-raised bg-surface/50;
+  }
+
+  .skim-card-interactive {
+    @apply rounded-card border border-surface-raised bg-surface transition-colors hover:border-cyan-deep;
+  }
+
+  .skim-input {
+    @apply w-full rounded-lg border border-surface-raised bg-canvas px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted focus:border-cyan-core disabled:opacity-50;
+  }
+
+  .skim-input-nav {
+    @apply w-full min-w-0 rounded-pill border border-surface-raised bg-canvas py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted focus:border-cyan-core;
+  }
+
+  .skim-textarea {
+    @apply min-h-[52px] flex-1 resize-none rounded-xl border border-surface-raised bg-canvas px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted focus:border-cyan-core disabled:opacity-50;
+  }
+
+  .skim-btn-primary {
+    @apply rounded-pill bg-cyan-core px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-black transition hover:bg-cyan-bright disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .skim-btn-secondary {
+    @apply rounded-pill border border-surface-raised px-3 py-2 text-xs font-semibold uppercase tracking-wider text-secondary transition hover:border-cyan-core hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .skim-btn-ghost {
+    @apply rounded-pill border border-cyan-core px-6 py-2.5 text-xs font-semibold uppercase tracking-wider text-cyan-bright transition hover:bg-cyan-muted;
+  }
+
+  .skim-btn-danger {
+    @apply rounded-pill border border-error px-4 py-2 text-sm text-error transition hover:bg-error-surface/30;
+  }
+
+  .skim-nav-link {
+    @apply rounded-pill px-3 py-2 text-sm transition-colors;
+  }
+
+  .skim-nav-link-active {
+    @apply bg-cyan-muted font-medium text-cyan-glow;
+  }
+
+  .skim-nav-link-inactive {
+    @apply text-secondary hover:bg-surface hover:text-cyan-bright;
+  }
+
+  .skim-timeline {
+    @apply relative border-l border-dashed border-cyan-deep pl-4;
+  }
+
+  .skim-timeline-rank {
+    @apply absolute left-0 top-6 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-deep bg-canvas text-xs font-semibold text-cyan-bright;
+  }
+
+  .skim-pill {
+    @apply inline-block rounded-pill px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide;
+  }
+
+  .skim-meta {
+    @apply text-[11px] font-medium uppercase tracking-wider text-muted;
+  }
+
+  .skim-link {
+    @apply text-xs font-semibold uppercase tracking-wider text-cyan-bright transition hover:text-cyan-glow;
+  }
+
+  .skim-error {
+    @apply rounded-lg border border-error-surface bg-error-surface/30 px-4 py-3 text-sm text-error;
+  }
+
+  .skim-success {
+    @apply text-sm text-cyan-glow;
+  }
+
+  .skim-divider {
+    @apply h-px flex-1 bg-surface-raised;
+  }
+
+  .skim-shell-header {
+    @apply sticky top-0 z-40 border-b border-surface bg-canvas/95 backdrop-blur-sm;
+  }
+
+  .skim-chat-panel {
+    @apply flex min-h-0 flex-1 flex-col rounded-card border border-surface-raised bg-surface/40;
+  }
 }

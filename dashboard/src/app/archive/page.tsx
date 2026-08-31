@@ -1,4 +1,5 @@
-import { ArchiveView } from "@/components/ArchiveView";
+import { ArchiveView } from "@/components/archive/ArchiveView";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { fetchDigest, fetchDigestDates, todayUtc } from "@/lib/digests";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,12 +24,12 @@ export default async function ArchivePage({ searchParams }: ArchivePageProps) {
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
+    <PageContainer>
       <ArchiveView
         initialDate={initialDate}
         initialDigest={digest}
         availableDates={availableDates}
       />
-    </div>
+    </PageContainer>
   );
 }

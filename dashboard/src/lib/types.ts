@@ -8,6 +8,17 @@ export interface SearchResult {
   importance_score: number | null;
   summary?: string | null;
   insight?: string | null;
+  key_takeaway?: string | null;
+  similarity?: number | null;
+  fts_rank?: number | null;
+  rrf_score?: number | null;
+  retrieval_method?: "hybrid" | "vector" | "fts" | "keyword";
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  query: string;
+  mode?: string;
 }
 
 export interface ChatSource {
@@ -17,6 +28,9 @@ export interface ChatSource {
   source: string;
   published_at: string | null;
   topic: string | null;
+  similarity?: number | null;
+  rrf_score?: number | null;
+  retrieval_method?: "hybrid" | "vector" | "fts" | "keyword";
 }
 
 export type ChatRole = "user" | "assistant";
@@ -26,6 +40,27 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   sources?: ChatSource[];
+  retrieval_method?: string;
+  provider?: "gemini" | "groq";
+  model?: string;
+}
+
+export type ChatErrorCode =
+  | "quota_exhausted"
+  | "rate_limited"
+  | "all_providers_failed"
+  | "config"
+  | "empty_response"
+  | "unknown";
+
+export interface ChatApiError {
+  error: string;
+  error_code?: ChatErrorCode;
+  provider?: "gemini" | "groq";
+  model?: string;
+  retry_after_seconds?: number;
+  tried_providers?: string[];
+  details?: string;
 }
 
 export interface ChatApiResponse {
@@ -33,11 +68,10 @@ export interface ChatApiResponse {
   sources: ChatSource[];
   remaining: number;
   used: number;
-}
-
-export interface SearchResponse {
-  results: SearchResult[];
-  query: string;
+  retrieval_method?: "hybrid" | "vector" | "fts" | "keyword" | "none";
+  provider?: "gemini" | "groq";
+  model?: string;
+  articles_retrieved?: number;
 }
 
 export interface DigestArticle {

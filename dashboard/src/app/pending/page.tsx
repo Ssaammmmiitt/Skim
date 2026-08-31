@@ -28,22 +28,25 @@ export default async function PendingPage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 text-center">
-      <p className="text-xs uppercase tracking-[0.18em] text-[#22d3ee]">Skim</p>
-      <h1 className="mt-3 text-3xl font-bold text-[#f0f9ff]">
+      <p className="skim-eyebrow">Skim</p>
+      <h1 className="skim-heading mt-3">
         {rejected ? "Access not approved" : "Waiting for admin approval"}
       </h1>
-      <p className="mt-4 text-[#94a3b8]">
+      <p className="mt-4 skim-body">
         {rejected
           ? "Your signup request was declined. You can contact the admin below if you believe this was a mistake."
           : "Your account was created successfully. A Skim admin must approve your request before you can use the dashboard or receive the daily digest."}
       </p>
 
       {!rejected ? (
-        <div className="mt-6 w-full rounded-[20px] border border-[#243044] bg-[#1a2332] p-5 text-left text-sm text-[#94a3b8]">
-          <p className="font-medium text-[#f0f9ff]">What happens next?</p>
+        <div className="skim-card mt-6 w-full p-5 text-left skim-body">
+          <p className="font-medium text-foreground">What happens next?</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>The admin was notified of your signup.</li>
-            <li>You'll get access after approval — check back here or your email.</li>
+            <li>
+              You&apos;ll get access after approval — check back here or your
+              email.
+            </li>
             <li>You can email the admin to request access sooner.</li>
           </ul>
         </div>
@@ -52,22 +55,19 @@ export default async function PendingPage() {
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <a
           href={contactAdminHref(user?.email, adminEmail)}
-          className="rounded-full bg-[#06b6d4] px-6 py-3 text-sm font-semibold text-black hover:bg-[#22d3ee]"
+          className="skim-btn-primary inline-block px-6 py-3 text-sm"
         >
           Contact admin for access
         </a>
         <form action="/auth/signout" method="post">
-          <button
-            type="submit"
-            className="rounded-full border border-[#243044] px-6 py-3 text-sm text-[#94a3b8] hover:border-[#06b6d4] hover:text-[#22d3ee]"
-          >
+          <button type="submit" className="skim-btn-secondary px-6 py-3 text-sm">
             Sign out
           </button>
         </form>
       </div>
 
       {profile?.email ? (
-        <p className="mt-6 text-xs text-[#64748b]">Signed in as {profile.email}</p>
+        <p className="mt-6 text-xs text-muted">Signed in as {profile.email}</p>
       ) : null}
     </div>
   );

@@ -62,3 +62,17 @@ def test_compose_digest_headlines_format():
         format_name="headlines",
     )
     assert "Read more" not in html
+
+
+def test_compose_all_theme_format_combinations():
+    """CI guard: every theme × format pair must render without error."""
+    article = _sample_article()
+    for theme in ("cyan", "classic", "minimal"):
+        for format_name in ("full", "brief", "headlines"):
+            html = compose_digest([article], theme=theme, format_name=format_name)
+            assert "Skim" in html
+            assert article["title"] in html
+            if format_name == "headlines":
+                assert "Read more" not in html
+            if format_name == "full":
+                assert article["insight"] in html

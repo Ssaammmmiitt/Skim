@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireActiveUser } from "@/lib/auth/require-active-user";
-import { generateChatAnswer } from "@/lib/chat/gemini";
+import { ChatLlmError } from "@/lib/chat/errors";
+import { generateChatAnswer } from "@/lib/chat/llm-client";
 import {
   CHAT_DAILY_LIMIT,
   checkChatRateLimit,
   getChatUsage,
   incrementChatUsage,
 } from "@/lib/chat/rate-limit";
-import { searchArticles } from "@/lib/search";
+import { hybridRetrieve } from "@/lib/retrieval";
 import type { ChatSource } from "@/lib/types";
 
 type ChatHistoryItem = {
@@ -15,7 +16,7 @@ type ChatHistoryItem = {
   content: string;
 };
 
-const RETRIEVAL_LIMIT = 5;
+const RETRIEVAL_LIMIT = 8;
 
 export async function GET() {
   const auth = await requireActiveUser();
@@ -64,24 +65,14 @@ export async function POST(request: Request) {
   );
 
   try {
-    const articles = await searchArticles(auth.ctx.supabase, message, {
+    const articles = await hybridRetrieve(auth.ctx.supabase, message, {
       limit: RETRIEVAL_LIMIT,
-      columns:
-        "id, title, url, source, published_at, summary, insight, topic",
+      history,
     });
 
-    const answer = await generateChatAnswer(
+    const { answer, provider, model } = await generateChatAnswer(
       message,
-      articles.map((article) => ({
-        id: article.id,
-        title: article.title,
-        url: article.url,
-        source: article.source,
-        published_at: article.published_at,
-        summary: article.summary ?? null,
-        insight: article.insight ?? null,
-        topic: article.topic,
-      })),
+      articles,
       history
     );
     await incrementChatUsage(auth.ctx.user.id);
@@ -94,6 +85,9 @@ export async function POST(request: Request) {
       source: article.source,
       published_at: article.published_at,
       topic: article.topic,
+      similarity: article.similarity,
+      rrf_score: article.rrf_score,
+      retrieval_method: article.retrieval_method,
     }));
 
     return NextResponse.json({
@@ -101,10 +95,24 @@ export async function POST(request: Request) {
       sources,
       remaining: Math.max(0, CHAT_DAILY_LIMIT - used),
       used,
+      retrieval_method: articles[0]?.retrieval_method ?? "none",
+      provider,
+      model,
+      articles_retrieved: articles.length,
     });
   } catch (error) {
+    if (error instanceof ChatLlmError) {
+      return NextResponse.json(error.toJson(), { status: error.httpStatus });
+    }
     const errMessage =
       error instanceof Error ? error.message : "Failed to generate answer";
-    return NextResponse.json({ error: errMessage }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Something went wrong while generating an answer.",
+        error_code: "unknown",
+        details: errMessage,
+      },
+      { status: 500 }
+    );
   }
 }

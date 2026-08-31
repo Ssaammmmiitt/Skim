@@ -345,6 +345,32 @@ def record_pipeline_complete(
         conn.close()
 
 
+def get_articles_by_ids(article_ids: list[int]) -> list[dict]:
+    if not article_ids:
+        return []
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, url, source, published_at, summary, topic, importance_score,
+                       insight, key_takeaway
+                FROM articles
+                WHERE id = ANY(%s)
+                ORDER BY importance_score DESC NULLS LAST, id
+                """,
+                (article_ids,),
+            )
+            columns = [desc[0] for desc in cur.description]
+            rows = [dict(zip(columns, row)) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+    by_id = {row["id"]: row for row in rows}
+    return [by_id[article_id] for article_id in article_ids if article_id in by_id]
+
+
 def get_articles_by_urls(urls: list[str]) -> list[dict]:
     if not urls:
         return []

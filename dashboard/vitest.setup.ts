@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import "./src/app/globals.css";
 import { cleanup } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, vi } from "vitest";

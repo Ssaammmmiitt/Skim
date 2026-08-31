@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { topicColors, topicLabel } from "@/lib/topics";
+import { topicClass, topicLabel } from "@/lib/topics";
 
 describe("topics", () => {
   it("maps known topic ids to labels", () => {
@@ -15,15 +15,14 @@ describe("topics", () => {
     expect(topicLabel(null)).toBe("Other");
   });
 
-  it("returns distinct colors per topic", () => {
-    const ai = topicColors("ai_ml");
-    const web = topicColors("web_dev");
-    expect(ai.bg).not.toBe(web.bg);
-    expect(ai.text).not.toBe(web.text);
+  it("returns distinct Tailwind classes per topic", () => {
+    const ai = topicClass("ai_ml");
+    const web = topicClass("web_dev");
+    expect(ai).not.toBe(web);
+    expect(ai).toContain("bg-topic-ai");
   });
 
-  it("uses default colors for unknown topics", () => {
-    const colors = topicColors("unknown");
-    expect(colors.bg).toBe("#243044");
+  it("uses default classes for unknown topics", () => {
+    expect(topicClass("unknown")).toBe("bg-surface-raised text-secondary");
   });
 });

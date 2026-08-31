@@ -1,6 +1,9 @@
-import { DigestPreferenceForm } from "@/components/DigestPreferenceForm";
+import { DigestPreferenceForm } from "@/components/settings/DigestPreferenceForm";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 import type { DigestPreferences } from "@/lib/auth/types";
+import { normalizeDashboardTheme } from "@/lib/dashboard-theme";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -12,12 +15,12 @@ export default async function SettingsPage() {
     .maybeSingle<DigestPreferences>();
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <p className="text-xs uppercase tracking-[0.18em] text-[#22d3ee]">Settings</p>
-      <h1 className="mt-2 text-3xl font-bold text-[#f0f9ff]">Digest preferences</h1>
-      <p className="mt-2 text-[#94a3b8]">
-        Choose how your daily email looks and what it includes. Changes apply to the next digest.
-      </p>
+    <PageContainer size="lg">
+      <PageHeader
+        eyebrow="Settings"
+        title="Preferences"
+        description="Customize your dashboard appearance and daily digest email — theme, format, topics, and delivery."
+      />
       <DigestPreferenceForm
         initial={{
           theme: preferences?.theme ?? "cyan",
@@ -25,8 +28,11 @@ export default async function SettingsPage() {
           max_stories: preferences?.max_stories ?? 8,
           topic_filters: preferences?.topic_filters ?? [],
           email_enabled: preferences?.email_enabled ?? true,
+          dashboard_theme: normalizeDashboardTheme(
+            preferences?.dashboard_theme ?? "dark"
+          ),
         }}
       />
-    </div>
+    </PageContainer>
   );
 }

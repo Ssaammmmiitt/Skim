@@ -513,7 +513,7 @@ def test_generate_insights_for_top_articles_processes_db_rows(
     agent = ArticleAgent(batch_delay_seconds=0)
     results = agent.generate_insights_for_top_articles(min_score=5, limit=10)
 
-    mock_get_needing.assert_called_once_with(min_score=5, limit=10)
+    mock_get_needing.assert_called()
     assert results
     assert results[0]["article_id"] == article["id"]
 
@@ -522,6 +522,45 @@ def test_generate_insights_for_top_articles_processes_db_rows(
     assert stored["key_takeaway"] is not None
     assert len(stored["insight"]) > 20
     assert len(stored["key_takeaway"]) > 5
+
+
+@patch("pipeline.agent.reasoning.get_articles_needing_insights")
+def test_resolve_insight_candidates_lowers_threshold(mock_get_needing):
+    from pipeline.agent.reasoning import MIN_INSIGHT_CANDIDATES, resolve_insight_candidates
+
+    mock_get_needing.side_effect = [
+        [{"id": 1}, {"id": 2}],  # score >= 5: only 2
+        [{"id": i} for i in range(1, 12)],  # score >= 3: enough
+    ]
+
+    articles, threshold = resolve_insight_candidates(
+        min_score=5, limit=12, target_count=MIN_INSIGHT_CANDIDATES
+    )
+
+    assert len(articles) >= MIN_INSIGHT_CANDIDATES
+    assert threshold == 3.0
+    assert mock_get_needing.call_count == 2
+
+
+@patch("pipeline.agent.reasoning.get_articles_by_ids")
+@patch.object(ArticleAgent, "generate_insights")
+def test_ensure_insights_for_articles_backfills_missing(
+    mock_generate, mock_get_by_ids
+):
+    agent = ArticleAgent(llm=MagicMock(), batch_delay_seconds=0)
+    selected = [
+        {"id": 1, "insight": "Has insight", "key_takeaway": "Takeaway"},
+        {"id": 2, "insight": None, "key_takeaway": None},
+    ]
+    mock_get_by_ids.return_value = [
+        {"id": 1, "insight": "Has insight", "key_takeaway": "Takeaway"},
+        {"id": 2, "insight": "New insight", "key_takeaway": "New takeaway"},
+    ]
+
+    refreshed = agent.ensure_insights_for_articles(selected)
+
+    mock_generate.assert_called_once()
+    assert refreshed[1]["insight"] == "New insight"
 
 
 def _build_scored_article_batch(test_run_id: str) -> list[dict]:

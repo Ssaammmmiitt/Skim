@@ -1,4 +1,5 @@
-import { DigestFeed } from "@/components/DigestFeed";
+import { DigestFeed } from "@/components/digest/DigestFeed";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { fetchDigest, todayUtc } from "@/lib/digests";
 import { createClient } from "@/lib/supabase/server";
 
@@ -8,8 +9,8 @@ export default async function HomePage() {
   const digest = await fetchDigest(supabase, today);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
+    <PageContainer>
       <DigestFeed digest={digest} isToday />
-    </div>
+    </PageContainer>
   );
 }

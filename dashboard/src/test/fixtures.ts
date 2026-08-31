@@ -3,8 +3,8 @@ import type {
   ChatSource,
   DigestArticle,
   DigestResponse,
-  Profile,
 } from "@/lib/types";
+import type { Profile } from "@/lib/auth/types";
 
 export const sampleArticle: DigestArticle = {
   id: 1,

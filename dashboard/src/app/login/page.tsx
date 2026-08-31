@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/cn";
 
 type Mode = "signin" | "signup";
 type Step = "email" | "verify-otp";
@@ -9,8 +10,16 @@ type Step = "email" | "verify-otp";
 const ERROR_MESSAGES: Record<string, string> = {
   auth: "Google sign-in failed. Check Supabase redirect URLs and try again.",
   session: "Your session could not be established. Please sign in again.",
-  profile: "Could not load your profile. Run sql/002_users_auth_preferences.sql in Supabase, then try again.",
+  profile:
+    "Could not load your profile. Run sql/002_users_auth_preferences.sql in Supabase, then try again.",
 };
+
+function modeTabClass(active: boolean) {
+  return cn(
+    "flex-1 rounded-pill py-2 text-sm font-medium transition",
+    active ? "bg-cyan-core text-black" : "text-secondary"
+  );
+}
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -98,40 +107,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0f1419] px-4">
-      <div className="w-full max-w-md rounded-[20px] border border-[#243044] bg-[#1a2332] p-8">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#22d3ee]">
-          Skim
-        </p>
-        <h1 className="mt-2 text-3xl font-bold text-[#f0f9ff]">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <div className="skim-card w-full max-w-md p-8">
+        <p className="skim-eyebrow">Skim</p>
+        <h1 className="skim-heading mt-2">
           {mode === "signup" ? "Create account" : "Sign in"}
         </h1>
-        <p className="mt-2 text-sm text-[#94a3b8]">
+        <p className="mt-2 skim-body">
           {mode === "signup"
             ? "Register with email OTP or Google. New accounts need admin approval."
             : "Sign in with Google or a login code. Approved accounts only."}
         </p>
 
-        <div className="mt-6 flex rounded-full border border-[#243044] p-1">
+        <div className="mt-6 flex rounded-pill border border-surface-raised p-1">
           <button
             type="button"
             onClick={() => switchMode("signin")}
-            className={`flex-1 rounded-full py-2 text-sm font-medium ${
-              mode === "signin"
-                ? "bg-[#06b6d4] text-black"
-                : "text-[#94a3b8]"
-            }`}
+            className={modeTabClass(mode === "signin")}
           >
             Sign in
           </button>
           <button
             type="button"
             onClick={() => switchMode("signup")}
-            className={`flex-1 rounded-full py-2 text-sm font-medium ${
-              mode === "signup"
-                ? "bg-[#06b6d4] text-black"
-                : "text-[#94a3b8]"
-            }`}
+            className={modeTabClass(mode === "signup")}
           >
             Sign up
           </button>
@@ -139,17 +138,17 @@ export default function LoginPage() {
 
         <button
           type="button"
-          onClick={signInWithGoogle}
+          onClick={() => void signInWithGoogle()}
           disabled={loading}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#06b6d4] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#22d3ee]"
+          className="skim-btn-primary mt-6 flex w-full items-center justify-center gap-2 px-6 py-3 text-sm"
         >
           Continue with Google
         </button>
 
-        <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-[#64748b]">
-          <span className="h-px flex-1 bg-[#243044]" />
+        <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-muted">
+          <span className="skim-divider" />
           or email
-          <span className="h-px flex-1 bg-[#243044]" />
+          <span className="skim-divider" />
         </div>
 
         {step === "verify-otp" ? (
@@ -160,20 +159,20 @@ export default function LoginPage() {
               placeholder="6-digit code"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
-              className="w-full rounded-lg border border-[#243044] bg-[#0f1419] px-4 py-3 text-[#f0f9ff] outline-none focus:border-[#06b6d4]"
+              className="skim-input"
               required
             />
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-[#06b6d4] px-6 py-3 text-sm font-semibold text-black hover:bg-[#22d3ee]"
+              className="skim-btn-primary w-full px-6 py-3 text-sm"
             >
               Verify code
             </button>
             <button
               type="button"
               onClick={() => setStep("email")}
-              className="w-full text-sm text-[#94a3b8] hover:text-[#22d3ee]"
+              className="w-full text-sm text-secondary hover:text-cyan-bright"
             >
               Use a different email
             </button>
@@ -185,22 +184,20 @@ export default function LoginPage() {
               placeholder="you@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-[#243044] bg-[#0f1419] px-4 py-3 text-[#f0f9ff] outline-none focus:border-[#06b6d4]"
+              className="skim-input"
               required
             />
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full border border-[#06b6d4] px-6 py-3 text-sm font-semibold uppercase tracking-wide text-[#22d3ee] hover:bg-[#164e63]"
+              className="skim-btn-ghost w-full px-6 py-3 text-sm"
             >
               {mode === "signup" ? "Send registration code" : "Send login code"}
             </button>
           </form>
         )}
 
-        {message ? (
-          <p className="mt-4 text-sm text-[#67e8f9]">{message}</p>
-        ) : null}
+        {message ? <p className="mt-4 skim-success">{message}</p> : null}
       </div>
     </div>
   );
