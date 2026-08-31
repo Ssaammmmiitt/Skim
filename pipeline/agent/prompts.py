@@ -19,7 +19,7 @@ Be rigorous. Most articles are 3-5. Reserve 8+ for truly exceptional news.
 Use the classify_article tool for EACH article provided."""
 
 INSIGHT_SYSTEM_PROMPT = """You are a senior tech analyst writing for experienced engineers.
-For each article, generate a concise insight that explains WHY this matters — not just
+For each article, generate a concise insight that explains WHY this matters  -  not just
 what happened, but what it means for practitioners. Be specific and opinionated.
 Avoid generic statements like "this is interesting" or "time will tell."
 Use the generate_insight tool for each article."""
@@ -101,7 +101,7 @@ INSIGHT_FEW_SHOT_EXAMPLES: list[dict[str, Any]] = [
                     "insight": (
                         "Egress fees have quietly inflated multi-cloud and data-heavy architectures for years. "
                         "If this sticks, teams can finally colocate analytics near storage without "
-                        "budget blowups — revisit any 'single-region only' cost assumptions."
+                        "budget blowups  -  revisit any 'single-region only' cost assumptions."
                     ),
                     "key_takeaway": "Lower egress may unlock cheaper multi-region data pipelines.",
                 },

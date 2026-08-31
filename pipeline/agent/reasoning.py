@@ -37,7 +37,7 @@ MIN_INSIGHT_CANDIDATES = DEFAULT_DIGEST_SIZE + 2
 DEFAULT_CLASSIFY_LIMIT = 50
 DEFAULT_INSIGHT_LIMIT = 12
 
-# Parallel insight workers — bounded to avoid hitting RPM limits.
+# Parallel insight workers  -  bounded to avoid hitting RPM limits.
 # With 5 Gemini keys, 3 workers gives good throughput without burning keys.
 INSIGHT_CONCURRENCY = 3
 
@@ -69,7 +69,7 @@ def resolve_insight_candidates(
 
     if len(articles) < target_count:
         logger.info(
-            "Only %d articles need insights (target %d) — using all available candidates",
+            "Only %d articles need insights (target %d)  -  using all available candidates",
             len(articles),
             target_count,
         )
@@ -299,7 +299,7 @@ class ArticleAgent:
             )
         else:
             logger.error(
-                "Insights complete: ALL %d articles failed — check API keys and provider health",
+                "Insights complete: ALL %d articles failed  -  check API keys and provider health",
                 len(articles),
             )
         return ordered
@@ -373,7 +373,7 @@ class ArticleAgent:
         expected_id = article["id"]
         if returned_id != expected_id:
             logger.warning(
-                "LLM returned article_id %d, expected %d — using expected",
+                "LLM returned article_id %d, expected %d  -  using expected",
                 returned_id,
                 expected_id,
             )

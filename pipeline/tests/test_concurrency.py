@@ -101,7 +101,7 @@ class TestConcurrentInsightGeneration:
 
     @patch("pipeline.agent.reasoning.update_article_insight")
     def test_concurrent_generates_all_insights(self, mock_update):
-        """3 workers, 6 articles — all should succeed."""
+        """3 workers, 6 articles  -  all should succeed."""
         articles = _make_articles(6)
 
         def _always_succeed(*args, **kwargs):
@@ -140,7 +140,7 @@ class TestConcurrentInsightGeneration:
 
     @patch("pipeline.agent.reasoning.update_article_insight")
     def test_concurrent_handles_partial_failures(self, mock_update):
-        """Some workers fail, others succeed — partial results returned."""
+        """Some workers fail, others succeed  -  partial results returned."""
         articles = _make_articles(4)
         call_count = 0
         call_lock = threading.Lock()
@@ -165,7 +165,7 @@ class TestConcurrentInsightGeneration:
 
     @patch("pipeline.agent.reasoning.update_article_insight")
     def test_concurrent_handles_total_failure(self, mock_update):
-        """All workers fail — returns empty list, logs error."""
+        """All workers fail  -  returns empty list, logs error."""
         articles = _make_articles(3)
 
         def _always_fail(*args, **kwargs):
@@ -206,7 +206,7 @@ class TestConcurrentInsightGeneration:
 
     @patch("pipeline.agent.reasoning.update_article_insight")
     def test_concurrent_handles_validation_errors(self, mock_update):
-        """LLM returns invalid data — skipped without crashing other workers."""
+        """LLM returns invalid data  -  skipped without crashing other workers."""
         articles = _make_articles(3)
         call_count = 0
         call_lock = threading.Lock()
@@ -302,7 +302,7 @@ class TestConcurrentGroqFallback:
 
     @patch("pipeline.agent.reasoning.update_article_insight")
     def test_gemini_exhausts_mid_batch_remaining_use_groq(self, mock_update):
-        """First few calls use Gemini, later calls fall back to Groq — all succeed."""
+        """First few calls use Gemini, later calls fall back to Groq  -  all succeed."""
         articles = _make_articles(4)
         call_count = 0
         call_lock = threading.Lock()
@@ -665,7 +665,7 @@ class TestConcurrentErrorHandling:
 
     @patch("pipeline.agent.reasoning.update_article_insight")
     def test_mixed_provider_responses_tracked(self, mock_update):
-        """Some insights from Gemini, some from Groq — all tracked."""
+        """Some insights from Gemini, some from Groq  -  all tracked."""
         articles = _make_articles(4)
         call_count = 0
         call_lock = threading.Lock()

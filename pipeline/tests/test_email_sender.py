@@ -44,8 +44,8 @@ def test_send_email_failure_returns_false(mail_env, monkeypatch):
 
 def test_send_digest_email_delegates_to_send_email(mail_env):
     with patch("pipeline.email_sender.send_email", return_value=True) as mock_send:
-        assert send_digest_email("<p>Digest</p>", "Skim — Today") is True
-    mock_send.assert_called_once_with(subject="Skim — Today", html="<p>Digest</p>")
+        assert send_digest_email("<p>Digest</p>", "Skim  -  Today") is True
+    mock_send.assert_called_once_with(subject="Skim  -  Today", html="<p>Digest</p>")
 
 
 def test_send_email_uses_production_url(mail_env, monkeypatch):

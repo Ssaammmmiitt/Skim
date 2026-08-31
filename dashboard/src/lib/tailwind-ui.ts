@@ -1,4 +1,4 @@
-/** Composed Tailwind class strings — use with `cn()` in components. */
+/** Composed Tailwind class strings  -  use with `cn()` in components. */
 
 export const eyebrow =
   "text-xs font-medium uppercase tracking-widest text-cyan-bright";

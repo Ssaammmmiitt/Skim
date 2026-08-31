@@ -67,7 +67,7 @@ def get_connection() -> PgConnection:
             if attempt < DB_CONNECT_MAX_RETRIES - 1:
                 delay = DB_CONNECT_BACKOFF_SECONDS * (2 ** attempt)
                 logger.warning(
-                    "DB connection failed (attempt %d/%d): %s — retrying in %ds",
+                    "DB connection failed (attempt %d/%d): %s  -  retrying in %ds",
                     attempt + 1,
                     DB_CONNECT_MAX_RETRIES,
                     exc,

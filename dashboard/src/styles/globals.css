@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @config "../../tailwind.config.mjs";
 
-/* Skim cyan theme tokens — light/dark via html.light / html.dark */
+/* Skim cyan theme tokens  -  light/dark via html.light / html.dark */
 :root,
 html.dark {
   --skim-canvas: #0f1419;

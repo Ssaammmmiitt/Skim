@@ -35,7 +35,7 @@ cp .env.example .env.local   # fill in values below
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to `/login`.
+Open [http://localhost:3000](http://localhost:3000)  -  you'll be redirected to `/login`.
 
 ## Environment variables
 
@@ -44,7 +44,7 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Anon/publishable key |
 | `SUPABASE_SECRET_KEY` | Yes | Service role key for profile sync + admin API |
-| `SKIM_SUPERUSER_EMAIL` | Yes | Your email — auto-approved as superuser |
+| `SKIM_SUPERUSER_EMAIL` | Yes | Your email  -  auto-approved as superuser |
 | `SKIM_ADMIN_CONTACT_EMAIL` | Yes | Email on wait page + signup alert recipient |
 | `NEXT_PUBLIC_SITE_URL` | Recommended | Public URL (admin alert links) |
 | `MAILTRAP_API_TOKEN` | For alerts | Sends admin email on new signup |
@@ -55,22 +55,22 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 | `GEMINI_FALLBACK_MODELS` | No | Default: `gemini-2.0-flash,gemini-3.5-flash-lite` |
 | `GROQ_API_KEYS` | For chat fallback | Comma-separated Groq keys (last resort) |
 | `GROQ_MODEL` | No | Default: `openai/gpt-oss-120b` |
-| `HF_TOKEN` | **Vercel chat** | Hugging Face token — **required on Vercel** for query embeddings |
+| `HF_TOKEN` | **Vercel chat** | Hugging Face token  -  **required on Vercel** for query embeddings |
 | `SKIM_EMBEDDING_MODE` | No | `hf` \| `local` \| `off` (auto: `hf` on Vercel, `local` locally) |
 
 **Local dev:** query embeddings use `@xenova/transformers` (MiniLM).  
-**Vercel:** uses Hugging Face Inference API — set `HF_TOKEN` (same token as pipeline).
+**Vercel:** uses Hugging Face Inference API  -  set `HF_TOKEN` (same token as pipeline).
 
 ## Hybrid RAG retrieval
 
 Search and chat share the same retrieval stack:
 
-1. **Query embedding** — `all-MiniLM-L6-v2` (384-dim, same model as the pipeline)
-2. **Vector search** — pgvector cosine similarity on `articles.embedding`
-3. **Keyword search** — Postgres FTS (`search_vector`) with `websearch_to_tsquery`
-4. **Fusion** — Reciprocal Rank Fusion (RRF, k=60) with vector weight 0.55 / FTS weight 0.45
-5. **Reranking** — Importance-score boost from the pipeline agent
-6. **Fallback chain** — hybrid RPC → in-process RRF → vector-only → FTS → ILIKE
+1. **Query embedding**  -  `all-MiniLM-L6-v2` (384-dim, same model as the pipeline)
+2. **Vector search**  -  pgvector cosine similarity on `articles.embedding`
+3. **Keyword search**  -  Postgres FTS (`search_vector`) with `websearch_to_tsquery`
+4. **Fusion**  -  Reciprocal Rank Fusion (RRF, k=60) with vector weight 0.55 / FTS weight 0.45
+5. **Reranking**  -  Importance-score boost from the pipeline agent
+6. **Fallback chain**  -  hybrid RPC → in-process RRF → vector-only → FTS → ILIKE
 
 Chat passes conversation history into retrieval so follow-up questions stay grounded.
 
@@ -87,9 +87,9 @@ Gemini primary model (gemini-3.6-flash)
 
 The chat UI shows:
 - **Scrollable message area** with fixed input bar (no mobile overflow)
-- **Animated loading** — embed → search → generate steps
+- **Animated loading**  -  embed → search → generate steps
 - **Provider badge** on answers (`gemini · gemini-3.6-flash` or `groq · …`)
-- **Structured errors** — quota/rate-limit messages, providers tried, retry button
+- **Structured errors**  -  quota/rate-limit messages, providers tried, retry button
 
 ## User journey (summary)
 
@@ -121,7 +121,7 @@ Sign up (Google or email OTP)
 | `GET /api/digests/dates` | List of dates with archived digests |
 | `GET /api/search` | Hybrid search (`?q=OpenAI`, `?mode=keyword` for ILIKE/FTS only) |
 | `GET /api/chat` | Chat quota remaining |
-| `POST /api/chat` | RAG Q&A (`{ message, history? }`) — returns `provider`, `model`, `articles_retrieved` |
+| `POST /api/chat` | RAG Q&A (`{ message, history? }`)  -  returns `provider`, `model`, `articles_retrieved` |
 | `GET /api/settings/preferences` | User digest + dashboard preferences |
 | `PUT /api/settings/preferences` | Update preferences (supports partial updates) |
 | `GET /api/settings/digest-preview` | Email HTML preview (`?theme=cyan&format=full`) |
@@ -147,18 +147,18 @@ Styling uses **Tailwind CSS v4** with Skim **cyan** design tokens and shadcn/ui 
 
 | Concern | Implementation |
 |---|---|
-| **Tokens** | `src/styles/globals.css` — CSS variables only (`--skim-cyan-core`, surfaces, text) |
-| **Components** | `src/lib/tailwind-ui.ts` — shared class strings (`btnPrimary`, `card`, `navLink`, etc.) |
-| **Config** | `tailwind.config.mjs` — content paths; theme extensions in CSS `@theme` |
+| **Tokens** | `src/styles/globals.css`  -  CSS variables only (`--skim-cyan-core`, surfaces, text) |
+| **Components** | `src/lib/tailwind-ui.ts`  -  shared class strings (`btnPrimary`, `card`, `navLink`, etc.) |
+| **Config** | `tailwind.config.mjs`  -  content paths; theme extensions in CSS `@theme` |
 | **Typography** | [Inter](https://fonts.google.com/specimen/Inter) (UI) |
 | **Themes** | Light / dark / system via `html.light` / `html.dark`; default **dark** |
 | **Theme toggle** | Navbar + user menu + mobile drawer |
-| **Primary color** | Cyan `#06b6d4` — buttons, links, active nav, topic accents |
+| **Primary color** | Cyan `#06b6d4`  -  buttons, links, active nav, topic accents |
 | **Breakpoints** | Mobile `<768px` · Tablet `md` (768px) · Desktop `lg` (1024px)+ |
 
 ### Layout notes
 
-- **Chat page:** full viewport height with `min-h-0` flex chain — messages scroll, input stays pinned
+- **Chat page:** full viewport height with `min-h-0` flex chain  -  messages scroll, input stays pinned
 - **Nav:** three-tier responsive (mobile drawer, tablet strip, desktop centered links)
 - **Footer:** hidden on `/chat` to maximize vertical space
 
@@ -166,8 +166,8 @@ Styling uses **Tailwind CSS v4** with Skim **cyan** design tokens and shadcn/ui 
 
 1. Open each page at **375px**, **768px**, and **1440px**.
 2. Confirm nav collapses to hamburger on mobile.
-3. Toggle **light / dark / system** — no flash, colors update.
-4. Chat: send a message — no horizontal/vertical overflow on mobile.
+3. Toggle **light / dark / system**  -  no flash, colors update.
+4. Chat: send a message  -  no horizontal/vertical overflow on mobile.
 
 Full design spec: [`Design.md`](./Design.md). Theme preference stored in `user_digest_preferences.dashboard_theme`.
 

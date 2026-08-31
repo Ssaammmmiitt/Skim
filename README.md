@@ -1,6 +1,6 @@
 # Skim
 
-> An agentic AI news digest pipeline that scrapes, reasons, and delivers curated tech news daily — with a RAG-powered dashboard for exploration.
+> An agentic AI news digest pipeline that scrapes, reasons, and delivers curated tech news daily  -  with a RAG-powered dashboard for exploration.
 
 **Production dashboard:** [https://skim-azure.vercel.app](https://skim-azure.vercel.app)
 
@@ -13,7 +13,7 @@ Skim is a fully automated system that:
 3. **Reasons** over articles using LLMs with function calling (classify topics, score importance, generate editorial insights)
 4. **Selects** the day's top stories through multi-pass agentic reasoning
 5. **Delivers** a curated HTML email digest every morning via Mailtrap
-6. **Serves** a web dashboard with hybrid search, RAG chat, archive, and per-user preferences — **Google OAuth** and **email OTP** with admin-approved access
+6. **Serves** a web dashboard with hybrid search, RAG chat, archive, and per-user preferences  -  **Google OAuth** and **email OTP** with admin-approved access
 
 All designed to run on free-tier infrastructure.
 
@@ -42,7 +42,7 @@ All designed to run on free-tier infrastructure.
 
 **Embeddings**
 - Local `all-MiniLM-L6-v2` embeddings over `title + summary`
-- Idempotent `embed_new_articles()` — only processes rows with `NULL` embeddings
+- Idempotent `embed_new_articles()`  -  only processes rows with `NULL` embeddings
 - HNSW index for vector search (ivfflat loses recall on small corpora)
 
 **Agent reasoning**
@@ -67,12 +67,12 @@ All designed to run on free-tier infrastructure.
 - Superuser auto-approved; signup alert emails via Mailtrap
 
 **Pages**
-- `/` — today's digest feed
-- `/archive` — past digests with date picker
-- `/search` — hybrid semantic + keyword search
-- `/chat` — RAG Q&A with cited sources (20 queries/day)
-- `/settings` — email + dashboard preferences, live email preview
-- `/admin` — pending user approval queue
+- `/`  -  today's digest feed
+- `/archive`  -  past digests with date picker
+- `/search`  -  hybrid semantic + keyword search
+- `/chat`  -  RAG Q&A with cited sources (20 queries/day)
+- `/settings`  -  email + dashboard preferences, live email preview
+- `/admin`  -  pending user approval queue
 
 **Hybrid RAG**
 - MiniLM query embeddings + pgvector + Postgres FTS + RRF fusion
@@ -103,7 +103,7 @@ GitHub Actions (cron, daily 00:15 UTC)
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│ 2. Dedup/Store  │  Postgres (Supabase) — articles table
+│ 2. Dedup/Store  │  Postgres (Supabase)  -  articles table
 └────────┬────────┘
          ▼
 ┌─────────────────┐
@@ -119,7 +119,7 @@ GitHub Actions (cron, daily 00:15 UTC)
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│ 6. Dashboard    │  Next.js on Vercel — browse, search, RAG chat
+│ 6. Dashboard    │  Next.js on Vercel  -  browse, search, RAG chat
 └─────────────────┘
 ```
 
@@ -133,7 +133,7 @@ GitHub Actions (cron, daily 00:15 UTC)
 | Agent Reasoning | ✅ Done | Function calling, classify / insight / selection, key rotation |
 | Digest + Email | ✅ Done | HTML templates, Mailtrap, per-user themes |
 | Reliability | ✅ Done | Retry, health check, alerts, CI tests |
-| Auth + Admin | ✅ Done | Google OAuth, email OTP, approval workflow — [setup guide](docs/phase6_auth_admin_preferences.md) |
+| Auth + Admin | ✅ Done | Google OAuth, email OTP, approval workflow  -  [setup guide](docs/phase6_auth_admin_preferences.md) |
 | Dashboard + RAG | ✅ Done | All pages, hybrid search/chat, themes, Vercel deploy |
 | Go Live | 📋 Next | Onboard users, demo, 14-day uptime |
 
@@ -200,7 +200,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Visit `/login` — Google or email sign-up/sign-in.
+Visit `/login`  -  Google or email sign-up/sign-in.
 
 ### Dashboard (Vercel)
 
@@ -220,7 +220,7 @@ See `pipeline/env.example` and `dashboard/.env.example` for full tables.
 
 ### GitHub Actions
 
-Add pipeline env vars as repository secrets. Use **Supavisor pooler** (port 6543) for `SUPABASE_DB_URL` — GitHub runners are IPv4-only.
+Add pipeline env vars as repository secrets. Use **Supavisor pooler** (port 6543) for `SUPABASE_DB_URL`  -  GitHub runners are IPv4-only.
 
 ## Design Decisions
 

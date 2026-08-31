@@ -2,8 +2,8 @@
 Embed articles using Gemini embedding API (768-dim) for hybrid RAG search.
 
 Runs alongside the existing MiniLM embeddings. Articles get BOTH:
-  - embedding (384-dim MiniLM, local) — used by pipeline search
-  - embedding_gemini (768-dim Gemini) — used by dashboard hybrid search
+  - embedding (384-dim MiniLM, local)  -  used by pipeline search
+  - embedding_gemini (768-dim Gemini)  -  used by dashboard hybrid search
 """
 
 import logging

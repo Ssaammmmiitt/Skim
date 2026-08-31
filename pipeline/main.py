@@ -60,7 +60,7 @@ def run_pipeline() -> None:
                 len(digest_articles),
             )
         elif not digest_articles:
-            logger.info("No stories selected — sending quiet-day digest")
+            logger.info("No stories selected  -  sending quiet-day digest")
 
         duration_seconds = round(time.time() - start)
         stats = {
@@ -71,7 +71,7 @@ def run_pipeline() -> None:
         }
 
         date_str = datetime.now(timezone.utc).strftime("%b %d, %Y")
-        subject = f"Skim — {date_str}"
+        subject = f"Skim  -  {date_str}"
         subscribers = get_digest_subscribers()
         if not subscribers:
             raise ValueError("No digest subscribers configured")
@@ -111,7 +111,7 @@ def run_pipeline() -> None:
                 " (degraded)" if degraded else "",
             )
         else:
-            logger.error("Digest email was not sent — not recording digest row")
+            logger.error("Digest email was not sent  -  not recording digest row")
 
         status = "success" if digest_sent else "partial"
         if digest_sent and degraded:

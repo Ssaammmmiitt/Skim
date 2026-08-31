@@ -5,15 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 DIGEST_THEMES: dict[str, str] = {
-    "cyan": "Skim Dark — cyan accents on near-black (brand default)",
-    "classic": "Classic Light — clean white card layout",
-    "minimal": "Minimal — text-first, low visual noise",
+    "cyan": "Skim Dark  -  cyan accents on near-black (brand default)",
+    "classic": "Classic Light  -  clean white card layout",
+    "minimal": "Minimal  -  text-first, low visual noise",
 }
 
 DIGEST_FORMATS: dict[str, str] = {
-    "full": "Full — takeaways, insights, and summaries",
-    "brief": "Brief — headlines and key takeaways only",
-    "headlines": "Headlines — titles and links only",
+    "full": "Full  -  takeaways, insights, and summaries",
+    "brief": "Brief  -  headlines and key takeaways only",
+    "headlines": "Headlines  -  titles and links only",
 }
 
 DEFAULT_THEME = "cyan"

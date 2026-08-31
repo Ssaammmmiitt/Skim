@@ -46,7 +46,7 @@ export default async function PendingPage() {
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>The admin was notified of your signup.</li>
             <li>
-              You&apos;ll get access after approval — check back here or your
+              You&apos;ll get access after approval  -  check back here or your
               email.
             </li>
             <li>You can email the admin to request access sooner.</li>

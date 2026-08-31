@@ -12,7 +12,7 @@ from pipeline.db import get_todays_classified_articles, get_todays_new_articles
 logger = logging.getLogger(__name__)
 
 FALLBACK_RATIONALE = (
-    "Simplified digest — full agent reasoning was unavailable for this run."
+    "Simplified digest  -  full agent reasoning was unavailable for this run."
 )
 
 

@@ -1,15 +1,15 @@
 import type { DigestFormat, DigestTheme } from "@/lib/auth/types";
 
 export const DIGEST_THEMES: Record<DigestTheme, string> = {
-  cyan: "Skim Dark — cyan on near-black",
-  classic: "Classic Light — white card layout",
-  minimal: "Minimal — serif, text-first",
+  cyan: "Skim Dark  -  cyan on near-black",
+  classic: "Classic Light  -  white card layout",
+  minimal: "Minimal  -  serif, text-first",
 };
 
 export const DIGEST_FORMATS: Record<DigestFormat, string> = {
-  full: "Full — insights, takeaways, summaries",
-  brief: "Brief — headlines and takeaways",
-  headlines: "Headlines — titles and links only",
+  full: "Full  -  insights, takeaways, summaries",
+  brief: "Brief  -  headlines and takeaways",
+  headlines: "Headlines  -  titles and links only",
 };
 
 export type EmailThemeMeta = {
@@ -29,7 +29,7 @@ export type EmailThemeMeta = {
 export const EMAIL_THEME_META: Record<DigestTheme, EmailThemeMeta> = {
   cyan: {
     label: "Skim Dark",
-    description: "Brand default — cyan accents on a dark canvas",
+    description: "Brand default  -  cyan accents on a dark canvas",
     preview: {
       pageBg: "#0f1419",
       cardBg: "#1a2332",

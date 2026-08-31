@@ -36,7 +36,7 @@ async function notifyAdminOfSignup(profile: {
         name: process.env.MAILTRAP_SENDER_NAME ?? "Skim",
       },
       to: [{ email: ADMIN_EMAIL }],
-      subject: `Skim: new signup — ${profile.email}`,
+      subject: `Skim: new signup  -  ${profile.email}`,
       html,
       category: "Skim Admin",
     }),

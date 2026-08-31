@@ -87,7 +87,7 @@ export function parseProviderError(err: unknown): ParsedApiError {
       };
     }
   } catch {
-    // not JSON — continue
+    // not JSON  -  continue
   }
 
   const embedded = raw.match(/\{[\s\S]*"error"[\s\S]*\}/);

@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-/** Server-only — bypasses RLS for auth bootstrap and admin mutations. */
+/** Server-only  -  bypasses RLS for auth bootstrap and admin mutations. */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secret = process.env.SUPABASE_SECRET_KEY;

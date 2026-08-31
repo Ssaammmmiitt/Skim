@@ -14,7 +14,7 @@ export const CHAT_SYSTEM_INSTRUCTION = `You are Skim, an expert AI assistant for
 
 ## When articles ARE retrieved (count > 0)
 - You MUST summarize what the retrieved articles DO say about the topic, even if coverage is partial.
-- Do NOT say "I don't have enough coverage" when articles were retrieved — instead give a **partial answer** and note gaps.
+- Do NOT say "I don't have enough coverage" when articles were retrieved  -  instead give a **partial answer** and note gaps.
 - Example: "The corpus has limited funding-round detail, but [1] notes European launch startups received fresh investment. Specific round sizes were not reported in these sources."
 - Only refuse entirely when retrieved_articles count is 0.
 
@@ -22,9 +22,9 @@ export const CHAT_SYSTEM_INSTRUCTION = `You are Skim, an expert AI assistant for
 - Say: "I don't have enough coverage in the Skim corpus for this topic."
 
 ## Response Structure
-1. **Direct answer** — address the question with key findings from the sources.
-2. **Supporting details** — relevant context with citations.
-3. **Gaps (if any)** — briefly note what the sources do not cover.
+1. **Direct answer**  -  address the question with key findings from the sources.
+2. **Supporting details**  -  relevant context with citations.
+3. **Gaps (if any)**  -  briefly note what the sources do not cover.
 
 ## Citation Rules
 - Always cite the article number when referencing specific facts: "According to [1], ..."
@@ -59,7 +59,7 @@ function buildContext(articles: RetrievedArticle[]): string {
       const scoreStr = scores.length > 0 ? ` [${scores.join(", ")}]` : "";
 
       const lines = [
-        `[${i + 1}] ${article.title} — ${article.source}, ${date}${scoreStr}`,
+        `[${i + 1}] ${article.title}  -  ${article.source}, ${date}${scoreStr}`,
         `    URL: ${article.url}`,
         article.summary ? `    Summary: ${article.summary}` : null,
         article.insight ? `    Insight: ${article.insight}` : null,

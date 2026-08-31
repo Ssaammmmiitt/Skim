@@ -6,7 +6,7 @@ type PageSize = "sm" | "md" | "lg" | "xl";
 type PageContainerProps = {
   children: ReactNode;
   size?: PageSize;
-  /** Full-height flex column — use on chat and other viewport-fill pages */
+  /** Full-height flex column  -  use on chat and other viewport-fill pages */
   fill?: boolean;
   className?: string;
 };

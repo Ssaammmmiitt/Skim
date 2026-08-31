@@ -12,7 +12,7 @@ function resolveEmbeddingMode(): EmbeddingMode {
   if (configured === "local" || configured === "hf" || configured === "off") {
     return configured;
   }
-  // Local MiniLM + onnxruntime is unreliable on Vercel serverless — prefer HF API.
+  // Local MiniLM + onnxruntime is unreliable on Vercel serverless  -  prefer HF API.
   if (process.env.VERCEL) return "hf";
   return "local";
 }
@@ -154,7 +154,7 @@ async function loadEmbedder(): Promise<EmbedFn> {
 }
 
 /**
- * Embed a query with all-MiniLM-L6-v2 — same model + space as the pipeline.
+ * Embed a query with all-MiniLM-L6-v2  -  same model + space as the pipeline.
  * On Vercel, uses Hugging Face Inference API (set HF_TOKEN).
  */
 export async function embedQuery(text: string): Promise<number[]> {

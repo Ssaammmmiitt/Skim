@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Skim — Daily Tech Digest",
+  title: "Skim  -  Daily Tech Digest",
   description: "Agentic tech news digest dashboard",
 };
 

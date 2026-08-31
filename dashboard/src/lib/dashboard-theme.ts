@@ -12,7 +12,7 @@ export const DASHBOARD_THEMES: Record<
   },
   dark: {
     label: "Dark",
-    description: "Deep navy surfaces with cyan highlights — default",
+    description: "Deep navy surfaces with cyan highlights  -  default",
   },
   system: {
     label: "System",

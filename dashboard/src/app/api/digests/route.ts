@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
   if (!DATE_RE.test(date)) {
     return NextResponse.json(
-      { error: "Invalid date — use YYYY-MM-DD" },
+      { error: "Invalid date  -  use YYYY-MM-DD" },
       { status: 400 }
     );
   }

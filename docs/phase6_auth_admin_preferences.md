@@ -1,4 +1,4 @@
-# Phase 6 — Authentication, Admin Approval & Digest Preferences
+# Phase 6  -  Authentication, Admin Approval & Digest Preferences
 
 > Phases 0–5 (pipeline) are complete. Complete this guide **before** deploying the dashboard publicly.
 
@@ -6,7 +6,7 @@
 
 Skim uses **invite-by-approval**: anyone can request an account, but only the **superuser admin** can grant access. Until approved, users see a wait page and cannot read digests, use chat, or receive emails.
 
-**Superuser:** `poudyal.sammit@gmail.com` (`SKIM_SUPERUSER_EMAIL`) — auto-approved, receives signup alerts, manages approvals at `/admin`.
+**Superuser:** `poudyal.sammit@gmail.com` (`SKIM_SUPERUSER_EMAIL`)  -  auto-approved, receives signup alerts, manages approvals at `/admin`.
 
 **Capacity:** ~10 approved members + you (11 total on free tier).
 
@@ -27,7 +27,7 @@ Skim uses **invite-by-approval**: anyone can request an account, but only the **
 5. **Everyone else** → redirected to `/pending` (wait page).
 6. **Admin receives email** that a new signup is waiting (see [Admin notifications](#admin-notifications)).
 
-### B. Email sign-up (registration only — OTP)
+### B. Email sign-up (registration only  -  OTP)
 
 Email OTP is for **creating a new account**, not for repeat logins of existing users.
 
@@ -45,7 +45,7 @@ Email OTP is for **creating a new account**, not for repeat logins of existing u
 2. Enters email → Supabase sends a **login OTP** (`shouldCreateUser: false`).
 3. If account exists and `status = active` → dashboard after OTP.
 4. If account is `pending` → `/pending`.
-5. If no account → message: *“No account found — use Sign up to request access.”*
+5. If no account → message: *“No account found  -  use Sign up to request access.”*
 
 ### D. Wait page (`/pending`)
 
@@ -74,8 +74,8 @@ Middleware blocks `/`, `/archive`, `/chat`, `/search`, `/settings`, and all APIs
 | Field | Google | Email signup | Stored in |
 |---|---|---|---|
 | Email | ✅ | ✅ | `profiles.email`, `auth.users` |
-| Display name | ✅ (`full_name`) | — | `profiles.display_name` |
-| Avatar | ✅ (`picture`) | — | `profiles.avatar_url` |
+| Display name | ✅ (`full_name`) |  -  | `profiles.display_name` |
+| Avatar | ✅ (`picture`) |  -  | `profiles.avatar_url` |
 | Auth provider | `google` | `email` | `profiles.auth_provider` |
 | Approval status | `pending` / `active` | same | `profiles.status` |
 | Role | `member` (you: `superuser`) | same | `profiles.role` |
@@ -90,19 +90,19 @@ Run in Supabase SQL Editor **in order**:
 
 1. `sql/schema.sql` (articles, digests, pgvector)
 2. `sql/002_users_auth_preferences.sql` (profiles, preferences, RLS, superuser seed)
-3. `sql/003_fix_profiles_rls.sql` (fixes redirect loop — run if you already applied 002)
-4. `sql/004_search_fts.sql` (full-text search for `/api/search` — optional; API falls back to ILIKE)
+3. `sql/003_fix_profiles_rls.sql` (fixes redirect loop  -  run if you already applied 002)
+4. `sql/004_search_fts.sql` (full-text search for `/api/search`  -  optional; API falls back to ILIKE)
 5. `sql/005_hybrid_search.sql` (hybrid RAG: MiniLM vector + FTS + RRF for `/api/search` and `/api/chat`)
 6. `sql/006_dashboard_theme.sql` (dashboard light/dark/system preference column)
 
-### 2. Supabase Auth — Google
+### 2. Supabase Auth  -  Google
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → **OAuth 2.0 Client ID** (Web application).
 2. Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`
 3. Supabase → **Authentication → Providers → Google** → enable, paste Client ID + Secret.
-4. Request scopes: `email`, `profile`, `openid` (default — provides name and picture).
+4. Request scopes: `email`, `profile`, `openid` (default  -  provides name and picture).
 
-### 3. Supabase Auth — Email (OTP)
+### 3. Supabase Auth  -  Email (OTP)
 
 1. **Authentication → Providers → Email** → enable.
 2. **Confirm email** → on (recommended).
@@ -126,7 +126,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJ...
 SKIM_SUPERUSER_EMAIL=poudyal.sammit@gmail.com
 SKIM_ADMIN_CONTACT_EMAIL=poudyal.sammit@gmail.com   # shown on wait page + signup alerts
 
-# Optional: same Mailtrap token as pipeline — enables admin signup alert emails
+# Optional: same Mailtrap token as pipeline  -  enables admin signup alert emails
 MAILTRAP_API_TOKEN=...
 MAILTRAP_SENDER_EMAIL=digest@yourdomain.com
 MAILTRAP_SENDER_NAME=Skim
@@ -157,7 +157,7 @@ Add the same env vars. Redeploy after changes. Full checklist: [`docs/vercel-dep
 - [ ] Admin approves test user → user reaches dashboard + digest list
 - [ ] `/search?q=AI` returns hybrid results
 - [ ] `/chat` sends a question and returns cited answer (set `HF_TOKEN` on Vercel)
-- [ ] `/settings` — theme toggle, email preview, save preferences
+- [ ] `/settings`  -  theme toggle, email preview, save preferences
 
 ---
 
@@ -165,8 +165,8 @@ Add the same env vars. Redeploy after changes. Full checklist: [`docs/vercel-dep
 
 When a new user signs up (`profiles.status = pending`), the admin is notified by:
 
-1. **Email** (recommended) — `/auth/complete` calls Mailtrap to `SKIM_ADMIN_CONTACT_EMAIL` with user email, name, and link to `/admin`.
-2. **Admin dashboard** — pending queue at `/admin` (always available when logged in as superuser).
+1. **Email** (recommended)  -  `/auth/complete` calls Mailtrap to `SKIM_ADMIN_CONTACT_EMAIL` with user email, name, and link to `/admin`.
+2. **Admin dashboard**  -  pending queue at `/admin` (always available when logged in as superuser).
 
 Email requires `MAILTRAP_API_TOKEN` + verified sender on the dashboard (same Mailtrap account as the pipeline).
 

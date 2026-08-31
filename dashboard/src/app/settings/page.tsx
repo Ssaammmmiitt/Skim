@@ -19,7 +19,7 @@ export default async function SettingsPage() {
       <PageHeader
         eyebrow="Settings"
         title="Preferences"
-        description="Customize your dashboard appearance and daily digest email — theme, format, topics, and delivery."
+        description="Customize your dashboard appearance and daily digest email  -  theme, format, topics, and delivery."
       />
       <DigestPreferenceForm
         initial={{

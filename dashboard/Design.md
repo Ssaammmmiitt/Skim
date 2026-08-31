@@ -4,7 +4,7 @@
 
 ## 1. Visual Theme & Atmosphere
 
-Skim is an editorial dashboard for a daily tech digest. The default experience is **dark** (`#0f1419` canvas) with **cyan** as the primary accent — CTAs, links, active states, and story highlights. A **light** theme (`#f1f5f9` canvas) is available via settings. Story tiles use rounded cards on a timeline feed. The mood is **developer console meets morning briefing**: sharp, readable, and fast to scan.
+Skim is an editorial dashboard for a daily tech digest. The default experience is **dark** (`#0f1419` canvas) with **cyan** as the primary accent  -  CTAs, links, active states, and story highlights. A **light** theme (`#f1f5f9` canvas) is available via settings. Story tiles use rounded cards on a timeline feed. The mood is **developer console meets morning briefing**: sharp, readable, and fast to scan.
 
 The signature layout is the **StoryStream** timeline: a vertical feed where each item is a pill-cornered card on a dashed cyan rail, with mono-uppercase timestamps on the left. Above it, a bold **Skim** wordmark anchors the masthead. Depth comes from **1px borders and color**, not shadows.
 
@@ -14,12 +14,12 @@ The signature layout is the **StoryStream** timeline: a vertical feed where each
 - Inter for UI typography (replaces Space Grotesk/DM Sans in implementation)
 - Pill buttons and rounded cards (`rounded-2xl`, `rounded-full`)
 - Per-topic badge colors (`bg-topic-ai`, etc.)
-- Flat depth — 1px borders instead of shadows
+- Flat depth  -  1px borders instead of shadows
 - Responsive: mobile drawer nav, tablet strip, desktop centered nav
 
 ## 2. Color Palette
 
-### Primary — Skim Cyan
+### Primary  -  Skim Cyan
 | Token | Hex | Use |
 |---|---|---|
 | **Cyan Bright** | `#22d3ee` | Primary CTA fill, link color, active tab underline, kicker text |
@@ -82,19 +82,19 @@ No decorative gradients. Color is applied in **solid blocks**. The only transiti
 | Role | Font | Size | Weight | Line Height | Tracking | Notes |
 |---|---|---|---|---|---|---|
 | Hero Wordmark | Display | 96px | 700 | 0.95 | 1px | "Skim" masthead |
-| Display | Display | 72px | 700 | 0.95 | — | Feature headlines |
-| Section Headline | DM Sans | 34px | 700 | 1.0 | — | Module titles |
-| Story Headline | DM Sans | 24px | 700 | 1.1 | — | Feed tile titles |
-| Story Subhead | DM Sans | 20px | 500 | 1.2 | — | Decks, summaries |
+| Display | Display | 72px | 700 | 0.95 |  -  | Feature headlines |
+| Section Headline | DM Sans | 34px | 700 | 1.0 |  -  | Module titles |
+| Story Headline | DM Sans | 24px | 700 | 1.1 |  -  | Feed tile titles |
+| Story Subhead | DM Sans | 20px | 500 | 1.2 |  -  | Decks, summaries |
 | Eyebrow | JetBrains Mono | 12px | 500 | 1.3 | 1.8px | UPPERCASE kickers |
-| Body | DM Sans | 16px | 400 | 1.6 | — | Reading text |
-| Caption | DM Sans | 13px | 400 | 1.5 | — | Secondary copy |
+| Body | DM Sans | 16px | 400 | 1.6 |  -  | Reading text |
+| Caption | DM Sans | 13px | 400 | 1.5 |  -  | Secondary copy |
 | Timestamp | JetBrains Mono | 11px | 500 | 1.2 | 1.1px | UPPERCASE rail labels |
 | Button | JetBrains Mono | 12px | 600 | 2.0 | 1.5px | UPPERCASE CTAs |
 
 ### Principles
-- **Display is for heroes only** — 60px minimum. Never use it for buttons or labels.
-- **Mono is always UPPERCASE** — timestamps, tags, kickers, button labels.
+- **Display is for heroes only**  -  60px minimum. Never use it for buttons or labels.
+- **Mono is always UPPERCASE**  -  timestamps, tags, kickers, button labels.
 - **Cyan kickers** (`#22d3ee`) above white headlines create the Skim scan pattern.
 - **Tight leading on display**, relaxed (1.5–1.6) on body.
 
@@ -102,7 +102,7 @@ No decorative gradients. Color is applied in **solid blocks**. The only transiti
 
 ### Buttons
 
-**Primary — Cyan Pill**
+**Primary  -  Cyan Pill**
 - Background: `#06b6d4`
 - Text: `#000000`, JetBrains Mono 12px / 600 UPPERCASE
 - Radius: `24px`, padding: `10px 24px`
@@ -110,13 +110,13 @@ No decorative gradients. Color is applied in **solid blocks**. The only transiti
 - Focus: `#1eaedb` fill, 1px `#0891b2` border
 - Transition: 180ms ease
 
-**Secondary — Dark Pill**
+**Secondary  -  Dark Pill**
 - Background: `#1a2332`
 - Text: `#cbd5e1`, DM Sans 16px / 400
 - Radius: `24px`
 - Hover: `#243044` bg, cyan text `#22d3ee`
 
-**Ghost — Cyan Outline**
+**Ghost  -  Cyan Outline**
 - Background: transparent
 - Text: `#22d3ee`, JetBrains Mono 12px UPPERCASE
 - Border: `1px solid #06b6d4`
@@ -134,7 +134,7 @@ No decorative gradients. Color is applied in **solid blocks**. The only transiti
 **StoryStream Tile**
 - Background: `#1a2332` + `1px solid #243044`, or cyan/teal fill
 - Radius: `20px`, padding: `24px`
-- Hover: headline shifts to `#67e8f9` — no lift, no shadow
+- Hover: headline shifts to `#67e8f9`  -  no lift, no shadow
 - Kicker in `#22d3ee`, headline in `#f0f9ff`
 
 **Feature Card**
@@ -201,7 +201,7 @@ No decorative gradients. Color is applied in **solid blocks**. The only transiti
 | 1 | `1px solid #243044` hairline |
 | 2 | `1px solid #0891b2` active border |
 | 3 | `3px solid #06b6d4` left accent stripe |
-| 4 | Cyan or teal fill — elevation via color, not shadow |
+| 4 | Cyan or teal fill  -  elevation via color, not shadow |
 
 No `box-shadow` for elevation. The single allowed shadow is `inset 0 -2px 0 #06b6d4` on active nav links.
 
@@ -211,15 +211,15 @@ No `box-shadow` for elevation. The single allowed shadow is `inset 0 -2px 0 #06b
 - Use cyan for CTAs, links, kickers, active states (`#06b6d4` / `#22d3ee`)
 - Support both dark and light themes via CSS variables
 - Round all containers (minimum `8px` radius; pills `rounded-full`)
-- Use `tailwind-ui.ts` shared classes — avoid one-off static CSS
+- Use `tailwind-ui.ts` shared classes  -  avoid one-off static CSS
 - Hover links to `#67e8f9` (dark) or `#0891b2` (light)
 - Keep chat layout within viewport (`min-h-0` flex children)
 
 ### Don't
-- Use Vodafone red or ink tokens — Skim is cyan-branded
-- Add elevation shadows — use borders and cyan fills
+- Use Vodafone red or ink tokens  -  Skim is cyan-branded
+- Add elevation shadows  -  use borders and cyan fills
 - Use square corners on cards or primary buttons
-- Wash the canvas in cyan — accents only
+- Wash the canvas in cyan  -  accents only
 - Import `@xenova/transformers` at module top level (breaks Vercel)
 
 ## 8. Responsive
