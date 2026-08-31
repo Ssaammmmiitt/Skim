@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 type SearchBarProps = {
   variant?: "nav" | "page";
@@ -49,7 +50,10 @@ export function SearchBar({
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search the corpus…"
         autoFocus={autoFocus}
-        className={variant === "nav" ? "skim-input-nav" : "skim-input pl-11"}
+        className={cn(
+          variant === "nav" ? ui.inputNav : ui.input,
+          variant === "page" && "pl-11"
+        )}
         aria-label="Search articles"
       />
     </form>

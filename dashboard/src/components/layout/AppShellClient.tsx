@@ -21,15 +21,18 @@ export function AppShellClient({
 }: AppShellClientProps) {
   const pathname = usePathname();
   const showNav = shouldShowNav(pathname);
+  const isChat = pathname === "/chat";
 
   return (
     <ThemeProvider initialTheme={dashboardTheme}>
       {showNav ? (
-        <>
+        <div className="flex min-h-dvh flex-col">
           <AppNav profile={profile} />
-          <main className="flex-1 bg-canvas">{children}</main>
-          <AppFooter />
-        </>
+          <main className="flex min-h-0 flex-1 flex-col bg-canvas">
+            {children}
+          </main>
+          {!isChat ? <AppFooter /> : null}
+        </div>
       ) : (
         children
       )}

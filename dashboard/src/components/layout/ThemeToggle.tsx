@@ -23,7 +23,7 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
   if (variant === "menu") {
     return (
       <div className="border-b border-surface-raised px-4 py-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-eyebrow text-muted">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
           Appearance
         </p>
         <div className="flex gap-1" role="group" aria-label="Dashboard theme">
@@ -34,10 +34,10 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
               disabled={saving}
               onClick={() => void setTheme(option)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-sm border px-2 py-1.5 text-[10px] transition",
+                "flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-1.5 text-[10px] transition",
                 theme === option
-                  ? "border-primary bg-cyan-muted text-primary"
-                  : "border-surface-raised text-muted hover:border-primary"
+                  ? "border-cyan-core bg-cyan-muted text-cyan-glow"
+                  : "border-surface-raised text-muted hover:border-cyan-core"
               )}
               aria-pressed={theme === option}
               title={DASHBOARD_THEMES[option].description}
@@ -53,7 +53,7 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
 
   return (
     <div
-      className="inline-flex rounded-pill-lg border border-on-dark/30 bg-ink/40 p-0.5"
+      className="inline-flex rounded-full border border-surface-raised bg-canvas p-0.5"
       role="group"
       aria-label="Dashboard theme"
     >
@@ -64,10 +64,10 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
           disabled={saving}
           onClick={() => void setTheme(option)}
           className={cn(
-            "rounded-pill-lg px-2.5 py-1 text-xs transition",
+            "rounded-full px-2.5 py-1 text-xs transition",
             theme === option
-              ? "bg-primary text-on-primary"
-              : "text-on-dark/70 hover:text-on-dark"
+              ? "bg-cyan-muted text-cyan-glow"
+              : "text-muted hover:text-secondary"
           )}
           aria-pressed={theme === option}
           title={DASHBOARD_THEMES[option].label}

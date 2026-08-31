@@ -1,5 +1,6 @@
 import { topicClass, topicLabel } from "@/lib/topics";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 type TopicBadgeProps = {
   topic: string | null;
@@ -8,7 +9,7 @@ type TopicBadgeProps = {
 
 export function TopicBadge({ topic, className }: TopicBadgeProps) {
   return (
-    <span className={cn("skim-pill", topicClass(topic), className)}>
+    <span className={cn(ui.pill, topicClass(topic), className)}>
       {topicLabel(topic)}
     </span>
   );

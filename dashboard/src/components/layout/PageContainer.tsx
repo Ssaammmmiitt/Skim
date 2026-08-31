@@ -6,6 +6,8 @@ type PageSize = "sm" | "md" | "lg" | "xl";
 type PageContainerProps = {
   children: ReactNode;
   size?: PageSize;
+  /** Full-height flex column — use on chat and other viewport-fill pages */
+  fill?: boolean;
   className?: string;
 };
 
@@ -19,12 +21,16 @@ const SIZE_CLASS: Record<PageSize, string> = {
 export function PageContainer({
   children,
   size = "lg",
+  fill = false,
   className,
 }: PageContainerProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full px-4 py-8 sm:px-6 sm:py-10 md:px-8 2xl:px-12",
+        "mx-auto w-full",
+        fill
+          ? "flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-6 lg:py-6"
+          : "px-4 py-8 sm:px-6 sm:py-10 md:px-8 2xl:px-12",
         SIZE_CLASS[size],
         className
       )}

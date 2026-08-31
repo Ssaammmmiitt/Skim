@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DigestCard } from "@/components/digest/DigestCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import * as ui from "@/lib/tailwind-ui";
 import type { DigestResponse } from "@/lib/types";
 
 function formatDigestDate(date: string): string {
@@ -46,7 +47,7 @@ export function DigestFeed({ digest, isToday = false }: DigestFeedProps) {
         }
         action={
           isToday ? (
-            <Link href="/archive" className="skim-btn-ghost inline-block">
+            <Link href="/archive" className={ui.btnGhost}>
               Browse archive
             </Link>
           ) : undefined
@@ -57,12 +58,10 @@ export function DigestFeed({ digest, isToday = false }: DigestFeedProps) {
 
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4 sm:mb-8">
         <div>
-          <p className="skim-eyebrow">
-            {digest.subject ?? "Daily briefing"}
-          </p>
-          <h1 className="skim-heading mt-2">
+          <p className={ui.eyebrow}>{digest.subject ?? "Daily briefing"}</p>
+          <h1 className={`${ui.heading} mt-2`}>
             {formatDigestDate(digest.date)}
           </h1>
         </div>
@@ -72,7 +71,7 @@ export function DigestFeed({ digest, isToday = false }: DigestFeedProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
         {digest.articles.map((article, index) => (
           <DigestCard key={article.id} article={article} rank={index + 1} />
         ))}

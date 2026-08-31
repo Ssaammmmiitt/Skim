@@ -1,5 +1,8 @@
 "use client";
 
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function shiftDate(date: string, days: number): string {
@@ -33,12 +36,12 @@ export function DatePicker({
   }
 
   return (
-    <div className="skim-card p-5">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className={cn(ui.card, "p-4 sm:p-5")}>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <button
           type="button"
           onClick={() => onChange(shiftDate(value, -1))}
-          className="skim-btn-secondary"
+          className={ui.btnSecondary}
           aria-label="Previous day"
         >
           ← Prev
@@ -49,14 +52,14 @@ export function DatePicker({
           value={value}
           max={maxDate}
           onChange={handleInputChange}
-          className="skim-input w-auto py-2"
+          className={cn(ui.input, "w-auto py-2")}
         />
 
         <button
           type="button"
           onClick={() => onChange(shiftDate(value, 1))}
           disabled={atMax}
-          className="skim-btn-secondary"
+          className={ui.btnSecondary}
           aria-label="Next day"
         >
           Next →
@@ -65,7 +68,7 @@ export function DatePicker({
         <button
           type="button"
           onClick={() => onChange(maxDate)}
-          className="skim-btn-primary ml-auto"
+          className={cn(ui.btnPrimary, "sm:ml-auto")}
         >
           Today
         </button>
@@ -89,8 +92,8 @@ export function DatePicker({
               onClick={() => onChange(date)}
               className={
                 date === value
-                  ? "rounded-card bg-cyan-core px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-black"
-                  : "rounded-card bg-cyan-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-cyan-glow hover:bg-cyan-deep"
+                  ? "rounded-xl bg-cyan-core px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-black"
+                  : "rounded-xl bg-cyan-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-cyan-glow hover:bg-cyan-deep"
               }
             >
               {date}

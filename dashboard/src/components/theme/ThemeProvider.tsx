@@ -32,7 +32,7 @@ type ThemeProviderProps = {
 
 export function ThemeProvider({
   children,
-  initialTheme = "light",
+  initialTheme = "dark",
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<DashboardTheme>(initialTheme);
   const [resolved, setResolved] = useState<"light" | "dark">("dark");

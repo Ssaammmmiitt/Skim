@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 const STEPS = [
   { label: "Embedding your question", detail: "MiniLM 384-dim (same as pipeline)" },
@@ -29,7 +30,7 @@ export function ChatLoadingBubble({ sessionKey }: ChatLoadingBubbleProps) {
 
   return (
     <div className="flex justify-start" role="status" aria-live="polite">
-      <div className="skim-card max-w-md px-4 py-3">
+      <div className={cn(ui.card, "max-w-md px-4 py-3")}>
         <div className="flex items-start gap-3">
           <span
             className="mt-0.5 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-surface-raised border-t-cyan-bright"

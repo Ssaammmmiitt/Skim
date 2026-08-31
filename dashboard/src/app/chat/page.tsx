@@ -3,7 +3,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 
 export default function ChatPage() {
   return (
-    <PageContainer className="py-6 sm:py-8">
+    <PageContainer size="lg" fill className="max-w-4xl">
       <ChatInterface />
     </PageContainer>
   );

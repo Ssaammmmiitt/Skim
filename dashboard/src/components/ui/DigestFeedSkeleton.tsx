@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 type DigestFeedSkeletonProps = {
   cards?: number;
@@ -19,7 +20,7 @@ export function DigestFeedSkeleton({
         {Array.from({ length: cards }, (_, index) => (
           <div
             key={index}
-            className="skim-card space-y-3 p-5"
+            className={cn(ui.card, "space-y-3 p-5")}
           >
             <div className="flex gap-3">
               <div className="h-6 w-6 shrink-0 rounded-full bg-surface-raised" />

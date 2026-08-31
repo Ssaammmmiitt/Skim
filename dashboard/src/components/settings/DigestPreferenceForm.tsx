@@ -8,6 +8,7 @@ import { EmailThemePreview } from "@/components/settings/EmailThemePreview";
 import { TOPIC_OPTIONS } from "@/lib/digest-preferences";
 import { applyDashboardTheme } from "@/lib/dashboard-theme";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 type Props = {
   initial: {
@@ -72,8 +73,8 @@ export function DigestPreferenceForm({ initial }: Props) {
     <form onSubmit={save} className="mt-8">
       <div className="space-y-10 pb-32">
         <section>
-          <h2 className="skim-eyebrow">Dashboard appearance</h2>
-          <p className="mt-2 skim-body">
+          <h2 className={ui.eyebrow}>Dashboard appearance</h2>
+          <p className={cn("mt-2", ui.body)}>
             Light canvas or ink band styling — or match your device.
           </p>
           <div className="mt-4">
@@ -87,8 +88,8 @@ export function DigestPreferenceForm({ initial }: Props) {
         <section>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="skim-eyebrow">Email theme</h2>
-              <p className="mt-2 skim-body">
+              <h2 className={ui.eyebrow}>Email theme</h2>
+              <p className={cn("mt-2", ui.body)}>
                 Pick how your daily digest email looks. Preview updates as you
                 select.
               </p>
@@ -97,7 +98,7 @@ export function DigestPreferenceForm({ initial }: Props) {
               href={previewUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="skim-btn-ghost px-4 py-2 text-sm"
+              className={cn(ui.btnGhost, "px-4 py-2 text-sm")}
             >
               Open full preview
             </a>
@@ -116,8 +117,8 @@ export function DigestPreferenceForm({ initial }: Props) {
         </section>
 
         <section>
-          <h2 className="skim-eyebrow">Email content format</h2>
-          <p className="mt-2 skim-body">
+          <h2 className={ui.eyebrow}>Email content format</h2>
+          <p className={cn("mt-2", ui.body)}>
             Control how much detail each story includes in your digest.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -132,8 +133,8 @@ export function DigestPreferenceForm({ initial }: Props) {
           </div>
         </section>
 
-        <section className="skim-card overflow-hidden">
-          <div className="border-b border-surface-raised px-4 py-2 skim-meta">
+        <section className={cn(ui.card, "overflow-hidden")}>
+          <div className={cn("border-b border-surface-raised px-4 py-2", ui.meta)}>
             Live email preview
           </div>
           <iframe
@@ -144,7 +145,7 @@ export function DigestPreferenceForm({ initial }: Props) {
         </section>
 
         <section>
-          <label className="skim-eyebrow">
+          <label className={ui.eyebrow}>
             Max stories: {maxStories}
           </label>
           <input
@@ -158,8 +159,8 @@ export function DigestPreferenceForm({ initial }: Props) {
         </section>
 
         <section>
-          <h2 className="skim-eyebrow">Topic filters (optional)</h2>
-          <p className="mt-2 skim-body">
+          <h2 className={ui.eyebrow}>Topic filters (optional)</h2>
+          <p className={cn("mt-2", ui.body)}>
             Leave empty to receive all topics. The pipeline filters stories
             before sending.
           </p>
@@ -172,8 +173,8 @@ export function DigestPreferenceForm({ initial }: Props) {
                 className={cn(
                   "rounded-pill px-3 py-1.5 text-xs font-bold transition",
                   topics.includes(topic.id)
-                    ? "bg-primary text-on-primary"
-                    : "bg-canvas-soft text-ink hover:outline hover:outline-1 hover:outline-ink/30"
+                    ? "bg-cyan-core text-black"
+                    : "border border-surface-raised bg-canvas text-secondary hover:border-cyan-core"
                 )}
               >
                 {topic.label}
@@ -189,19 +190,19 @@ export function DigestPreferenceForm({ initial }: Props) {
             onChange={(e) => setEmailEnabled(e.target.checked)}
             className="accent-primary"
           />
-          <span className="skim-body">Receive daily digest emails</span>
+          <span className={ui.body}>Receive daily digest emails</span>
         </label>
       </div>
 
-      <div className="skim-settings-bar">
+      <div className={ui.settingsBar}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-8">
-          <p className={cn("text-sm", status ? "skim-success" : "text-muted")}>
+          <p className={cn("text-sm", status ? ui.successText : "text-muted")}>
             {status || "Changes apply after you save."}
           </p>
           <button
             type="submit"
             disabled={saving}
-            className="skim-btn-primary shrink-0 px-8"
+            className={cn(ui.btnPrimary, "shrink-0 px-8")}
           >
             {saving ? "Saving…" : "Save preferences"}
           </button>

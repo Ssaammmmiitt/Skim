@@ -8,11 +8,11 @@ export const DASHBOARD_THEMES: Record<
 > = {
   light: {
     label: "Light",
-    description: "White canvas band with ink text — default Vodafone rhythm",
+    description: "Soft slate canvas with cyan accents",
   },
   dark: {
     label: "Dark",
-    description: "Ink surfaces with light text across the dashboard",
+    description: "Deep navy surfaces with cyan highlights — default",
   },
   system: {
     label: "System",
@@ -26,7 +26,7 @@ export function normalizeDashboardTheme(value: unknown): DashboardTheme {
   if (value === "light" || value === "dark" || value === "system") {
     return value;
   }
-  return "light";
+  return "dark";
 }
 
 export function resolveDashboardTheme(theme: DashboardTheme): "light" | "dark" {

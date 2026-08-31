@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BADGE_CHIP_CLASS, topicClass, topicLabel } from "@/lib/topics";
+import { topicClass, topicLabel } from "@/lib/topics";
 
 describe("topics", () => {
   it("maps known topic ids to labels", () => {
@@ -15,8 +15,9 @@ describe("topics", () => {
     expect(topicLabel(null)).toBe("Other");
   });
 
-  it("uses unified badge-chip classes for all topics", () => {
-    expect(topicClass("ai_ml")).toBe(BADGE_CHIP_CLASS);
-    expect(topicClass("web_dev")).toBe(BADGE_CHIP_CLASS);
+  it("uses per-topic badge classes", () => {
+    expect(topicClass("ai_ml")).toBe("bg-topic-ai text-topic-ai-text");
+    expect(topicClass("web_dev")).toBe("bg-topic-web text-topic-web-text");
+    expect(topicClass(null)).toBe("bg-surface-raised text-secondary");
   });
 });

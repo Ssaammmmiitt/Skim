@@ -12,10 +12,10 @@ describe("Button", () => {
     );
 
     expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(
-      "bg-primary"
+      "bg-cyan-core"
     );
     expect(screen.getByRole("button", { name: "Secondary" })).toHaveClass(
-      "border-ink"
+      "border-surface-raised"
     );
   });
 });

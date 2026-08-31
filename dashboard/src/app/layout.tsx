@@ -15,20 +15,20 @@ export const metadata: Metadata = {
   description: "Agentic tech news digest dashboard",
 };
 
-const themeInitScript = `(function(){try{var t=localStorage.getItem('skim-dashboard-theme')||'light';var r=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.dataset.theme=r;}catch(e){document.documentElement.classList.add('light');}})();`;
+const themeInitScript = `(function(){try{var t=localStorage.getItem('skim-dashboard-theme')||'dark';var r=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.dataset.theme=r;}catch(e){document.documentElement.classList.add('dark');}})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${inter.variable} h-full light`}
+      className={`${inter.variable} h-full dark`}
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-dvh flex-col">
         <AppShell>{children}</AppShell>
       </body>
     </html>

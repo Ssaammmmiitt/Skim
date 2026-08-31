@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SearchBar } from "@/components/ui/SearchBar";
+import * as ui from "@/lib/tailwind-ui";
 import type { SearchResponse } from "@/lib/types";
 
 export function SearchResults() {
@@ -93,7 +94,7 @@ export function SearchResults() {
               title="Nothing found"
               description="Try different keywords or ask in Chat for a conversational answer."
               action={
-                <Link href="/chat" className="skim-btn-ghost inline-block">
+                <Link href="/chat" className={ui.btnGhost}>
                   Open chat
                 </Link>
               }

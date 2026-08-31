@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { TopicBadge } from "@/components/digest/TopicBadge";
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 import type { DigestArticle } from "@/lib/types";
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -33,17 +35,27 @@ type DigestCardProps = {
 
 export function DigestCard({ article, rank }: DigestCardProps) {
   return (
-    <article className="group skim-card-interactive flex h-full flex-col p-4 sm:p-5">
+    <article
+      className={cn(
+        ui.cardInteractive,
+        "group flex h-full flex-col p-4 sm:p-5"
+      )}
+    >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="skim-meta">#{rank}</span>
+        <span className={ui.meta}>#{rank}</span>
         <TopicBadge topic={article.topic} />
-        <span className="skim-meta">{formatSource(article.source)}</span>
+        <span className={ui.meta}>{formatSource(article.source)}</span>
         {article.published_at ? (
-          <span className="skim-meta">· {timeAgo(article.published_at)}</span>
+          <span className={ui.meta}>· {timeAgo(article.published_at)}</span>
         ) : null}
       </div>
 
-      <h2 className="skim-subheading mt-3 transition-colors group-hover:text-primary">
+      <h2
+        className={cn(
+          ui.subheading,
+          "mt-3 transition-colors group-hover:text-cyan-glow"
+        )}
+      >
         <Link
           href={article.url}
           target="_blank"
@@ -55,19 +67,15 @@ export function DigestCard({ article, rank }: DigestCardProps) {
       </h2>
 
       {article.key_takeaway ? (
-        <p className="mt-2 text-base font-semibold text-foreground">
+        <p className="mt-2 text-sm font-medium text-subtle sm:text-base">
           {article.key_takeaway}
         </p>
       ) : null}
 
       {article.insight ? (
-        <p className="mt-3 flex-1 text-base leading-relaxed text-body">
-          {article.insight}
-        </p>
+        <p className={cn(ui.body, "mt-3 flex-1")}>{article.insight}</p>
       ) : article.summary ? (
-        <p className="mt-3 flex-1 text-base leading-relaxed text-body">
-          {article.summary}
-        </p>
+        <p className={cn(ui.body, "mt-3 flex-1")}>{article.summary}</p>
       ) : (
         <div className="flex-1" />
       )}
@@ -77,12 +85,12 @@ export function DigestCard({ article, rank }: DigestCardProps) {
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="skim-link"
+          className={ui.link}
         >
-          Read story →
+          Read more →
         </Link>
         {article.importance_score != null ? (
-          <span className="skim-meta">
+          <span className={ui.meta}>
             Score {article.importance_score.toFixed(1)}
           </span>
         ) : null}

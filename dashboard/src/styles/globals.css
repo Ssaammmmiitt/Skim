@@ -1,59 +1,48 @@
 @import "tailwindcss";
 @config "../../tailwind.config.mjs";
 
-/* Vodafone design tokens — see /design.md */
+/* Skim cyan theme tokens — light/dark via html.light / html.dark */
 :root,
-html.light {
-  --vf-primary: #e60000;
-  --vf-primary-hover: #ff1a1a;
-  --vf-canvas: #ffffff;
-  --vf-canvas-soft: #f2f2f2;
-  --vf-ink: #25282b;
-  --vf-body: #7e7e7e;
-  --vf-mute: #bebebe;
-  --vf-on-dark: #ffffff;
-  --vf-on-primary: #ffffff;
-  --vf-error: #e60000;
+html.dark {
+  --skim-canvas: #0f1419;
+  --skim-foreground: #f0f9ff;
+  --skim-surface: #1a2332;
+  --skim-surface-raised: #243044;
+  --skim-image-frame: #2d3a4f;
+  --skim-cyan-bright: #22d3ee;
+  --skim-cyan-core: #06b6d4;
+  --skim-cyan-deep: #0891b2;
+  --skim-cyan-glow: #67e8f9;
+  --skim-cyan-muted: #164e63;
+  --skim-secondary: #94a3b8;
+  --skim-muted: #64748b;
+  --skim-subtle: #cbd5e1;
+  --skim-error: #f87171;
+  --skim-error-surface: #450a0a;
+  --skim-warning: #fbbf24;
+  --skim-success: #34d399;
+  color-scheme: dark;
+}
 
-  --skim-canvas: var(--vf-canvas);
-  --skim-foreground: var(--vf-ink);
-  --skim-surface: var(--vf-canvas);
-  --skim-surface-raised: var(--vf-canvas-soft);
-  --skim-image-frame: var(--vf-canvas-soft);
-  --skim-cyan-core: var(--vf-primary);
-  --skim-cyan-bright: var(--vf-primary-hover);
-  --skim-cyan-deep: #cc0000;
-  --skim-cyan-glow: var(--vf-primary);
-  --skim-cyan-muted: #ffe5e5;
-  --skim-secondary: var(--vf-body);
-  --skim-muted: var(--vf-mute);
-  --skim-subtle: var(--vf-ink);
-  --skim-error: var(--vf-error);
-  --skim-error-surface: #ffe5e5;
+html.light {
+  --skim-canvas: #f1f5f9;
+  --skim-foreground: #0f172a;
+  --skim-surface: #ffffff;
+  --skim-surface-raised: #e2e8f0;
+  --skim-image-frame: #cbd5e1;
+  --skim-cyan-bright: #0891b2;
+  --skim-cyan-core: #06b6d4;
+  --skim-cyan-deep: #0e7490;
+  --skim-cyan-glow: #155e75;
+  --skim-cyan-muted: #cffafe;
+  --skim-secondary: #475569;
+  --skim-muted: #64748b;
+  --skim-subtle: #334155;
+  --skim-error: #dc2626;
+  --skim-error-surface: #fee2e2;
   --skim-warning: #d97706;
   --skim-success: #059669;
   color-scheme: light;
-}
-
-html.dark {
-  --vf-canvas: #25282b;
-  --vf-canvas-soft: #2f3337;
-  --vf-ink: #ffffff;
-  --vf-body: #bebebe;
-  --vf-mute: #7e7e7e;
-  --vf-on-dark: #ffffff;
-
-  --skim-canvas: var(--vf-canvas);
-  --skim-foreground: var(--vf-ink);
-  --skim-surface: #2f3337;
-  --skim-surface-raised: #3a3f44;
-  --skim-image-frame: #3a3f44;
-  --skim-cyan-muted: rgba(230, 0, 0, 0.18);
-  --skim-secondary: var(--vf-body);
-  --skim-muted: var(--vf-mute);
-  --skim-subtle: #e2e8f0;
-  --skim-error-surface: rgba(230, 0, 0, 0.15);
-  color-scheme: dark;
 }
 
 :root,
@@ -63,50 +52,40 @@ html.light {
   --foreground: var(--skim-foreground);
   --card: var(--skim-surface);
   --card-foreground: var(--skim-foreground);
-  --popover: var(--skim-surface);
-  --popover-foreground: var(--skim-foreground);
-  --primary: var(--vf-primary);
-  --primary-foreground: var(--vf-on-primary);
+  --primary: var(--skim-cyan-core);
+  --primary-foreground: #000000;
   --secondary: var(--skim-surface-raised);
-  --secondary-foreground: var(--skim-foreground);
   --muted: var(--skim-surface-raised);
   --muted-foreground: var(--skim-muted);
   --accent: var(--skim-cyan-muted);
-  --accent-foreground: var(--vf-primary);
   --destructive: var(--skim-error);
-  --destructive-foreground: var(--skim-foreground);
   --border: var(--skim-surface-raised);
-  --input: var(--vf-ink);
-  --ring: var(--vf-primary);
-  --radius: 6px;
+  --input: var(--skim-surface-raised);
+  --ring: var(--skim-cyan-core);
+  --radius: 0.75rem;
 }
 
 @theme {
-  --breakpoint-sm: 37.5rem;
+  --breakpoint-sm: 40rem;
   --breakpoint-md: 48rem;
   --breakpoint-lg: 64rem;
-  --breakpoint-xl: 87.5rem;
+  --breakpoint-xl: 80rem;
   --breakpoint-2xl: 90rem;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
   --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
-  --color-input: var(--input);
   --color-ring: var(--ring);
 
   --color-canvas: var(--skim-canvas);
   --color-surface: var(--skim-surface);
   --color-surface-raised: var(--skim-surface-raised);
-  --color-image-frame: var(--skim-image-frame);
   --color-cyan-bright: var(--skim-cyan-bright);
   --color-cyan-core: var(--skim-cyan-core);
   --color-cyan-deep: var(--skim-cyan-deep);
@@ -117,20 +96,41 @@ html.light {
   --color-subtle: var(--skim-subtle);
   --color-error: var(--skim-error);
   --color-error-surface: var(--skim-error-surface);
-  --color-warning: var(--skim-warning);
-  --color-success: var(--skim-success);
-  --color-ink: #25282b;
-  --color-on-dark: var(--vf-on-dark);
-  --color-on-primary: var(--vf-on-primary);
-  --color-canvas-soft: var(--vf-canvas-soft);
-  --color-body: var(--vf-body);
 
-  --radius-card: 6px;
-  --radius-sm: 6px;
-  --radius-pill: 32px;
-  --radius-pill-lg: 60px;
-  --tracking-display: -0.02em;
-  --tracking-eyebrow: 0.04em;
+  --color-topic-ai: #164e63;
+  --color-topic-ai-text: #67e8f9;
+  --color-topic-web: #134e4a;
+  --color-topic-web-text: #5eead4;
+  --color-topic-cloud: #1e3a5f;
+  --color-topic-cloud-text: #7dd3fc;
+  --color-topic-security: #450a0a;
+  --color-topic-security-text: #fca5a5;
+  --color-topic-startups: #422006;
+  --color-topic-startups-text: #fcd34d;
+  --color-topic-code: #1e293b;
+  --color-topic-code-text: #94a3b8;
+  --color-topic-science: #312e81;
+  --color-topic-science-text: #c4b5fd;
+
+  --radius-card: 1.25rem;
+  --radius-pill: 9999px;
+}
+
+html.light {
+  --color-topic-ai: #cffafe;
+  --color-topic-ai-text: #0e7490;
+  --color-topic-web: #ccfbf1;
+  --color-topic-web-text: #0f766e;
+  --color-topic-cloud: #e0f2fe;
+  --color-topic-cloud-text: #0369a1;
+  --color-topic-security: #fee2e2;
+  --color-topic-security-text: #b91c1c;
+  --color-topic-startups: #fef3c7;
+  --color-topic-startups-text: #b45309;
+  --color-topic-code: #f1f5f9;
+  --color-topic-code-text: #475569;
+  --color-topic-science: #ede9fe;
+  --color-topic-science-text: #6d28d9;
 }
 
 @layer base {
@@ -143,168 +143,6 @@ html.light {
   }
 
   body {
-    @apply min-h-full bg-background font-sans text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4 {
-    @apply font-sans tracking-display text-foreground;
-  }
-}
-
-@layer components {
-  .skim-eyebrow {
-    @apply text-xs font-extrabold uppercase tracking-eyebrow text-primary;
-  }
-
-  .skim-heading {
-    @apply text-2xl font-extrabold uppercase leading-none tracking-display text-foreground sm:text-3xl md:text-4xl;
-  }
-
-  .skim-display {
-    @apply text-3xl font-light leading-tight text-foreground md:text-4xl;
-  }
-
-  .skim-subheading {
-    @apply text-xl font-bold leading-snug text-foreground sm:text-2xl;
-  }
-
-  .skim-body {
-    @apply text-base leading-relaxed text-body;
-  }
-
-  .skim-caption {
-    @apply text-sm leading-snug text-muted;
-  }
-
-  .skim-card {
-    @apply rounded-card bg-surface;
-  }
-
-  .skim-card-dashed {
-    @apply rounded-card border border-dashed border-ink/20 bg-surface;
-  }
-
-  .skim-card-interactive {
-    @apply rounded-card bg-surface transition-colors hover:outline hover:outline-1 hover:outline-ink/30;
-  }
-
-  html.dark .skim-card-interactive {
-    @apply hover:outline-on-dark/25;
-  }
-
-  .skim-input {
-    @apply min-h-[52px] w-full rounded-sm border border-ink bg-canvas px-4 py-3 text-base text-foreground outline-none placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50;
-  }
-
-  html.dark .skim-input {
-    @apply border-on-dark/40 bg-canvas text-on-dark placeholder:text-muted;
-  }
-
-  .skim-input-nav {
-    @apply w-full min-w-0 rounded-pill-lg border border-on-dark/30 bg-ink/50 py-2 pl-9 pr-3 text-sm text-on-dark outline-none placeholder:text-on-dark/50 focus:border-primary focus:ring-2 focus:ring-primary/30;
-  }
-
-  .skim-textarea {
-    @apply min-h-[52px] flex-1 resize-none rounded-sm border border-ink bg-canvas px-4 py-3 text-base text-foreground outline-none placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50;
-  }
-
-  .skim-btn-primary {
-    @apply inline-flex min-h-[52px] items-center justify-center rounded-pill-lg bg-primary px-6 py-3 text-lg font-normal text-on-primary transition hover:bg-cyan-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40;
-  }
-
-  .skim-btn-secondary {
-    @apply inline-flex min-h-[52px] items-center justify-center rounded-pill-lg border border-ink bg-canvas px-6 py-3 text-lg text-ink transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-40;
-  }
-
-  .skim-btn-ghost {
-    @apply inline-flex min-h-[52px] items-center justify-center rounded-pill-lg border border-primary bg-canvas px-6 py-3 text-lg text-primary transition hover:bg-cyan-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40;
-  }
-
-  .skim-btn-danger {
-    @apply inline-flex min-h-[52px] items-center justify-center rounded-pill-lg border border-error px-6 py-3 text-base text-error transition hover:bg-error-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error/40;
-  }
-
-  .skim-nav-link {
-    @apply inline-flex min-h-11 shrink-0 items-center rounded-pill-lg px-4 py-2 text-sm font-medium text-on-dark/75 transition-colors;
-  }
-
-  .skim-nav-link-active {
-    @apply bg-primary font-semibold text-on-primary shadow-none;
-  }
-
-  .skim-nav-link-inactive {
-    @apply hover:bg-on-dark/10 hover:text-on-dark;
-  }
-
-  .skim-nav-link-mobile {
-    @apply flex min-h-[52px] w-full items-center justify-between rounded-card border border-on-dark/15 bg-on-dark/5 px-4 py-3 text-left transition hover:border-primary/40 hover:bg-on-dark/10;
-  }
-
-  .skim-nav-link-mobile-active {
-    @apply border-primary bg-primary/10 text-on-dark;
-  }
-
-  .skim-shell-header {
-    @apply sticky top-0 z-50 bg-ink text-on-dark transition-shadow duration-200;
-  }
-
-  .skim-shell-header-scrolled {
-    @apply shadow-[0_4px_24px_rgba(0,0,0,0.25)] ring-1 ring-on-dark/10;
-  }
-
-  .skim-nav-scroll {
-    @apply flex items-center gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
-  }
-
-  .skim-pill {
-    @apply inline-block rounded-pill bg-canvas-soft px-3 py-1 text-xs font-bold text-ink;
-  }
-
-  .skim-meta {
-    @apply text-xs font-semibold uppercase tracking-eyebrow text-muted;
-  }
-
-  .skim-link {
-    @apply text-sm font-bold text-primary transition hover:text-cyan-bright;
-  }
-
-  .skim-error {
-    @apply rounded-sm border border-error-surface bg-error-surface px-4 py-3 text-sm text-error;
-  }
-
-  .skim-success {
-    @apply text-sm font-semibold text-primary;
-  }
-
-  .skim-divider {
-    @apply h-px flex-1 bg-ink/15;
-  }
-
-  .skim-hero-band {
-    @apply bg-ink px-4 py-12 text-on-dark sm:px-8 md:px-12;
-  }
-
-  .skim-content-band {
-    @apply bg-canvas px-4 py-8 text-foreground sm:px-8 md:px-12;
-  }
-
-  .skim-chat-panel {
-    @apply flex min-h-0 flex-1 flex-col rounded-card border border-ink/10 bg-surface;
-  }
-
-  html.dark .skim-chat-panel {
-    @apply border-on-dark/20;
-  }
-
-  .skim-settings-bar {
-    @apply fixed inset-x-0 bottom-0 z-40 border-t border-surface-raised bg-canvas/95 backdrop-blur-sm;
-  }
-
-  .speechmark-orb {
-    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-primary text-lg font-bold leading-none text-on-primary;
+    @apply min-h-dvh bg-canvas font-sans text-foreground antialiased;
   }
 }

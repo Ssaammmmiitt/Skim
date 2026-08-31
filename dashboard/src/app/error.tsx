@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/layout/PageContainer";
+import * as ui from "@/lib/tailwind-ui";
 
 type ErrorProps = {
   error: Error & { digest?: string };
@@ -16,8 +17,8 @@ export default function Error({ error, reset }: ErrorProps) {
 
   return (
     <PageContainer>
-      <div className="skim-card mx-auto max-w-lg px-6 py-10 text-center">
-        <p className="skim-eyebrow text-error">Something went wrong</p>
+      <div className={`${ui.card} mx-auto max-w-lg px-6 py-10 text-center`}>
+        <p className={`${ui.eyebrow} text-error`}>Something went wrong</p>
         <h1 className="mt-3 text-2xl font-bold text-foreground">
           We hit an unexpected error
         </h1>
@@ -25,10 +26,10 @@ export default function Error({ error, reset }: ErrorProps) {
           {error.message || "An unknown error occurred while loading this page."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button type="button" onClick={reset} className="skim-btn-primary">
+          <button type="button" onClick={reset} className={ui.btnPrimary}>
             Try again
           </button>
-          <Link href="/" className="skim-btn-ghost">
+          <Link href="/" className={ui.btnGhost}>
             Back to home
           </Link>
         </div>

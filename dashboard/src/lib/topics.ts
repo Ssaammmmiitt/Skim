@@ -4,19 +4,28 @@ const TOPIC_LABELS = Object.fromEntries(
   TOPIC_OPTIONS.map((topic) => [topic.id, topic.label])
 ) as Record<string, string>;
 
-/** Vodafone badge-chip — single accent palette for all topics */
-export const BADGE_CHIP_CLASS = "bg-canvas-soft text-ink";
+const TOPIC_CLASSES: Record<string, string> = {
+  ai_ml: "bg-topic-ai text-topic-ai-text",
+  web_dev: "bg-topic-web text-topic-web-text",
+  cloud_infra: "bg-topic-cloud text-topic-cloud-text",
+  cybersecurity: "bg-topic-security text-topic-security-text",
+  startups: "bg-topic-startups text-topic-startups-text",
+  programming: "bg-topic-code text-topic-code-text",
+  science: "bg-topic-science text-topic-science-text",
+  other: "bg-surface-raised text-secondary",
+};
+
+const DEFAULT_TOPIC_CLASS = "bg-surface-raised text-secondary";
 
 export function topicLabel(topic: string | null): string {
   if (!topic) return "Other";
   return TOPIC_LABELS[topic] ?? topic.replace(/_/g, " ");
 }
 
-export function topicClass(_topic: string | null): string {
-  return BADGE_CHIP_CLASS;
+export function topicClass(topic: string | null): string {
+  return TOPIC_CLASSES[topic ?? "other"] ?? DEFAULT_TOPIC_CLASS;
 }
 
-/** @deprecated Use topicClass() */
 export function topicColors(topic: string | null) {
   return { bg: "", text: "", className: topicClass(topic) };
 }

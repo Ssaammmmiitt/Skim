@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { TopicBadge } from "@/components/digest/TopicBadge";
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 import type { SearchResult } from "@/lib/types";
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -24,13 +26,13 @@ export function SearchResultCard({ article, rank }: SearchResultCardProps) {
     article.similarity != null ? Math.round(article.similarity * 100) : null;
 
   return (
-    <article className="skim-card-interactive p-5">
+    <article className={cn(ui.cardInteractive, "p-4 sm:p-5")}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] font-bold text-muted">#{rank}</span>
         <TopicBadge topic={article.topic} />
-        <span className="skim-meta">{formatSource(article.source)}</span>
+        <span className={ui.meta}>{formatSource(article.source)}</span>
         {article.retrieval_method ? (
-          <span className="rounded-pill border border-surface-raised px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-glow">
+          <span className="rounded-full border border-surface-raised px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-glow">
             {article.retrieval_method}
           </span>
         ) : null}
@@ -39,7 +41,7 @@ export function SearchResultCard({ article, rank }: SearchResultCardProps) {
         ) : null}
       </div>
 
-      <h2 className="mt-3 text-lg font-bold leading-snug text-foreground">
+      <h2 className="mt-3 text-lg font-bold leading-snug text-foreground sm:text-xl">
         <Link
           href={article.url}
           target="_blank"
@@ -57,9 +59,9 @@ export function SearchResultCard({ article, rank }: SearchResultCardProps) {
       ) : null}
 
       {article.insight ? (
-        <p className="mt-2 skim-body">{article.insight}</p>
+        <p className={cn(ui.body, "mt-2")}>{article.insight}</p>
       ) : article.summary ? (
-        <p className="mt-2 skim-body">{article.summary}</p>
+        <p className={cn(ui.body, "mt-2")}>{article.summary}</p>
       ) : null}
 
       <div className="mt-4 flex items-center justify-between gap-4">
@@ -67,12 +69,12 @@ export function SearchResultCard({ article, rank }: SearchResultCardProps) {
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="skim-link"
+          className={ui.link}
         >
           Read article →
         </Link>
         {article.importance_score != null ? (
-          <span className="skim-meta">
+          <span className={ui.meta}>
             Score {article.importance_score.toFixed(1)}
           </span>
         ) : null}

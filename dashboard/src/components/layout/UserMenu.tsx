@@ -47,7 +47,7 @@ export function UserMenu({ profile }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-2 rounded-pill-lg border border-on-dark/30 bg-ink/40 py-1 pl-1 pr-3 transition hover:border-primary"
+        className="flex items-center gap-2 rounded-full border border-surface-raised bg-surface py-1 pl-1 pr-3 transition hover:border-cyan-core"
         aria-expanded={open}
         aria-haspopup="menu"
       >
@@ -59,18 +59,18 @@ export function UserMenu({ profile }: UserMenuProps) {
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-muted text-xs font-bold text-cyan-glow">
             {initials(profile)}
           </span>
         )}
-        <span className="hidden max-w-[140px] truncate text-xs text-on-dark/80 sm:inline">
+        <span className="hidden max-w-[120px] truncate text-xs text-secondary sm:inline md:max-w-[140px]">
           {profile.display_name ?? profile.email}
         </span>
       </button>
 
       {open ? (
         <div
-          className="absolute right-0 z-50 mt-2 w-56 rounded-card border border-surface-raised bg-surface py-2 shadow-none"
+          className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-surface-raised bg-surface py-2 shadow-lg shadow-black/20"
           role="menu"
         >
           <div className="border-b border-surface-raised px-4 py-2">
@@ -82,7 +82,7 @@ export function UserMenu({ profile }: UserMenuProps) {
           <ThemeToggle variant="menu" />
           <Link
             href="/settings"
-            className="block px-4 py-2 text-sm text-body hover:bg-canvas-soft hover:text-primary"
+            className="block px-4 py-2 text-sm text-secondary hover:bg-surface-raised hover:text-cyan-bright"
             role="menuitem"
             onClick={() => setOpen(false)}
           >

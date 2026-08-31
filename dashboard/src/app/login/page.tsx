@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 type Mode = "signin" | "signup";
 type Step = "email" | "verify-otp";
@@ -16,8 +17,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 function modeTabClass(active: boolean) {
   return cn(
-    "flex-1 rounded-pill-lg py-2 text-base font-semibold transition",
-    active ? "bg-primary text-on-primary" : "text-body"
+    "flex-1 rounded-full py-2 text-sm font-medium transition",
+    active ? "bg-cyan-core text-black" : "text-secondary"
   );
 }
 
@@ -65,9 +66,7 @@ export default function LoginPage() {
     setMessage("");
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: {
-        shouldCreateUser: mode === "signup",
-      },
+      options: { shouldCreateUser: mode === "signup" },
     });
     setLoading(false);
     if (error) {
@@ -107,101 +106,106 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas">
-      <div className="skim-hero-band">
-        <p className="skim-eyebrow text-on-primary">Welcome</p>
-        <h1 className="skim-heading mt-3 text-on-dark">
+    <div className="flex min-h-dvh flex-col bg-canvas">
+      <div className="border-b border-surface-raised bg-surface px-4 py-10 sm:px-8">
+        <p className={ui.eyebrow}>Skim</p>
+        <h1 className={cn(ui.heading, "mt-2")}>
           {mode === "signup" ? "Create account" : "Sign in"}
         </h1>
       </div>
-      <div className="flex flex-1 items-start justify-center px-4 py-10 sm:px-8">
-      <div className="skim-card w-full max-w-md border border-surface-raised p-8">
-        <p className="mt-2 skim-body">
-          {mode === "signup"
-            ? "Register with email OTP or Google. New accounts need admin approval."
-            : "Sign in with Google or a login code. Approved accounts only."}
-        </p>
 
-        <div className="mt-6 flex rounded-pill border border-surface-raised p-1">
-          <button
-            type="button"
-            onClick={() => switchMode("signin")}
-            className={modeTabClass(mode === "signin")}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            onClick={() => switchMode("signup")}
-            className={modeTabClass(mode === "signup")}
-          >
-            Sign up
-          </button>
-        </div>
+      <div className="flex flex-1 items-start justify-center px-4 py-8 sm:px-8 sm:py-10">
+        <div className={cn(ui.card, "w-full max-w-md p-6 sm:p-8")}>
+          <p className={ui.body}>
+            {mode === "signup"
+              ? "Register with email OTP or Google. New accounts need admin approval."
+              : "Sign in with Google or a login code. Approved accounts only."}
+          </p>
 
-        <button
-          type="button"
-          onClick={() => void signInWithGoogle()}
-          disabled={loading}
-          className="skim-btn-primary mt-6 flex w-full items-center justify-center gap-2 px-6 py-3 text-sm"
-        >
-          Continue with Google
-        </button>
-
-        <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-muted">
-          <span className="skim-divider" />
-          or email
-          <span className="skim-divider" />
-        </div>
-
-        {step === "verify-otp" ? (
-          <form onSubmit={verifyOtp} className="space-y-4">
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="6-digit code"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="skim-input"
-              required
-            />
+          <div className="mt-6 flex rounded-full border border-surface-raised p-1">
             <button
-              type="submit"
-              disabled={loading}
-              className="skim-btn-primary w-full px-6 py-3 text-sm"
+              type="button"
+              onClick={() => switchMode("signin")}
+              className={modeTabClass(mode === "signin")}
             >
-              Verify code
+              Sign in
             </button>
             <button
               type="button"
-              onClick={() => setStep("email")}
-              className="w-full text-sm text-secondary hover:text-cyan-bright"
+              onClick={() => switchMode("signup")}
+              className={modeTabClass(mode === "signup")}
             >
-              Use a different email
+              Sign up
             </button>
-          </form>
-        ) : (
-          <form onSubmit={sendOtp} className="space-y-4">
-            <input
-              type="email"
-              placeholder="you@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="skim-input"
-              required
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="skim-btn-ghost w-full px-6 py-3 text-sm"
-            >
-              {mode === "signup" ? "Send registration code" : "Send login code"}
-            </button>
-          </form>
-        )}
+          </div>
 
-        {message ? <p className="mt-4 skim-success">{message}</p> : null}
-      </div>
+          <button
+            type="button"
+            onClick={() => void signInWithGoogle()}
+            disabled={loading}
+            className={cn(ui.btnPrimary, "mt-6 w-full")}
+          >
+            Continue with Google
+          </button>
+
+          <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-muted">
+            <span className="h-px flex-1 bg-surface-raised" />
+            or email
+            <span className="h-px flex-1 bg-surface-raised" />
+          </div>
+
+          {step === "verify-otp" ? (
+            <form onSubmit={verifyOtp} className="space-y-4">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="6-digit code"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className={ui.input}
+                required
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className={cn(ui.btnPrimary, "w-full")}
+              >
+                Verify code
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("email")}
+                className="w-full text-sm text-secondary hover:text-cyan-bright"
+              >
+                Use a different email
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={sendOtp} className="space-y-4">
+              <input
+                type="email"
+                placeholder="you@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={ui.input}
+                required
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className={cn(ui.btnGhost, "w-full")}
+              >
+                {mode === "signup"
+                  ? "Send registration code"
+                  : "Send login code"}
+              </button>
+            </form>
+          )}
+
+          {message ? (
+            <p className={cn(ui.successText, "mt-4")}>{message}</p>
+          ) : null}
+        </div>
       </div>
     </div>
   );

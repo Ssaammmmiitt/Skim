@@ -1,6 +1,7 @@
 import type { ChatMessage as ChatMessageType } from "@/lib/types";
 import { SourceCitation } from "@/components/chat/SourceCitation";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 type ChatMessageProps = {
   message: ChatMessageType;
@@ -37,12 +38,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
           "max-w-[85%] rounded-card px-4 py-3",
           isUser
             ? "bg-cyan-core text-black"
-            : "skim-card text-foreground"
+            : cn(ui.card, "text-foreground")
         )}
       >
         {!isUser ? (
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className="skim-meta text-cyan-bright">Skim</p>
+            <p className={cn(ui.meta, "text-cyan-bright")}>Skim</p>
             {message.provider ? (
               <span className="rounded-pill border border-surface-raised bg-canvas px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
                 {message.provider}

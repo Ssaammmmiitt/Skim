@@ -5,6 +5,8 @@ import { ChatErrorPanel } from "@/components/chat/ChatErrorPanel";
 import { ChatLoadingBubble } from "@/components/chat/ChatLoadingBubble";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 import type {
   ChatApiError,
   ChatApiResponse,
@@ -40,9 +42,7 @@ export function ChatInterface() {
           setRemaining(body.remaining);
         }
       })
-      .catch(() => {
-        // Quota display is optional.
-      });
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -141,32 +141,38 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
+        className="mb-4 shrink-0 sm:mb-6"
         eyebrow="RAG Chat"
         title="Ask Skim"
-        description="Hybrid search over the article corpus, then multi-provider AI (Gemini keys → fallback models → Groq)."
+        description="Hybrid search over the article corpus, then multi-provider AI."
         action={
           remaining != null ? (
             <div className="text-right">
               <p className="text-xs font-medium text-secondary">
                 {remaining} question{remaining === 1 ? "" : "s"} left today
               </p>
-              <p className="text-[10px] text-muted">20 queries/day · server-side only</p>
+              <p className="text-[10px] text-muted">20 queries/day</p>
             </div>
           ) : undefined
         }
       />
 
-      <div className="skim-chat-panel">
-        <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+      <div
+        className={cn(
+          ui.card,
+          "flex min-h-0 flex-1 flex-col overflow-hidden"
+        )}
+      >
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3 sm:p-5">
           {messages.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="skim-body">
+            <div className="py-6 text-center sm:py-8">
+              <p className={ui.body}>
                 Try asking about recent tech news in the Skim corpus.
               </p>
               <p className="mt-2 text-xs text-muted">
-                Retrieval: hybrid vector + full-text · Answer: Gemini with automatic fallbacks
+                Hybrid vector + full-text retrieval · Gemini with fallbacks
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {SUGGESTED_PROMPTS.map((prompt) => (
@@ -175,7 +181,7 @@ export function ChatInterface() {
                     type="button"
                     onClick={() => void sendMessage(prompt)}
                     disabled={loading || remaining === 0}
-                    className="rounded-pill border border-surface-raised bg-canvas px-3 py-2 text-xs text-secondary hover:border-cyan-core hover:text-cyan-bright disabled:opacity-50"
+                    className="max-w-full rounded-full border border-surface-raised bg-canvas px-3 py-2 text-left text-xs text-secondary transition hover:border-cyan-core hover:text-cyan-bright disabled:opacity-50 sm:text-center"
                   >
                     {prompt}
                   </button>
@@ -201,9 +207,9 @@ export function ChatInterface() {
 
         <form
           onSubmit={handleSubmit}
-          className="shrink-0 border-t border-surface-raised p-4"
+          className="shrink-0 border-t border-surface-raised bg-surface/50 p-3 sm:p-4"
         >
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
             <textarea
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -211,18 +217,18 @@ export function ChatInterface() {
               placeholder="Ask about recent tech news…"
               rows={2}
               disabled={loading || remaining === 0}
-              className="skim-textarea"
+              className={cn(ui.textarea, "sm:flex-1")}
             />
             <button
               type="submit"
               disabled={loading || !input.trim() || remaining === 0}
-              className="skim-btn-primary self-end px-5 py-3 disabled:opacity-50"
+              className={cn(ui.btnPrimary, "w-full shrink-0 sm:w-auto sm:px-6")}
             >
               {loading ? "…" : "Send"}
             </button>
           </div>
           <p className="mt-2 text-[11px] text-muted">
-            Enter to send · Shift+Enter for newline · Answers cite retrieved sources
+            Enter to send · Shift+Enter for newline
           </p>
         </form>
       </div>

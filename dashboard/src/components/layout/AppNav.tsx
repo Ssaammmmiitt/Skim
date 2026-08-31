@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { isAdmin, type Profile } from "@/lib/auth/types";
 import { cn } from "@/lib/cn";
 import { isNavActive, MAIN_NAV_ITEMS } from "@/lib/nav";
+import * as ui from "@/lib/tailwind-ui";
 import type { NavProfile } from "./UserMenu";
 import { UserMenu } from "./UserMenu";
 
@@ -29,7 +30,6 @@ function useBodyScrollLock(locked: boolean) {
 
 export function AppNav({ profile }: AppNavProps) {
   const pathname = usePathname();
-  const isHome = pathname === "/";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -59,19 +59,10 @@ export function AppNav({ profile }: AppNavProps) {
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
-  function desktopLinkClass(href: string): string {
+  function linkClass(href: string): string {
     return cn(
-      "skim-nav-link",
-      isNavActive(pathname, href)
-        ? "skim-nav-link-active"
-        : "skim-nav-link-inactive"
-    );
-  }
-
-  function mobileLinkClass(href: string): string {
-    return cn(
-      "skim-nav-link-mobile",
-      isNavActive(pathname, href) && "skim-nav-link-mobile-active"
+      ui.navLink,
+      isNavActive(pathname, href) ? ui.navLinkActive : ui.navLinkInactive
     );
   }
 
@@ -80,32 +71,30 @@ export function AppNav({ profile }: AppNavProps) {
   return (
     <header
       className={cn(
-        "skim-shell-header",
-        scrolled && "skim-shell-header-scrolled"
+        "sticky top-0 z-50 border-b border-surface-raised bg-canvas/95 text-foreground backdrop-blur-sm transition-shadow",
+        scrolled && "shadow-md shadow-black/10"
       )}
     >
-      {/* Primary bar */}
       <div className="mx-auto max-w-7xl px-4 md:px-6 2xl:px-8">
-        <div className="flex h-14 items-center gap-3 sm:h-16 sm:gap-4">
+        <div className="flex h-14 items-center gap-2 sm:h-16 sm:gap-3">
           <Link
             href="/"
-            className="shrink-0 transition-opacity hover:opacity-90"
+            className="shrink-0"
             onClick={closeMobile}
           >
-            <BrandMark inverted />
+            <BrandMark />
           </Link>
 
-          {/* Desktop nav — visible lg+ */}
           <nav
             className="hidden min-w-0 flex-1 items-center justify-center lg:flex"
             aria-label="Main navigation"
           >
-            <div className="skim-nav-scroll max-w-full px-2">
+            <div className={cn(ui.navScroll, "max-w-full px-1")}>
               {MAIN_NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={desktopLinkClass(item.href)}
+                  className={linkClass(item.href)}
                   aria-current={
                     isNavActive(pathname, item.href) ? "page" : undefined
                   }
@@ -116,16 +105,14 @@ export function AppNav({ profile }: AppNavProps) {
             </div>
           </nav>
 
-          {/* Search — tablet/desktop inline */}
-          <div className="hidden w-full min-w-0 max-w-[11rem] sm:max-w-xs md:block lg:max-w-sm xl:max-w-md">
+          <div className="hidden min-w-0 flex-1 md:block md:max-w-xs lg:max-w-none lg:flex-none xl:max-w-sm">
             <SearchBar variant="nav" />
           </div>
 
-          {/* Actions */}
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Link
               href="/search"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-pill-lg border border-on-dark/30 text-lg text-on-dark transition hover:border-primary hover:text-primary md:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-surface-raised text-lg text-secondary transition hover:border-cyan-core hover:text-cyan-bright md:hidden"
               aria-label="Search articles"
             >
               ⌕
@@ -139,10 +126,10 @@ export function AppNav({ profile }: AppNavProps) {
               <Link
                 href="/admin"
                 className={cn(
-                  "hidden rounded-pill-lg border px-3 py-2 text-sm font-semibold sm:inline-flex",
+                  "hidden rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide sm:inline-flex",
                   isNavActive(pathname, "/admin")
-                    ? "border-primary bg-primary text-on-primary"
-                    : "border-on-dark/40 text-on-dark hover:border-primary hover:text-primary"
+                    ? "border-cyan-core bg-cyan-muted text-cyan-glow"
+                    : "border-surface-raised text-cyan-bright hover:border-cyan-core"
                 )}
               >
                 Admin
@@ -153,33 +140,27 @@ export function AppNav({ profile }: AppNavProps) {
 
             <button
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-pill-lg border border-on-dark/40 text-on-dark transition hover:border-primary hover:text-primary lg:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-cyan-core hover:text-cyan-bright lg:hidden"
               onClick={() => setMobileOpen((open) => !open)}
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-drawer"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
             >
-              <span className="sr-only">
-                {mobileOpen ? "Close menu" : "Open menu"}
-              </span>
-              <span aria-hidden className="text-lg leading-none">
-                {mobileOpen ? "✕" : "☰"}
-              </span>
+              {mobileOpen ? "✕" : "☰"}
             </button>
           </div>
         </div>
 
-        {/* Tablet nav strip — md to lg */}
         <nav
-          className="hidden border-t border-on-dark/15 pb-3 pt-2 md:block lg:hidden"
+          className="hidden border-t border-surface-raised py-2 md:block lg:hidden"
           aria-label="Tablet navigation"
         >
-          <div className="skim-nav-scroll">
+          <div className={ui.navScroll}>
             {MAIN_NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={desktopLinkClass(item.href)}
+                className={linkClass(item.href)}
                 aria-current={
                   isNavActive(pathname, item.href) ? "page" : undefined
                 }
@@ -187,56 +168,30 @@ export function AppNav({ profile }: AppNavProps) {
                 {item.label}
               </Link>
             ))}
-            {showAdmin ? (
-              <Link
-                href="/admin"
-                className={desktopLinkClass("/admin")}
-                aria-current={
-                  isNavActive(pathname, "/admin") ? "page" : undefined
-                }
-              >
-                Admin
-              </Link>
-            ) : null}
           </div>
         </nav>
-
-        {/* Home context line — compact on scroll */}
-        {isHome ? (
-          <p
-            className={cn(
-              "border-t border-on-dark/10 text-xs text-on-dark/60 transition-all duration-200",
-              scrolled
-                ? "max-h-0 overflow-hidden border-t-0 py-0 opacity-0"
-                : "py-2"
-            )}
-          >
-            Your daily tech briefing — curated stories from the Skim pipeline.
-          </p>
-        ) : null}
       </div>
 
-      {/* Mobile drawer */}
       {mobileOpen ? (
         <>
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-ink/60 backdrop-blur-[2px] lg:hidden"
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
             aria-label="Close menu"
             onClick={closeMobile}
           />
           <div
             id="mobile-nav-drawer"
-            className="fixed inset-y-0 right-0 z-50 flex w-[min(100%,20rem)] flex-col bg-ink shadow-2xl lg:hidden"
+            className="fixed inset-y-0 right-0 z-50 flex w-[min(100%,18rem)] flex-col border-l border-surface-raised bg-surface shadow-xl sm:w-80 lg:hidden"
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
           >
-            <div className="flex items-center justify-between border-b border-on-dark/20 px-4 py-4">
-              <BrandMark inverted />
+            <div className="flex items-center justify-between border-b border-surface-raised px-4 py-3">
+              <BrandMark />
               <button
                 type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-pill-lg border border-on-dark/40 text-on-dark"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-surface-raised text-secondary"
                 onClick={closeMobile}
                 aria-label="Close menu"
               >
@@ -244,70 +199,35 @@ export function AppNav({ profile }: AppNavProps) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto p-4">
               <div className="mb-4 sm:hidden">
                 <ThemeToggle />
               </div>
-
-              <nav className="flex flex-col gap-2" aria-label="Mobile navigation">
+              <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
                 {MAIN_NAV_ITEMS.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={mobileLinkClass(item.href)}
+                    className={cn(
+                      "rounded-xl px-3 py-3 transition",
+                      isNavActive(pathname, item.href)
+                        ? "bg-cyan-muted text-cyan-glow"
+                        : "text-secondary hover:bg-surface-raised hover:text-foreground"
+                    )}
                     aria-current={
                       isNavActive(pathname, item.href) ? "page" : undefined
                     }
                     onClick={closeMobile}
                   >
-                    <span>
-                      <span className="block text-base font-semibold text-on-dark">
-                        {item.label}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-on-dark/60">
-                        {item.description}
-                      </span>
+                    <span className="block text-sm font-semibold">
+                      {item.label}
                     </span>
-                    {isNavActive(pathname, item.href) ? (
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-                    ) : (
-                      <span className="text-on-dark/40">→</span>
-                    )}
+                    <span className="mt-0.5 block text-xs text-muted">
+                      {item.description}
+                    </span>
                   </Link>
                 ))}
-
-                {showAdmin ? (
-                  <Link
-                    href="/admin"
-                    className={mobileLinkClass("/admin")}
-                    onClick={closeMobile}
-                  >
-                    <span>
-                      <span className="block text-base font-semibold text-on-dark">
-                        Admin
-                      </span>
-                      <span className="mt-0.5 block text-xs text-on-dark/60">
-                        Approve signups and manage members
-                      </span>
-                    </span>
-                    {isNavActive(pathname, "/admin") ? (
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-                    ) : (
-                      <span className="text-on-dark/40">→</span>
-                    )}
-                  </Link>
-                ) : null}
               </nav>
-            </div>
-
-            <div className="border-t border-on-dark/20 p-4">
-              <Link
-                href="/search"
-                className="skim-btn-primary w-full justify-center text-base"
-                onClick={closeMobile}
-              >
-                Search corpus
-              </Link>
             </div>
           </div>
         </>

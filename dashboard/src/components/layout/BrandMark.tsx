@@ -1,40 +1,19 @@
 import { cn } from "@/lib/cn";
 
-type SpeechmarkOrbProps = {
-  className?: string;
-  size?: "sm" | "md";
-};
-
-export function SpeechmarkOrb({ className, size = "md" }: SpeechmarkOrbProps) {
-  return (
-    <span
-      className={cn(
-        "speechmark-orb",
-        size === "sm" && "h-6 w-6 text-sm",
-        className
-      )}
-      aria-hidden
-    >
-      &ldquo;
-    </span>
-  );
-}
-
 type BrandMarkProps = {
   className?: string;
-  inverted?: boolean;
 };
 
-export function BrandMark({ className, inverted = false }: BrandMarkProps) {
+export function BrandMark({ className }: BrandMarkProps) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <SpeechmarkOrb />
       <span
-        className={cn(
-          "text-lg font-extrabold uppercase tracking-display",
-          inverted ? "text-on-dark" : "text-foreground"
-        )}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-core text-sm font-bold text-black"
+        aria-hidden
       >
+        S
+      </span>
+      <span className="text-lg font-bold tracking-tight text-foreground">
         Skim
       </span>
     </span>

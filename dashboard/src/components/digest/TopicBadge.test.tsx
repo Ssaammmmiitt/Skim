@@ -16,7 +16,7 @@ describe("TopicBadge", () => {
   it("applies badge-chip Tailwind classes", () => {
     render(<TopicBadge topic="ai_ml" />);
     const badge = screen.getByText("AI / ML");
-    expect(badge.className).toContain("bg-canvas-soft");
-    expect(badge.className).toContain("text-ink");
+    expect(badge.className).toContain("bg-topic-ai");
+    expect(badge.className).toContain("text-topic-ai-text");
   });
 });

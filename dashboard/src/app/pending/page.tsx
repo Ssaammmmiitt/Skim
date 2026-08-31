@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/auth/types";
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 function contactAdminHref(userEmail: string | undefined, adminEmail: string) {
   const subject = encodeURIComponent("Skim access request");
@@ -28,18 +30,18 @@ export default async function PendingPage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 text-center">
-      <p className="skim-eyebrow">Skim</p>
-      <h1 className="skim-heading mt-3">
+      <p className={ui.eyebrow}>Skim</p>
+      <h1 className={cn(ui.heading, "mt-3")}>
         {rejected ? "Access not approved" : "Waiting for admin approval"}
       </h1>
-      <p className="mt-4 skim-body">
+      <p className={cn(ui.body, "mt-4")}>
         {rejected
           ? "Your signup request was declined. You can contact the admin below if you believe this was a mistake."
           : "Your account was created successfully. A Skim admin must approve your request before you can use the dashboard or receive the daily digest."}
       </p>
 
       {!rejected ? (
-        <div className="skim-card mt-6 w-full p-5 text-left skim-body">
+        <div className={cn(ui.card, "mt-6 w-full p-5 text-left", ui.body)}>
           <p className="font-medium text-foreground">What happens next?</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>The admin was notified of your signup.</li>
@@ -55,12 +57,15 @@ export default async function PendingPage() {
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <a
           href={contactAdminHref(user?.email, adminEmail)}
-          className="skim-btn-primary inline-block px-6 py-3 text-sm"
+          className={cn(ui.btnPrimary, "inline-block px-6 py-3 text-sm")}
         >
           Contact admin for access
         </a>
         <form action="/auth/signout" method="post">
-          <button type="submit" className="skim-btn-secondary px-6 py-3 text-sm">
+          <button
+            type="submit"
+            className={cn(ui.btnSecondary, "px-6 py-3 text-sm")}
+          >
             Sign out
           </button>
         </form>
