@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { countPendingApprovals } from "@/lib/admin-pending";
 import type { DashboardTheme, Profile } from "@/lib/auth/types";
+import { isAdmin } from "@/lib/auth/types";
 import { normalizeDashboardTheme } from "@/lib/dashboard-theme";
 import { AppShellClient } from "./AppShellClient";
 import type { NavProfile } from "./UserMenu";
@@ -16,6 +18,7 @@ export async function AppShell({ children }: AppShellProps) {
 
   let profile: NavProfile | null = null;
   let dashboardTheme: DashboardTheme = "dark";
+  let pendingApprovalCount = 0;
 
   if (user) {
     const [profileResult, prefsResult] = await Promise.all([
@@ -39,10 +42,18 @@ export async function AppShell({ children }: AppShellProps) {
     dashboardTheme = normalizeDashboardTheme(
       prefsResult.data?.dashboard_theme ?? "dark"
     );
+
+    if (profile && isAdmin(profile as Profile)) {
+      pendingApprovalCount = await countPendingApprovals();
+    }
   }
 
   return (
-    <AppShellClient profile={profile} dashboardTheme={dashboardTheme}>
+    <AppShellClient
+      profile={profile}
+      dashboardTheme={dashboardTheme}
+      pendingApprovalCount={pendingApprovalCount}
+    >
       {children}
     </AppShellClient>
   );

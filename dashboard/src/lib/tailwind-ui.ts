@@ -62,7 +62,7 @@ export const navScroll =
   "flex items-center gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 export const settingsBar =
-  "fixed inset-x-0 bottom-0 z-40 border-t border-surface-raised bg-canvas/95 backdrop-blur-sm";
+  "fixed inset-x-0 bottom-0 z-50 border-t border-surface-raised bg-canvas/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgba(0,0,0,0.15)] backdrop-blur-sm";
 
 export const successText = "text-sm font-medium text-cyan-glow";
 

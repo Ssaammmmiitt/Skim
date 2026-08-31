@@ -30,11 +30,15 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { data: existing } = await auth.ctx.supabase
+  const { data: existing, error: readError } = await auth.ctx.supabase
     .from("user_digest_preferences")
     .select("*")
     .eq("user_id", auth.ctx.user.id)
     .maybeSingle();
+
+  if (readError) {
+    return NextResponse.json({ error: readError.message }, { status: 500 });
+  }
 
   const validated = validatePreferences({
     theme: body.theme ?? existing?.theme,
@@ -48,19 +52,29 @@ export async function PUT(request: Request) {
     dashboard_theme: body.dashboard_theme ?? existing?.dashboard_theme,
   });
 
-  const { data, error } = await auth.ctx.supabase
-    .from("user_digest_preferences")
-    .upsert({
-      user_id: auth.ctx.user.id,
-      ...validated,
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
+  const payload = {
+    user_id: auth.ctx.user.id,
+    ...validated,
+    updated_at: new Date().toISOString(),
+  };
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const write = existing
+    ? await auth.ctx.supabase
+        .from("user_digest_preferences")
+        .update(validated)
+        .eq("user_id", auth.ctx.user.id)
+        .select()
+        .single()
+    : await auth.ctx.supabase
+        .from("user_digest_preferences")
+        .insert(payload)
+        .select()
+        .single();
+
+  if (write.error) {
+    console.error("preferences PUT:", write.error.message);
+    return NextResponse.json({ error: write.error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ preferences: data });
+  return NextResponse.json({ preferences: write.data });
 }

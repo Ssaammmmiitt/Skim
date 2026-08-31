@@ -57,7 +57,7 @@ export function DigestPreferenceForm({ initial }: Props) {
         />
       ) : null}
 
-      <div className="space-y-10 pb-32">
+      <div className="space-y-10 pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))] sm:pb-36">
         <section>
           <h2 className={ui.eyebrow}>Dashboard appearance</h2>
           <p className={cn("mt-2", ui.body)}>
@@ -183,14 +183,19 @@ export function DigestPreferenceForm({ initial }: Props) {
       </div>
 
       <div className={ui.settingsBar}>
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-8">
-          <p className={cn("text-sm", status ? ui.successText : "text-muted")}>
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-4 md:px-8">
+          <p
+            className={cn(
+              "text-center text-sm sm:text-left",
+              status ? ui.successText : "text-muted"
+            )}
+          >
             {status || "Changes apply after you save."}
           </p>
           <button
             type="submit"
             disabled={saving}
-            className={cn(ui.btnPrimary, "shrink-0 px-8")}
+            className={cn(ui.btnPrimary, "min-h-11 w-full shrink-0 px-8 sm:w-auto")}
           >
             {saving ? "Saving…" : "Save preferences"}
           </button>

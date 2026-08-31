@@ -103,9 +103,7 @@ describe("DigestPreferenceForm", () => {
 
     await user.click(screen.getByRole("button", { name: "Save preferences" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Could not save preferences."
-    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("Server error");
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });

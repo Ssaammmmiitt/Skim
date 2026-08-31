@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin, type Profile } from "@/lib/auth/types";
+import { notifyUserApproved } from "@/lib/mailtrap";
 
 async function getAdminProfile(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: target } = await admin
     .from("profiles")
-    .select("email")
+    .select("email, display_name")
     .eq("id", userId)
     .maybeSingle();
 
@@ -89,6 +90,11 @@ export async function POST(request: Request) {
     await admin
       .from("user_digest_preferences")
       .upsert({ user_id: userId }, { onConflict: "user_id" });
+
+    void notifyUserApproved({
+      email: target.email,
+      display_name: target.display_name,
+    });
   } else {
     await admin
       .from("profiles")

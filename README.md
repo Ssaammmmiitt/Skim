@@ -265,6 +265,7 @@ Run these files in the **Supabase SQL Editor**, in order:
 | 4 | `sql/004_search_fts.sql` | Full-text search column |
 | 5 | `sql/005_hybrid_search.sql` | Hybrid RAG RPCs (vector + FTS + RRF) |
 | 6 | `sql/006_dashboard_theme.sql` | Dashboard theme preference column |
+| 7 | `sql/007_preferences_insert_policy.sql` | RLS INSERT policy for saving preferences |
 
 Then configure Supabase Auth (Google OAuth + email OTP) and redirect URLs. Full checklist: [`docs/phase6_auth_admin_preferences.md`](docs/phase6_auth_admin_preferences.md).
 

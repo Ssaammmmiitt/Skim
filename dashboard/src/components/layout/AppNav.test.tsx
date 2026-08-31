@@ -24,13 +24,14 @@ const profile = {
 
 describe("AppNav", () => {
   it("highlights the active route and shows admin link", () => {
-    render(<AppNav profile={profile} />);
+    render(<AppNav profile={profile} pendingApprovalCount={2} />);
 
     const archiveLinks = screen.getAllByRole("link", { name: "Archive" });
     expect(
       archiveLinks.some((link) => link.getAttribute("aria-current") === "page")
     ).toBe(true);
-    expect(screen.getAllByRole("link", { name: "Admin" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Admin/ }).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("2 pending approvals")).toHaveTextContent("2");
     expect(screen.getAllByLabelText("Search articles").length).toBeGreaterThan(0);
   });
 });

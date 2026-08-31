@@ -1,47 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyAdminOfSignup } from "@/lib/mailtrap";
 
 const SUPERUSER_EMAIL = process.env.SKIM_SUPERUSER_EMAIL?.toLowerCase();
-const ADMIN_EMAIL =
-  process.env.SKIM_ADMIN_CONTACT_EMAIL ?? process.env.SKIM_SUPERUSER_EMAIL;
-
-async function notifyAdminOfSignup(profile: {
-  email: string;
-  display_name: string | null;
-  auth_provider: string | null;
-}) {
-  const token = process.env.MAILTRAP_API_TOKEN;
-  const sender = process.env.MAILTRAP_SENDER_EMAIL;
-  if (!token || !sender || !ADMIN_EMAIL) return;
-
-  const name = profile.display_name ?? profile.email;
-  const provider = profile.auth_provider ?? "email";
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const html = `
-    <p><strong>New Skim signup awaiting approval</strong></p>
-    <p>Name: ${name}<br/>Email: ${profile.email}<br/>Provider: ${provider}</p>
-    <p>Review requests in the <a href="${site}/admin">Admin panel</a>.</p>
-  `;
-
-  await fetch("https://send.api.mailtrap.io/api/send", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: {
-        email: sender,
-        name: process.env.MAILTRAP_SENDER_NAME ?? "Skim",
-      },
-      to: [{ email: ADMIN_EMAIL }],
-      subject: `Skim: new signup  -  ${profile.email}`,
-      html,
-      category: "Skim Admin",
-    }),
-  });
-}
 
 async function syncProfile(user: {
   id: string;
@@ -51,6 +12,7 @@ async function syncProfile(user: {
 }) {
   if (!user.email) return null;
 
+  const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
   const metadata = user.user_metadata ?? {};
   const displayName =

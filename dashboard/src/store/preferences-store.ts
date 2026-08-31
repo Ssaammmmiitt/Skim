@@ -55,6 +55,17 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
       status: "",
       saveError: null,
     }));
+
+    if (patch.dashboard_theme !== undefined) {
+      useThemeStore.getState().applyTheme(patch.dashboard_theme);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("skim-dashboard-theme", patch.dashboard_theme);
+        } catch {
+          // localStorage unavailable in some test environments.
+        }
+      }
+    }
   },
 
   toggleTopic: (topicId) => {
@@ -91,7 +102,13 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
       });
 
       if (!response.ok) {
-        throw new Error("Could not save preferences.");
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(
+          body.error ??
+            "Could not save preferences. Check your connection and try again."
+        );
       }
 
       useThemeStore.getState().applyTheme(draft.dashboard_theme);

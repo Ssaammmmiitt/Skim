@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { pendingMember } from "@/test/fixtures";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
 describe("AdminPanel", () => {
   beforeEach(() => {
     vi.stubGlobal(

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Profile } from "@/lib/auth/types";
 import { cn } from "@/lib/cn";
@@ -11,6 +12,7 @@ type AdminPanelProps = {
 };
 
 export function AdminPanel({ initialPending }: AdminPanelProps) {
+  const router = useRouter();
   const [pending, setPending] = useState<Profile[]>(initialPending);
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export function AdminPanel({ initialPending }: AdminPanelProps) {
     if (response.ok) {
       setMessage(action === "approve" ? "User approved." : "User rejected.");
       await refreshPending();
+      router.refresh();
       return;
     }
     setError("Action failed. Check your connection and try again.");
