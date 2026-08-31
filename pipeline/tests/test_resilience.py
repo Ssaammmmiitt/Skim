@@ -7,10 +7,14 @@ from pipeline.resilience import call_with_retry, retry_with_backoff
 
 def test_retry_succeeds_on_third_attempt(monkeypatch):
     sleeps: list[float] = []
-    monkeypatch.setattr("pipeline.resilience.time.sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(
+        "pipeline.resilience.time.sleep", lambda seconds: sleeps.append(seconds)
+    )
     attempts = {"count": 0}
 
-    @retry_with_backoff(max_retries=3, backoff_base=2, retryable_exceptions=(ValueError,))
+    @retry_with_backoff(
+        max_retries=3, backoff_base=2, retryable_exceptions=(ValueError,)
+    )
     def flaky() -> str:
         attempts["count"] += 1
         if attempts["count"] < 3:
@@ -24,9 +28,13 @@ def test_retry_succeeds_on_third_attempt(monkeypatch):
 
 def test_retry_raises_after_max_retries(monkeypatch):
     sleeps: list[float] = []
-    monkeypatch.setattr("pipeline.resilience.time.sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(
+        "pipeline.resilience.time.sleep", lambda seconds: sleeps.append(seconds)
+    )
 
-    @retry_with_backoff(max_retries=3, backoff_base=2, retryable_exceptions=(RuntimeError,))
+    @retry_with_backoff(
+        max_retries=3, backoff_base=2, retryable_exceptions=(RuntimeError,)
+    )
     def always_fails() -> None:
         raise RuntimeError("nope")
 
@@ -38,7 +46,9 @@ def test_retry_raises_after_max_retries(monkeypatch):
 
 def test_retry_uses_exponential_backoff(monkeypatch):
     sleeps: list[float] = []
-    monkeypatch.setattr("pipeline.resilience.time.sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(
+        "pipeline.resilience.time.sleep", lambda seconds: sleeps.append(seconds)
+    )
     attempts = {"count": 0}
 
     @retry_with_backoff(max_retries=4, backoff_base=2, retryable_exceptions=(OSError,))
@@ -63,7 +73,9 @@ def test_retry_does_not_catch_unlisted_exceptions():
 
 def test_call_with_retry_matches_decorator(monkeypatch):
     sleeps: list[float] = []
-    monkeypatch.setattr("pipeline.resilience.time.sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(
+        "pipeline.resilience.time.sleep", lambda seconds: sleeps.append(seconds)
+    )
     attempts = {"count": 0}
 
     def work() -> int:

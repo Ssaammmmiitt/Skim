@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
@@ -7,6 +8,7 @@ import * as ui from "@/lib/tailwind-ui";
 
 type Mode = "signin" | "signup";
 type Step = "email" | "verify-otp";
+type Feedback = { text: string; kind: "error" | "info" };
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth: "Google sign-in failed. Check Supabase redirect URLs and try again.",
@@ -14,6 +16,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   profile:
     "Could not load your profile. Run sql/002_users_auth_preferences.sql in Supabase, then try again.",
 };
+
+function readUrlErrorMessage(): string {
+  if (typeof window === "undefined") return "";
+  const error = new URLSearchParams(window.location.search).get("error");
+  return error && ERROR_MESSAGES[error] ? ERROR_MESSAGES[error] : "";
+}
 
 function modeTabClass(active: boolean) {
   return cn(
@@ -23,32 +31,31 @@ function modeTabClass(active: boolean) {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const supabase = createClient();
   const [mode, setMode] = useState<Mode>("signin");
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [message, setMessage] = useState("");
+  const [urlErrorMessage] = useState(readUrlErrorMessage);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const error = params.get("error");
-    if (error && ERROR_MESSAGES[error]) {
-      setMessage(ERROR_MESSAGES[error]);
-      return;
-    }
+  const displayFeedback =
+    feedback ??
+    (urlErrorMessage ? { text: urlErrorMessage, kind: "error" as const } : null);
 
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        window.location.replace("/auth/complete");
+        router.replace("/auth/complete");
       }
     });
-  }, [supabase.auth]);
+  }, [router, supabase.auth]);
 
   async function signInWithGoogle() {
     setLoading(true);
-    setMessage("");
+    setFeedback(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -56,35 +63,37 @@ export default function LoginPage() {
         queryParams: { access_type: "offline", prompt: "consent" },
       },
     });
-    if (error) setMessage(error.message);
+    if (error) setFeedback({ text: error.message, kind: "error" });
     setLoading(false);
   }
 
   async function sendOtp(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
-    setMessage("");
+    setFeedback(null);
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { shouldCreateUser: mode === "signup" },
     });
     setLoading(false);
     if (error) {
-      setMessage(error.message);
+      setFeedback({ text: error.message, kind: "error" });
       return;
     }
     setStep("verify-otp");
-    setMessage(
-      mode === "signup"
-        ? "Enter the 6-digit code we sent to verify your new account."
-        : "Enter the 6-digit login code from your email."
-    );
+    setFeedback({
+      text:
+        mode === "signup"
+          ? "Enter the 6-digit code we sent to verify your new account."
+          : "Enter the 6-digit login code from your email.",
+      kind: "info",
+    });
   }
 
   async function verifyOtp(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
-    setMessage("");
+    setFeedback(null);
     const { error } = await supabase.auth.verifyOtp({
       email: email.trim(),
       token: otp.trim(),
@@ -92,17 +101,17 @@ export default function LoginPage() {
     });
     setLoading(false);
     if (error) {
-      setMessage(error.message);
+      setFeedback({ text: error.message, kind: "error" });
       return;
     }
-    window.location.href = "/auth/complete";
+    router.push("/auth/complete");
   }
 
   function switchMode(next: Mode) {
     setMode(next);
     setStep("email");
     setOtp("");
-    setMessage("");
+    setFeedback(null);
   }
 
   return (
@@ -202,8 +211,14 @@ export default function LoginPage() {
             </form>
           )}
 
-          {message ? (
-            <p className={cn(ui.successText, "mt-4")}>{message}</p>
+          {displayFeedback ? (
+            displayFeedback.kind === "error" ? (
+              <p className={cn(ui.errorBox, "mt-4")} role="alert">
+                {displayFeedback.text}
+              </p>
+            ) : (
+              <p className={cn(ui.successText, "mt-4")}>{displayFeedback.text}</p>
+            )
           ) : null}
         </div>
       </div>

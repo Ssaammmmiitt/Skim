@@ -1,6 +1,7 @@
+from unittest.mock import MagicMock
+
 import numpy as np
 import pytest
-from unittest.mock import MagicMock
 
 from pipeline.embed import embed_texts
 

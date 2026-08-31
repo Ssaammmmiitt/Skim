@@ -142,9 +142,7 @@ def count_missing_gemini_embeddings() -> int:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT COUNT(*) FROM articles WHERE embedding_gemini IS NULL"
-            )
+            cur.execute("SELECT COUNT(*) FROM articles WHERE embedding_gemini IS NULL")
             return cur.fetchone()[0]
     finally:
         conn.close()

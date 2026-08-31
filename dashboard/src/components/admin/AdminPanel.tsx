@@ -1,28 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Profile } from "@/lib/auth/types";
 import { cn } from "@/lib/cn";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import * as ui from "@/lib/tailwind-ui";
 
-export function AdminPanel() {
-  const [pending, setPending] = useState<Profile[]>([]);
-  const [message, setMessage] = useState("");
+type AdminPanelProps = {
+  initialPending: Profile[];
+};
 
-  async function load() {
-    const response = await fetch("/api/admin/users?status=pending");
-    if (response.ok) {
-      const data = await response.json();
+export function AdminPanel({ initialPending }: AdminPanelProps) {
+  const [pending, setPending] = useState<Profile[]>(initialPending);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function refreshPending() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/users?status=pending");
+      if (!response.ok) {
+        throw new Error("Could not load pending users.");
+      }
+      const data = (await response.json()) as { users?: Profile[] };
       setPending(data.users ?? []);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not load pending users."
+      );
+    } finally {
+      setRefreshing(false);
     }
   }
 
-  useEffect(() => {
-    void load();
-  }, []);
-
   async function review(userId: string, action: "approve" | "reject") {
     setMessage("");
+    setError(null);
     const response = await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -30,15 +45,21 @@ export function AdminPanel() {
     });
     if (response.ok) {
       setMessage(action === "approve" ? "User approved." : "User rejected.");
-      void load();
-    } else {
-      setMessage("Action failed.");
+      await refreshPending();
+      return;
     }
+    setError("Action failed. Check your connection and try again.");
   }
 
   return (
     <div className="mt-8 space-y-4">
-      {pending.length === 0 ? (
+      {error ? (
+        <ErrorAlert message={error} onRetry={() => void refreshPending()} />
+      ) : null}
+
+      {refreshing && pending.length === 0 ? (
+        <p className={cn(ui.card, "p-6", ui.body)}>Loading pending users…</p>
+      ) : pending.length === 0 ? (
         <p className={cn(ui.card, "p-6", ui.body)}>
           No pending signup requests.
         </p>
@@ -48,7 +69,8 @@ export function AdminPanel() {
             key={user.id}
             className={cn(
               ui.card,
-              "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+              "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between",
+              refreshing && "opacity-60"
             )}
           >
             <div>
@@ -64,6 +86,7 @@ export function AdminPanel() {
               <button
                 type="button"
                 onClick={() => void review(user.id, "approve")}
+                disabled={refreshing}
                 className={ui.btnPrimary}
               >
                 Approve
@@ -71,6 +94,7 @@ export function AdminPanel() {
               <button
                 type="button"
                 onClick={() => void review(user.id, "reject")}
+                disabled={refreshing}
                 className={ui.btnDanger}
               >
                 Reject

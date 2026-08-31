@@ -23,6 +23,7 @@ Desktop.ini
 
 # Python
 .venv/
+.venv-test/
 venv/
 env/
 __pycache__/

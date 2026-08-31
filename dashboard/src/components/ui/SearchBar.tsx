@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/tailwind-ui";
 
@@ -11,19 +11,18 @@ type SearchBarProps = {
   className?: string;
 };
 
-export function SearchBar({
+type SearchFieldProps = SearchBarProps & {
+  urlQuery: string;
+};
+
+function SearchField({
+  urlQuery,
   variant = "page",
   autoFocus = false,
   className,
-}: SearchBarProps) {
+}: SearchFieldProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialQuery = searchParams.get("q") ?? "";
-  const [query, setQuery] = useState(initialQuery);
-
-  useEffect(() => {
-    setQuery(searchParams.get("q") ?? "");
-  }, [searchParams]);
+  const [query, setQuery] = useState(urlQuery);
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -58,4 +57,11 @@ export function SearchBar({
       />
     </form>
   );
+}
+
+export function SearchBar(props: SearchBarProps) {
+  const searchParams = useSearchParams();
+  const urlQuery = searchParams.get("q") ?? "";
+
+  return <SearchField key={urlQuery} urlQuery={urlQuery} {...props} />;
 }

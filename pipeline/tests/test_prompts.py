@@ -59,7 +59,10 @@ def test_pass_prompt_and_few_shot_exports():
         for example in examples:
             assert "user" in example
             assert example["tool_calls"]
-            assert example["tool_calls"][0]["name"] == PASS_TOOLS[pass_name][0]["function"]["name"]
+            assert (
+                example["tool_calls"][0]["name"]
+                == PASS_TOOLS[pass_name][0]["function"]["name"]
+            )
 
 
 def test_format_articles_for_classification_includes_ids_and_summaries():

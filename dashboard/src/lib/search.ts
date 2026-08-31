@@ -53,20 +53,21 @@ export async function searchArticles(
   const limit = options.limit ?? 20;
   const columns = options.columns ?? DEFAULT_COLUMNS;
 
-  let { data, error } = await searchWithFullText(
+  const fullTextResult = await searchWithFullText(
     supabase,
     trimmed,
     columns,
     limit
   );
 
-  if (error) {
-    const fallback = await searchWithIlike(supabase, trimmed, columns, limit);
-    if (fallback.error) {
-      throw new Error(fallback.error.message);
-    }
-    data = fallback.data;
+  if (!fullTextResult.error) {
+    return (fullTextResult.data ?? []) as unknown as SearchResult[];
   }
 
-  return (data ?? []) as unknown as SearchResult[];
+  const fallback = await searchWithIlike(supabase, trimmed, columns, limit);
+  if (fallback.error) {
+    throw new Error(fallback.error.message);
+  }
+
+  return (fallback.data ?? []) as unknown as SearchResult[];
 }

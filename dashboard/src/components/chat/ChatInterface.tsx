@@ -1,17 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { ChatErrorPanel } from "@/components/chat/ChatErrorPanel";
 import { ChatLoadingBubble } from "@/components/chat/ChatLoadingBubble";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useChatStore } from "@/store/chat-store";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/tailwind-ui";
-import type {
-  ChatApiError,
-  ChatApiResponse,
-  ChatMessage as ChatMessageType,
-} from "@/lib/types";
 
 const SUGGESTED_PROMPTS = [
   "What happened in AI this week?",
@@ -20,106 +16,26 @@ const SUGGESTED_PROMPTS = [
   "What's new in web development?",
 ];
 
-function newMessageId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
 export function ChatInterface() {
-  const [messages, setMessages] = useState<ChatMessageType[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<ChatApiError | null>(null);
-  const [remaining, setRemaining] = useState<number | null>(null);
-  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
-  const [loadingSessionKey, setLoadingSessionKey] = useState<string | null>(null);
+  const messages = useChatStore((state) => state.messages);
+  const input = useChatStore((state) => state.input);
+  const loading = useChatStore((state) => state.loading);
+  const error = useChatStore((state) => state.error);
+  const remaining = useChatStore((state) => state.remaining);
+  const loadingSessionKey = useChatStore((state) => state.loadingSessionKey);
+  const setInput = useChatStore((state) => state.setInput);
+  const fetchQuota = useChatStore((state) => state.fetchQuota);
+  const sendMessage = useChatStore((state) => state.sendMessage);
+  const retryLast = useChatStore((state) => state.retryLast);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/chat")
-      .then((response) => response.json())
-      .then((body) => {
-        if (typeof body.remaining === "number") {
-          setRemaining(body.remaining);
-        }
-      })
-      .catch(() => {});
-  }, []);
+    void fetchQuota();
+  }, [fetchQuota]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, error]);
-
-  async function sendMessage(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed || loading) return;
-
-    const userMessage: ChatMessageType = {
-      id: newMessageId(),
-      role: "user",
-      content: trimmed,
-    };
-
-    const history = messages.map((message) => ({
-      role: message.role,
-      content: message.content,
-    }));
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setLoading(true);
-    setLoadingSessionKey(newMessageId());
-    setError(null);
-    setLastFailedMessage(null);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, history }),
-      });
-
-      const body = (await response.json()) as ChatApiResponse & ChatApiError;
-
-      if (!response.ok) {
-        setLastFailedMessage(trimmed);
-        setError({
-          error: body.error ?? "Failed to get a response",
-          error_code: body.error_code,
-          provider: body.provider,
-          model: body.model,
-          retry_after_seconds: body.retry_after_seconds,
-          tried_providers: body.tried_providers,
-          details: body.details,
-        });
-        return;
-      }
-
-      if (typeof body.remaining === "number") {
-        setRemaining(body.remaining);
-      }
-
-      const assistantMessage: ChatMessageType = {
-        id: newMessageId(),
-        role: "assistant",
-        content: body.answer,
-        sources: body.sources,
-        retrieval_method: body.retrieval_method,
-        provider: body.provider,
-        model: body.model,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      setLastFailedMessage(trimmed);
-      setError({
-        error: err instanceof Error ? err.message : "Something went wrong",
-        error_code: "unknown",
-      });
-    } finally {
-      setLoading(false);
-      setLoadingSessionKey(null);
-    }
-  }
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -130,13 +46,6 @@ export function ChatInterface() {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void sendMessage(input);
-    }
-  }
-
-  function handleRetry() {
-    const text = lastFailedMessage ?? input;
-    if (text.trim()) {
-      void sendMessage(text);
     }
   }
 
@@ -199,7 +108,7 @@ export function ChatInterface() {
           ) : null}
 
           {error ? (
-            <ChatErrorPanel error={error} onRetry={handleRetry} />
+            <ChatErrorPanel error={error} onRetry={() => void retryLast()} />
           ) : null}
 
           <div ref={bottomRef} />

@@ -4,11 +4,12 @@ import os
 import time
 from datetime import date
 from pathlib import Path
+from typing import Any
+from urllib.parse import quote
 
 import psycopg2
 from dotenv import load_dotenv
 from psycopg2.extensions import connection as PgConnection
-from urllib.parse import quote
 
 from pipeline.models import Article
 from pipeline.sources.base import normalize_url
@@ -48,7 +49,6 @@ def get_connection() -> PgConnection:
 
     db_url = _encode_db_password(db_url)
 
-    last_error: Exception | None = None
     for attempt in range(DB_CONNECT_MAX_RETRIES):
         try:
             conn = psycopg2.connect(db_url, connect_timeout=10)
@@ -56,8 +56,11 @@ def get_connection() -> PgConnection:
                 logger.info("DB connection succeeded on retry %d", attempt + 1)
             return conn
         except psycopg2.OperationalError as exc:
-            last_error = exc
-            if "Network is unreachable" in str(exc) and "db." in db_url and ".supabase.co" in db_url:
+            if (
+                "Network is unreachable" in str(exc)
+                and "db." in db_url
+                and ".supabase.co" in db_url
+            ):
                 raise psycopg2.OperationalError(
                     f"{exc}\n\n"
                     "Supabase direct connections (db.*.supabase.co) use IPv6, which GitHub "
@@ -65,7 +68,7 @@ def get_connection() -> PgConnection:
                     "from Dashboard → Connect → Transaction pooler (port 6543)."
                 ) from exc
             if attempt < DB_CONNECT_MAX_RETRIES - 1:
-                delay = DB_CONNECT_BACKOFF_SECONDS * (2 ** attempt)
+                delay = DB_CONNECT_BACKOFF_SECONDS * (2**attempt)
                 logger.warning(
                     "DB connection failed (attempt %d/%d): %s  -  retrying in %ds",
                     attempt + 1,
@@ -112,7 +115,7 @@ def insert_articles(articles: list[Article]) -> int:
     return inserted
 
 
-def get_todays_new_articles() -> list[dict]:
+def get_todays_new_articles() -> list[dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -130,7 +133,7 @@ def get_todays_new_articles() -> list[dict]:
         conn.close()
 
 
-def get_unclassified_articles(limit: int = 100) -> list[dict]:
+def get_unclassified_articles(limit: int = 100) -> list[dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -171,7 +174,7 @@ def update_article_classification(
 
 def get_articles_needing_insights(
     min_score: float = 5, limit: int = 100
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -193,9 +196,7 @@ def get_articles_needing_insights(
         conn.close()
 
 
-def update_article_insight(
-    article_id: int, insight: str, key_takeaway: str
-) -> None:
+def update_article_insight(article_id: int, insight: str, key_takeaway: str) -> None:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -212,7 +213,7 @@ def update_article_insight(
         conn.close()
 
 
-def get_todays_classified_articles() -> list[dict]:
+def get_todays_classified_articles() -> list[dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -246,9 +247,7 @@ def digest_already_sent(digest_date: date) -> bool:
         conn.close()
 
 
-def record_digest_sent(
-    digest_date: date, article_ids: list[int], subject: str
-) -> None:
+def record_digest_sent(digest_date: date, article_ids: list[int], subject: str) -> None:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -345,7 +344,7 @@ def record_pipeline_complete(
         conn.close()
 
 
-def get_articles_by_ids(article_ids: list[int]) -> list[dict]:
+def get_articles_by_ids(article_ids: list[int]) -> list[dict[str, Any]]:
     if not article_ids:
         return []
 
@@ -371,7 +370,7 @@ def get_articles_by_ids(article_ids: list[int]) -> list[dict]:
     return [by_id[article_id] for article_id in article_ids if article_id in by_id]
 
 
-def get_articles_by_urls(urls: list[str]) -> list[dict]:
+def get_articles_by_urls(urls: list[str]) -> list[dict[str, Any]]:
     if not urls:
         return []
 
@@ -394,7 +393,7 @@ def get_articles_by_urls(urls: list[str]) -> list[dict]:
         conn.close()
 
 
-def get_recent_pipeline_runs(limit: int = 7) -> list[dict]:
+def get_recent_pipeline_runs(limit: int = 7) -> list[dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -413,7 +412,7 @@ def get_recent_pipeline_runs(limit: int = 7) -> list[dict]:
     finally:
         conn.close()
 
-    runs: list[dict] = []
+    runs: list[dict[str, Any]] = []
     for row in rows:
         errors = row[6] or []
         error_message = errors[0].get("message") if errors else None
@@ -431,7 +430,7 @@ def get_recent_pipeline_runs(limit: int = 7) -> list[dict]:
     return runs
 
 
-def get_recent_digests(limit: int = 7) -> list[dict]:
+def get_recent_digests(limit: int = 7) -> list[dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -489,7 +488,7 @@ def count_duplicate_article_urls() -> int:
         conn.close()
 
 
-def get_digest_subscribers() -> list[dict]:
+def get_digest_subscribers() -> list[dict[str, Any]]:
     """Active subscribers with digest preferences. Falls back to DIGEST_RECIPIENT env."""
     from pipeline.digest_preferences import subscriber_defaults
 
@@ -515,7 +514,9 @@ def get_digest_subscribers() -> list[dict]:
             )
             rows = cur.fetchall()
     except Exception as exc:
-        logger.warning("Could not load digest_subscribers (%s); using env fallback", exc)
+        logger.warning(
+            "Could not load digest_subscribers (%s); using env fallback", exc
+        )
         if fallback:
             return [subscriber_defaults(fallback)]
         return []
@@ -527,7 +528,7 @@ def get_digest_subscribers() -> list[dict]:
             return [subscriber_defaults(fallback)]
         return []
 
-    subscribers: list[dict] = []
+    subscribers: list[dict[str, Any]] = []
     for row in rows:
         subscribers.append(
             {

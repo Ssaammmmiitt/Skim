@@ -1,21 +1,23 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-
-const setTheme = vi.fn();
-
-vi.mock("@/components/theme/ThemeProvider", () => ({
-  useDashboardTheme: () => ({
-    theme: "dark",
-    resolved: "dark",
-    setTheme,
-    saving: false,
-  }),
-}));
+import { resetThemeStore, useThemeStore } from "@/store/theme-store";
 
 describe("ThemeToggle", () => {
+  beforeEach(() => {
+    resetThemeStore();
+    useThemeStore.setState({
+      theme: "dark",
+      resolved: "dark",
+      saving: false,
+      hydrated: true,
+    });
+  });
+
   it("renders theme options and calls setTheme", async () => {
+    const setTheme = vi.fn();
+    useThemeStore.setState({ setTheme });
     const user = userEvent.setup();
     render(<ThemeToggle />);
 

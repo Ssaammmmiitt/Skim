@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { cn } from "@/lib/cn";
 
 export type NavProfile = {
   email: string;

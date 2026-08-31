@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 def _parse_csv_env(name: str) -> list[str]:
-    return [part.strip() for part in os.environ.get(name, "").split(",") if part.strip()]
+    return [
+        part.strip() for part in os.environ.get(name, "").split(",") if part.strip()
+    ]
 
 
 def _load_fallback_models() -> list[str]:
@@ -297,7 +299,7 @@ class LLMClient:
                         if model == GEMINI_MODEL and self._model_router.using_fallback:
                             _append_missing_fallback_models(models)
                         if attempt < GEMINI_MAX_RETRIES - 1:
-                            delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                            delay = GEMINI_RETRY_BACKOFF_SECONDS * (2**attempt)
                             logger.warning(
                                 "Gemini %s high demand (%s), retrying in %ss (%d/%d)",
                                 model,
@@ -313,7 +315,7 @@ class LLMClient:
                         exc.code in GEMINI_RETRYABLE_STATUS_CODES
                         and attempt < GEMINI_MAX_RETRIES - 1
                     ):
-                        delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                        delay = GEMINI_RETRY_BACKOFF_SECONDS * (2**attempt)
                         logger.warning(
                             "Gemini %s failed (%s), retrying in %ss (%d/%d)",
                             model,
@@ -398,10 +400,13 @@ class LLMClient:
                             break
                         if exc.code in HIGH_DEMAND_STATUS_CODES:
                             self._model_router.record_high_demand_failure()
-                            if model == GEMINI_MODEL and self._model_router.using_fallback:
+                            if (
+                                model == GEMINI_MODEL
+                                and self._model_router.using_fallback
+                            ):
                                 _append_missing_fallback_models(models)
                             if attempt < GEMINI_MAX_RETRIES - 1:
-                                delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                                delay = GEMINI_RETRY_BACKOFF_SECONDS * (2**attempt)
                                 logger.warning(
                                     "Gemini %s high demand on %s (%s), retrying in %ss (%d/%d)",
                                     slot.label,
@@ -424,7 +429,7 @@ class LLMClient:
                             exc.code in GEMINI_RETRYABLE_STATUS_CODES
                             and attempt < GEMINI_MAX_RETRIES - 1
                         ):
-                            delay = GEMINI_RETRY_BACKOFF_SECONDS * (2 ** attempt)
+                            delay = GEMINI_RETRY_BACKOFF_SECONDS * (2**attempt)
                             logger.warning(
                                 "Gemini %s failed (%s), retrying in %ss (%d/%d)",
                                 slot.label,
@@ -642,7 +647,9 @@ class LLMClient:
         if self._gemini_exhausted:
             parts.append("WARNING: all Gemini keys were exhausted during this run")
 
-        total = (sum(s.calls for s in self._pool.slots) if self._pool else 0) + self._groq_calls
+        total = (
+            sum(s.calls for s in self._pool.slots) if self._pool else 0
+        ) + self._groq_calls
         parts.append(f"Total API calls: {total}")
         logger.info("Usage summary:\n%s", "\n".join(parts))
 

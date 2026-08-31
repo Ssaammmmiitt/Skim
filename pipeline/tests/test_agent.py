@@ -32,7 +32,9 @@ def _delete_test_articles() -> None:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM articles WHERE url LIKE %s", (f"{TEST_URL_PREFIX}%",))
+            cur.execute(
+                "DELETE FROM articles WHERE url LIKE %s", (f"{TEST_URL_PREFIX}%",)
+            )
         conn.commit()
     finally:
         conn.close()
@@ -203,8 +205,12 @@ def test_classify_batch_keeps_progress_when_providers_fail(test_run_id):
 def test_generate_insights_keeps_progress_when_providers_fail(test_run_id):
     articles = _insert_and_fetch(
         [
-            _make_article(f"{test_run_id}-ins-quota-1", "First big story", "Summary one."),
-            _make_article(f"{test_run_id}-ins-quota-2", "Second big story", "Summary two."),
+            _make_article(
+                f"{test_run_id}-ins-quota-1", "First big story", "Summary one."
+            ),
+            _make_article(
+                f"{test_run_id}-ins-quota-2", "Second big story", "Summary two."
+            ),
         ]
     )
     classified = [_classify_article(article, "ai_ml", 8) for article in articles]
@@ -526,7 +532,10 @@ def test_generate_insights_for_top_articles_processes_db_rows(
 
 @patch("pipeline.agent.reasoning.get_articles_needing_insights")
 def test_resolve_insight_candidates_lowers_threshold(mock_get_needing):
-    from pipeline.agent.reasoning import MIN_INSIGHT_CANDIDATES, resolve_insight_candidates
+    from pipeline.agent.reasoning import (
+        MIN_INSIGHT_CANDIDATES,
+        resolve_insight_candidates,
+    )
 
     mock_get_needing.side_effect = [
         [{"id": 1}, {"id": 2}],  # score >= 5: only 2
@@ -544,9 +553,7 @@ def test_resolve_insight_candidates_lowers_threshold(mock_get_needing):
 
 @patch("pipeline.agent.reasoning.get_articles_by_ids")
 @patch.object(ArticleAgent, "generate_insights")
-def test_ensure_insights_for_articles_backfills_missing(
-    mock_generate, mock_get_by_ids
-):
+def test_ensure_insights_for_articles_backfills_missing(mock_generate, mock_get_by_ids):
     agent = ArticleAgent(llm=MagicMock(), batch_delay_seconds=0)
     selected = [
         {"id": 1, "insight": "Has insight", "key_takeaway": "Takeaway"},
@@ -660,7 +667,9 @@ def test_select_digest_stories_returns_empty_for_no_articles():
 
 def test_select_digest_stories_preserves_agent_order(test_run_id):
     classified = _build_scored_article_batch(test_run_id)
-    high_ids = [article["id"] for article in classified if article["importance_score"] >= 8]
+    high_ids = [
+        article["id"] for article in classified if article["importance_score"] >= 8
+    ]
     ordered_ids = [high_ids[2], high_ids[0], high_ids[1]] + [
         article["id"] for article in classified if article["importance_score"] < 8
     ][:5]
@@ -700,7 +709,9 @@ def test_select_digest_stories_preserves_agent_order(test_run_id):
 def test_validate_selection_rejects_unknown_ids(test_run_id):
     classified = _build_scored_article_batch(test_run_id)[:7]
     agent = ArticleAgent(llm=MagicMock(), batch_delay_seconds=0)
-    selected_ids = [article["id"] for article in classified[:6]] + [classified[-1]["id"] + 999]
+    selected_ids = [article["id"] for article in classified[:6]] + [
+        classified[-1]["id"] + 999
+    ]
 
     with pytest.raises(ValueError, match="Unknown article IDs"):
         agent._validate_selection(
@@ -718,9 +729,7 @@ def test_select_digest_stories_meets_acceptance_criteria(test_run_id):
     classified = _build_scored_article_batch(test_run_id)
     _assert_score_distribution(classified)
     top_three_ids = {
-        article["id"]
-        for article in classified
-        if article["importance_score"] >= 8
+        article["id"] for article in classified if article["importance_score"] >= 8
     }
 
     agent = ArticleAgent(batch_delay_seconds=0)
@@ -730,30 +739,104 @@ def test_select_digest_stories_meets_acceptance_criteria(test_run_id):
     assert top_three_ids.issubset(set(result["selected_article_ids"]))
     assert _order_differs_from_score_ranking(result["articles"], classified)
     assert _rationale_explains_selection(result["rationale"])
-    assert [article["id"] for article in result["articles"]] == result["selected_article_ids"]
+    assert [article["id"] for article in result["articles"]] == result[
+        "selected_article_ids"
+    ]
 
 
 def _build_reasoning_article_batch(test_run_id: str, count: int = 15) -> list[dict]:
     specs = [
-        ("gpt5", "GPT-5 released with major reasoning improvements", "Major model release.", "techcrunch"),
-        ("aws", "AWS announces steep S3 egress price cuts", "Hyperscaler cuts data transfer fees.", "theverge"),
-        ("react", "React 20 improves server components", "Framework update for full-stack teams.", "hackernews"),
-        ("k8s", "Kubernetes 1.33 ships storage improvements", "Volume snapshot workflows get better.", "arstechnica"),
-        ("yc", "YC demo day highlights AI infra startups", "Three startups focus on inference cost.", "techcrunch"),
+        (
+            "gpt5",
+            "GPT-5 released with major reasoning improvements",
+            "Major model release.",
+            "techcrunch",
+        ),
+        (
+            "aws",
+            "AWS announces steep S3 egress price cuts",
+            "Hyperscaler cuts data transfer fees.",
+            "theverge",
+        ),
+        (
+            "react",
+            "React 20 improves server components",
+            "Framework update for full-stack teams.",
+            "hackernews",
+        ),
+        (
+            "k8s",
+            "Kubernetes 1.33 ships storage improvements",
+            "Volume snapshot workflows get better.",
+            "arstechnica",
+        ),
+        (
+            "yc",
+            "YC demo day highlights AI infra startups",
+            "Three startups focus on inference cost.",
+            "techcrunch",
+        ),
         ("ts", "TypeScript 5.9 patch release", "Minor compiler fixes.", "hackernews"),
-        ("css", "CSS utility library fixes padding bug", "Small styling patch.", "hackernews"),
-        ("rust", "Rust 1.90 stabilizes async traits", "Language release for systems devs.", "lobsters"),
-        ("open", "Open source license debate resurfaces", "Community discusses SSPL again.", "hackernews"),
-        ("db", "Postgres 18 beta adds JSON improvements", "Database preview release.", "infoq"),
-        ("sec", "Routine security patches for Linux distros", "Monthly maintenance updates.", "arstechnica"),
-        ("game", "Indie game engine adds WebGPU support", "Niche graphics tooling update.", "hackernews"),
-        ("ml", "New benchmark measures LLM agent reliability", "Researchers publish evaluation suite.", "arxiv"),
-        ("cloud", "Google Cloud cuts GPU pricing for training", "Cloud provider adjusts TPU/GPU rates.", "theverge"),
-        ("start", "Startup raises seed for devtools observability", "Small funding round in monitoring.", "techcrunch"),
+        (
+            "css",
+            "CSS utility library fixes padding bug",
+            "Small styling patch.",
+            "hackernews",
+        ),
+        (
+            "rust",
+            "Rust 1.90 stabilizes async traits",
+            "Language release for systems devs.",
+            "lobsters",
+        ),
+        (
+            "open",
+            "Open source license debate resurfaces",
+            "Community discusses SSPL again.",
+            "hackernews",
+        ),
+        (
+            "db",
+            "Postgres 18 beta adds JSON improvements",
+            "Database preview release.",
+            "infoq",
+        ),
+        (
+            "sec",
+            "Routine security patches for Linux distros",
+            "Monthly maintenance updates.",
+            "arstechnica",
+        ),
+        (
+            "game",
+            "Indie game engine adds WebGPU support",
+            "Niche graphics tooling update.",
+            "hackernews",
+        ),
+        (
+            "ml",
+            "New benchmark measures LLM agent reliability",
+            "Researchers publish evaluation suite.",
+            "arxiv",
+        ),
+        (
+            "cloud",
+            "Google Cloud cuts GPU pricing for training",
+            "Cloud provider adjusts TPU/GPU rates.",
+            "theverge",
+        ),
+        (
+            "start",
+            "Startup raises seed for devtools observability",
+            "Small funding round in monitoring.",
+            "techcrunch",
+        ),
     ][:count]
     return _insert_and_fetch(
         [
-            _make_article(f"{test_run_id}-reasoning-{slug}", title, summary, source=source)
+            _make_article(
+                f"{test_run_id}-reasoning-{slug}", title, summary, source=source
+            )
             for slug, title, summary, source in specs
         ]
     )
@@ -761,9 +844,14 @@ def _build_reasoning_article_batch(test_run_id: str, count: int = 15) -> list[di
 
 def test_run_agent_reasoning_returns_empty_for_no_articles():
     agent = ArticleAgent(llm=MagicMock(), batch_delay_seconds=0)
-    with patch(
-        "pipeline.agent.reasoning.get_articles_needing_insights", return_value=[]
-    ), patch("pipeline.agent.reasoning.get_todays_classified_articles", return_value=[]):
+    with (
+        patch(
+            "pipeline.agent.reasoning.get_articles_needing_insights", return_value=[]
+        ),
+        patch(
+            "pipeline.agent.reasoning.get_todays_classified_articles", return_value=[]
+        ),
+    ):
         result = run_agent_reasoning([], agent=agent)
     assert result == {"articles": [], "selected_article_ids": [], "rationale": ""}
     agent.llm.chat_with_tools.assert_not_called()
@@ -794,7 +882,9 @@ def test_run_agent_reasoning_orchestrates_three_passes(
         article for article in stored if float(article["importance_score"]) >= 5
     ]
     assert top_candidates
-    assert all(article["insight"] and article["key_takeaway"] for article in top_candidates)
+    assert all(
+        article["insight"] and article["key_takeaway"] for article in top_candidates
+    )
 
     assert 7 <= len(result["articles"]) <= 10
     assert result["rationale"]

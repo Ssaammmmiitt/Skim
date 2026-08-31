@@ -2,9 +2,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatInterface } from "@/components/chat/ChatInterface";
+import { resetChatStore } from "@/store/chat-store";
 
 describe("ChatInterface", () => {
   beforeEach(() => {
+    resetChatStore();
     vi.stubGlobal(
       "fetch",
       vi.fn((input: RequestInfo, init?: RequestInit) => {

@@ -1,10 +1,16 @@
 from datetime import date
 from unittest.mock import patch
 
-from pipeline.health_check import build_health_report, format_health_report, run_health_check
+from pipeline.health_check import (
+    build_health_report,
+    format_health_report,
+    run_health_check,
+)
 
 
-def _sample_run(run_date: date, status: str = "success", digest_sent: bool = True) -> dict:
+def _sample_run(
+    run_date: date, status: str = "success", digest_sent: bool = True
+) -> dict:
     return {
         "run_date": run_date,
         "status": status,
@@ -21,9 +27,7 @@ def _sample_run(run_date: date, status: str = "success", digest_sent: bool = Tru
 @patch("pipeline.health_check.count_total_articles", return_value=100)
 @patch("pipeline.health_check.get_recent_digests")
 @patch("pipeline.health_check.get_recent_pipeline_runs")
-def test_build_health_report_healthy(
-    mock_runs, mock_digests, _total, _today, _dupes
-):
+def test_build_health_report_healthy(mock_runs, mock_digests, _total, _today, _dupes):
     today = date(2026, 8, 30)
     mock_runs.return_value = [_sample_run(today)]
     mock_digests.return_value = [

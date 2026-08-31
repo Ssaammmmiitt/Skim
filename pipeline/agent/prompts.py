@@ -207,7 +207,9 @@ def _append_few_shot_examples(
         )
 
 
-def build_classification_messages(articles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_classification_messages(
+    articles: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": CLASSIFICATION_SYSTEM_PROMPT}
     ]
@@ -222,7 +224,9 @@ def build_classification_messages(articles: list[dict[str, Any]]) -> list[dict[s
 
 
 def build_insight_messages(articles: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    messages: list[dict[str, Any]] = [{"role": "system", "content": INSIGHT_SYSTEM_PROMPT}]
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": INSIGHT_SYSTEM_PROMPT}
+    ]
     _append_few_shot_examples(messages, INSIGHT_FEW_SHOT_EXAMPLES)
     messages.append(
         {
@@ -234,7 +238,9 @@ def build_insight_messages(articles: list[dict[str, Any]]) -> list[dict[str, Any
 
 
 def build_selection_messages(articles: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    messages: list[dict[str, Any]] = [{"role": "system", "content": SELECTION_SYSTEM_PROMPT}]
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": SELECTION_SYSTEM_PROMPT}
+    ]
     _append_few_shot_examples(messages, SELECTION_FEW_SHOT_EXAMPLES)
     messages.append(
         {

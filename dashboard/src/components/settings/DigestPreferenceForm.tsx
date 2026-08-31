@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { DashboardTheme, DigestFormat, DigestTheme } from "@/lib/auth/types";
+import { useEffect, useMemo } from "react";
+import type { DigestFormat, DigestTheme } from "@/lib/auth/types";
 import { DashboardThemeSelector } from "@/components/theme/DashboardThemeSelector";
 import { DigestFormatPreview } from "@/components/settings/DigestFormatPreview";
 import { EmailThemePreview } from "@/components/settings/EmailThemePreview";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { TOPIC_OPTIONS } from "@/lib/digest-preferences";
-import { applyDashboardTheme } from "@/lib/dashboard-theme";
+import { usePreferencesStore } from "@/store/preferences-store";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/tailwind-ui";
 
@@ -17,70 +18,55 @@ type Props = {
     max_stories: number;
     topic_filters: string[];
     email_enabled: boolean;
-    dashboard_theme: DashboardTheme;
+    dashboard_theme: import("@/lib/auth/types").DashboardTheme;
   };
 };
 
 export function DigestPreferenceForm({ initial }: Props) {
-  const [theme, setTheme] = useState(initial.theme);
-  const [format, setFormat] = useState(initial.format);
-  const [maxStories, setMaxStories] = useState(initial.max_stories);
-  const [topics, setTopics] = useState<string[]>(initial.topic_filters);
-  const [emailEnabled, setEmailEnabled] = useState(initial.email_enabled);
-  const [dashboardTheme, setDashboardTheme] = useState(initial.dashboard_theme);
-  const [status, setStatus] = useState<string>("");
-  const [saving, setSaving] = useState(false);
+  const draft = usePreferencesStore((state) => state.draft);
+  const status = usePreferencesStore((state) => state.status);
+  const saveError = usePreferencesStore((state) => state.saveError);
+  const saving = usePreferencesStore((state) => state.saving);
+  const hydrate = usePreferencesStore((state) => state.hydrate);
+  const updateDraft = usePreferencesStore((state) => state.updateDraft);
+  const toggleTopic = usePreferencesStore((state) => state.toggleTopic);
+  const save = usePreferencesStore((state) => state.save);
+
+  useEffect(() => {
+    hydrate(initial);
+  }, [hydrate, initial]);
 
   const previewUrl = useMemo(
-    () => `/api/settings/digest-preview?theme=${theme}&format=${format}`,
-    [theme, format]
+    () => `/api/settings/digest-preview?theme=${draft.theme}&format=${draft.format}`,
+    [draft.theme, draft.format]
   );
 
-  function toggleTopic(topicId: string) {
-    setTopics((current) =>
-      current.includes(topicId)
-        ? current.filter((id) => id !== topicId)
-        : [...current, topicId]
-    );
-  }
-
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving(true);
-    setStatus("");
-    const response = await fetch("/api/settings/preferences", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        theme,
-        format,
-        max_stories: maxStories,
-        topic_filters: topics.length ? topics : null,
-        email_enabled: emailEnabled,
-        dashboard_theme: dashboardTheme,
-      }),
-    });
-    setSaving(false);
-    if (response.ok) {
-      setStatus("Preferences saved.");
-      applyDashboardTheme(dashboardTheme);
-    } else {
-      setStatus("Could not save preferences.");
-    }
-  }
-
   return (
-    <form onSubmit={save} className="mt-8">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save();
+      }}
+      className="mt-8"
+    >
+      {saveError ? (
+        <ErrorAlert
+          message={saveError}
+          onRetry={() => void save()}
+          className="mb-6"
+        />
+      ) : null}
+
       <div className="space-y-10 pb-32">
         <section>
           <h2 className={ui.eyebrow}>Dashboard appearance</h2>
           <p className={cn("mt-2", ui.body)}>
-            Light canvas or ink band styling  -  or match your device.
+            Light canvas or dark mode — or match your device.
           </p>
           <div className="mt-4">
             <DashboardThemeSelector
-              value={dashboardTheme}
-              onChange={setDashboardTheme}
+              value={draft.dashboard_theme}
+              onChange={(dashboard_theme) => updateDraft({ dashboard_theme })}
             />
           </div>
         </section>
@@ -108,9 +94,9 @@ export function DigestPreferenceForm({ initial }: Props) {
               <EmailThemePreview
                 key={key}
                 theme={key}
-                format={format}
-                selected={theme === key}
-                onSelect={() => setTheme(key)}
+                format={draft.format}
+                selected={draft.theme === key}
+                onSelect={() => updateDraft({ theme: key })}
               />
             ))}
           </div>
@@ -126,8 +112,8 @@ export function DigestPreferenceForm({ initial }: Props) {
               <DigestFormatPreview
                 key={key}
                 format={key}
-                selected={format === key}
-                onSelect={() => setFormat(key)}
+                selected={draft.format === key}
+                onSelect={() => updateDraft({ format: key })}
               />
             ))}
           </div>
@@ -146,14 +132,16 @@ export function DigestPreferenceForm({ initial }: Props) {
 
         <section>
           <label className={ui.eyebrow}>
-            Max stories: {maxStories}
+            Max stories: {draft.max_stories}
           </label>
           <input
             type="range"
             min={3}
             max={12}
-            value={maxStories}
-            onChange={(e) => setMaxStories(Number(e.target.value))}
+            value={draft.max_stories}
+            onChange={(e) =>
+              updateDraft({ max_stories: Number(e.target.value) })
+            }
             className="mt-3 w-full accent-primary"
           />
         </section>
@@ -172,7 +160,7 @@ export function DigestPreferenceForm({ initial }: Props) {
                 onClick={() => toggleTopic(topic.id)}
                 className={cn(
                   "rounded-pill px-3 py-1.5 text-xs font-bold transition",
-                  topics.includes(topic.id)
+                  draft.topic_filters.includes(topic.id)
                     ? "bg-cyan-core text-black"
                     : "border border-surface-raised bg-canvas text-secondary hover:border-cyan-core"
                 )}
@@ -186,8 +174,8 @@ export function DigestPreferenceForm({ initial }: Props) {
         <label className="flex items-center gap-3 text-foreground">
           <input
             type="checkbox"
-            checked={emailEnabled}
-            onChange={(e) => setEmailEnabled(e.target.checked)}
+            checked={draft.email_enabled}
+            onChange={(e) => updateDraft({ email_enabled: e.target.checked })}
             className="accent-primary"
           />
           <span className={ui.body}>Receive daily digest emails</span>

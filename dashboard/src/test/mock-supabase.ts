@@ -3,11 +3,6 @@ import { vi } from "vitest";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
 
-type TableHandler = {
-  maybeSingle?: () => Promise<QueryResult>;
-  then?: (resolve: (value: QueryResult) => void) => void;
-};
-
 export function createQueryBuilder(result: QueryResult) {
   const builder = {
     select: vi.fn(() => builder),

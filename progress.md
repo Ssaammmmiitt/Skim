@@ -1020,6 +1020,8 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 | Design system | `dashboard/Design.md` | Cyan tokens, Tailwind implementation |
 | Vodafone experiment | `design.md` | **Not** used by dashboard  -  reference only |
 | Vercel deploy | `docs/vercel-deploy.md` | Production checklist, env vars, smoke tests |
+| **RAG architecture** | `docs/rag.md` | Hybrid retrieval, embeddings, DB search, chat flow |
+| **Dashboard architecture** | `docs/dashboard.md` | Next.js App Router, Zustand stores, component & API call chains |
 | **This file** | `progress.md` | Complete serial progress report |
 
 ---

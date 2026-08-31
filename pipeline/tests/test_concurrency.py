@@ -39,8 +39,8 @@ from pipeline.agent.llm_client import (
 )
 from pipeline.agent.reasoning import ArticleAgent
 
-
 # ── Helpers ──────────────────────────────────────────────────────────────
+
 
 def _make_articles(count: int, start_id: int = 1) -> list[dict]:
     return [
@@ -96,6 +96,7 @@ def _gemini_rate_limit_error() -> ClientError:
 
 
 # ── ThreadPoolExecutor concurrent insight generation ─────────────────────
+
 
 class TestConcurrentInsightGeneration:
 
@@ -298,6 +299,7 @@ class TestConcurrentInsightGeneration:
 
 # ── Groq fallback during concurrent execution ───────────────────────────
 
+
 class TestConcurrentGroqFallback:
 
     @patch("pipeline.agent.reasoning.update_article_insight")
@@ -345,6 +347,7 @@ class TestConcurrentGroqFallback:
 
 
 # ── Thread-safe key pool under contention ────────────────────────────────
+
 
 class TestKeyPoolThreadSafety:
 
@@ -480,6 +483,7 @@ class TestKeyPoolThreadSafety:
 
 # ── LLMClient pool integration under concurrent access ──────────────────
 
+
 class TestLLMClientConcurrentPool:
 
     def test_concurrent_chat_calls_distribute_across_keys(self, monkeypatch):
@@ -500,7 +504,12 @@ class TestLLMClientConcurrentPool:
                 part.text = None
                 part.function_call = MagicMock()
                 part.function_call.name = "classify_article"
-                part.function_call.args = {"article_id": 1, "topic": "ai_ml", "importance_score": 8, "reasoning": "ok"}
+                part.function_call.args = {
+                    "article_id": 1,
+                    "topic": "ai_ml",
+                    "importance_score": 8,
+                    "reasoning": "ok",
+                }
                 response = MagicMock()
                 response.candidates = [MagicMock()]
                 response.candidates[0].content.parts = [part]
@@ -546,7 +555,14 @@ class TestLLMClientConcurrentPool:
         fc = MagicMock()
         fc.name = "classify_article"
         fc.function.name = "classify_article"
-        fc.function.arguments = json.dumps({"article_id": 1, "topic": "ai_ml", "importance_score": 7, "reasoning": "ok"})
+        fc.function.arguments = json.dumps(
+            {
+                "article_id": 1,
+                "topic": "ai_ml",
+                "importance_score": 7,
+                "reasoning": "ok",
+            }
+        )
         fc.id = "call_1"
         message = MagicMock()
         message.content = None
@@ -587,7 +603,12 @@ class TestLLMClientConcurrentPool:
             part.text = None
             part.function_call = MagicMock()
             part.function_call.name = "classify_article"
-            part.function_call.args = {"article_id": 1, "topic": "ai_ml", "importance_score": 8, "reasoning": "ok"}
+            part.function_call.args = {
+                "article_id": 1,
+                "topic": "ai_ml",
+                "importance_score": 8,
+                "reasoning": "ok",
+            }
             resp = MagicMock()
             resp.candidates = [MagicMock()]
             resp.candidates[0].content.parts = [part]
@@ -601,7 +622,10 @@ class TestLLMClientConcurrentPool:
         tools = [{"function": {"name": "classify_article", "description": "test"}}]
 
         with ThreadPoolExecutor(max_workers=3) as pool:
-            futures = [pool.submit(llm_client.chat_with_tools, messages, tools) for _ in range(12)]
+            futures = [
+                pool.submit(llm_client.chat_with_tools, messages, tools)
+                for _ in range(12)
+            ]
             for f in futures:
                 f.result()
 
@@ -612,6 +636,7 @@ class TestLLMClientConcurrentPool:
 
 
 # ── Error handling edge cases ────────────────────────────────────────────
+
 
 class TestConcurrentErrorHandling:
 
@@ -719,6 +744,7 @@ class TestConcurrentErrorHandling:
 
 # ── Logging and reporting ────────────────────────────────────────────────
 
+
 class TestConcurrencyLogging:
 
     @patch("pipeline.agent.reasoning.update_article_insight")
@@ -793,7 +819,14 @@ class TestConcurrencyLogging:
         tc = MagicMock()
         tc.id = "call_1"
         tc.function.name = "classify_article"
-        tc.function.arguments = json.dumps({"article_id": 1, "topic": "ai_ml", "importance_score": 7, "reasoning": "ok"})
+        tc.function.arguments = json.dumps(
+            {
+                "article_id": 1,
+                "topic": "ai_ml",
+                "importance_score": 7,
+                "reasoning": "ok",
+            }
+        )
         message.tool_calls = [tc]
         resp = MagicMock()
         resp.choices = [MagicMock(message=message)]
@@ -816,6 +849,7 @@ class TestConcurrencyLogging:
 
 # ── Pool with unexpected exceptions from Gemini ─────────────────────────
 
+
 class TestPoolUnexpectedExceptions:
 
     def test_timeout_on_gemini_rotates_to_next_key(self, monkeypatch):
@@ -831,7 +865,12 @@ class TestPoolUnexpectedExceptions:
                 part.text = None
                 part.function_call = MagicMock()
                 part.function_call.name = "classify_article"
-                part.function_call.args = {"article_id": 1, "topic": "ai_ml", "importance_score": 8, "reasoning": "ok"}
+                part.function_call.args = {
+                    "article_id": 1,
+                    "topic": "ai_ml",
+                    "importance_score": 8,
+                    "reasoning": "ok",
+                }
                 resp = MagicMock()
                 resp.candidates = [MagicMock()]
                 resp.candidates[0].content.parts = [part]
@@ -866,7 +905,14 @@ class TestPoolUnexpectedExceptions:
         tc = MagicMock()
         tc.id = "call_1"
         tc.function.name = "classify_article"
-        tc.function.arguments = json.dumps({"article_id": 1, "topic": "ai_ml", "importance_score": 7, "reasoning": "ok"})
+        tc.function.arguments = json.dumps(
+            {
+                "article_id": 1,
+                "topic": "ai_ml",
+                "importance_score": 7,
+                "reasoning": "ok",
+            }
+        )
         message.tool_calls = [tc]
         resp = MagicMock()
         resp.choices = [MagicMock(message=message)]

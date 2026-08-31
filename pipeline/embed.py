@@ -1,6 +1,7 @@
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
@@ -32,9 +33,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         return []
 
     model = get_model()
-    embeddings = model.encode(
-        texts, normalize_embeddings=True, show_progress_bar=False
-    )
+    embeddings = model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
     return embeddings.tolist()
 
 
@@ -102,7 +101,7 @@ def count_missing_embeddings() -> int:
 
 def search_similar(
     query: str, k: int = 5, min_similarity: float = 0.3
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     query_embedding = _vector_literal(embed_texts([query])[0])
 
     conn = get_connection()
@@ -125,15 +124,13 @@ def search_similar(
         conn.close()
 
     return [
-        result
-        for result in results
-        if float(result["similarity"]) >= min_similarity
+        result for result in results if float(result["similarity"]) >= min_similarity
     ]
 
 
 def search_similar_articles_rpc(
     query: str, match_count: int = 5, match_threshold: float = 0.5
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     query_embedding = _vector_literal(embed_texts([query])[0])
 
     conn = get_connection()

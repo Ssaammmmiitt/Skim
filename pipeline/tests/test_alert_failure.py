@@ -7,7 +7,9 @@ from pipeline.alert_failure import build_failure_alert_html, send_failure_alert
 
 def test_build_failure_alert_html_includes_workflow_and_time():
     html = build_failure_alert_html(
-        when=__import__("datetime").datetime(2026, 8, 30, 12, 0, tzinfo=__import__("datetime").timezone.utc),
+        when=__import__("datetime").datetime(
+            2026, 8, 30, 12, 0, tzinfo=__import__("datetime").timezone.utc
+        ),
         workflow="Daily Digest",
         run_url=None,
     )
@@ -38,7 +40,9 @@ def test_build_failure_alert_html_uses_github_env(monkeypatch):
 
 
 def test_send_failure_alert_delegates_to_mailtrap():
-    with patch("pipeline.alert_failure.send_alert_email", return_value=True) as mock_send:
+    with patch(
+        "pipeline.alert_failure.send_alert_email", return_value=True
+    ) as mock_send:
         assert send_failure_alert() is True
 
     mock_send.assert_called_once()

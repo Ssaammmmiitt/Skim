@@ -19,7 +19,6 @@ export function ChatLoadingBubble({ sessionKey }: ChatLoadingBubbleProps) {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    setStep(0);
     const timer = window.setInterval(() => {
       setStep((current) => Math.min(current + 1, STEPS.length - 1));
     }, 2400);

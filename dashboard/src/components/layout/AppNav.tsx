@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -10,8 +10,8 @@ import { isAdmin, type Profile } from "@/lib/auth/types";
 import { cn } from "@/lib/cn";
 import { isNavActive, MAIN_NAV_ITEMS } from "@/lib/nav";
 import * as ui from "@/lib/tailwind-ui";
-import type { NavProfile } from "./UserMenu";
-import { UserMenu } from "./UserMenu";
+import { useUiStore } from "@/store/ui-store";
+import { UserMenu, type NavProfile } from "./UserMenu";
 
 type AppNavProps = {
   profile: NavProfile | null;
@@ -30,34 +30,37 @@ function useBodyScrollLock(locked: boolean) {
 
 export function AppNav({ profile }: AppNavProps) {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const mobileOpen = useUiStore((state) => state.mobileNavOpen);
+  const scrolled = useUiStore((state) => state.navScrolled);
+  const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen);
+  const setNavScrolled = useUiStore((state) => state.setNavScrolled);
+  const closeMobileNav = useUiStore((state) => state.closeMobileNav);
 
   useBodyScrollLock(mobileOpen);
 
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    closeMobileNav();
+  }, [pathname, closeMobileNav]);
 
   useEffect(() => {
     function onScroll() {
-      setScrolled(window.scrollY > 4);
+      setNavScrolled(window.scrollY > 4);
     }
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [setNavScrolled]);
 
   useEffect(() => {
     if (!mobileOpen) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setMobileOpen(false);
+      if (event.key === "Escape") closeMobileNav();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mobileOpen]);
+  }, [mobileOpen, closeMobileNav]);
 
-  const closeMobile = useCallback(() => setMobileOpen(false), []);
+  const closeMobile = useCallback(() => closeMobileNav(), [closeMobileNav]);
 
   function linkClass(href: string): string {
     return cn(
@@ -141,7 +144,7 @@ export function AppNav({ profile }: AppNavProps) {
             <button
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-cyan-core hover:text-cyan-bright lg:hidden"
-              onClick={() => setMobileOpen((open) => !open)}
+              onClick={() => setMobileNavOpen(!mobileOpen)}
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-drawer"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}

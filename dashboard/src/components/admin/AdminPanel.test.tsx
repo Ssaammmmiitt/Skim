@@ -12,10 +12,6 @@ describe("AdminPanel", () => {
         .fn()
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ users: [pendingMember] }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
           json: async () => ({ ok: true }),
         })
         .mockResolvedValueOnce({
@@ -25,18 +21,17 @@ describe("AdminPanel", () => {
     );
   });
 
-  it("loads and displays pending users", async () => {
-    render(<AdminPanel />);
-    expect(await screen.findByText(pendingMember.email)).toBeInTheDocument();
+  it("displays pending users from initial data", () => {
+    render(<AdminPanel initialPending={[pendingMember]} />);
+    expect(screen.getByText(pendingMember.email)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reject" })).toBeInTheDocument();
   });
 
   it("approves a pending user", async () => {
     const user = userEvent.setup();
-    render(<AdminPanel />);
+    render(<AdminPanel initialPending={[pendingMember]} />);
 
-    await screen.findByText(pendingMember.email);
     await user.click(screen.getByRole("button", { name: "Approve" }));
 
     expect(await screen.findByText("User approved.")).toBeInTheDocument();
@@ -45,5 +40,27 @@ describe("AdminPanel", () => {
         screen.getByText("No pending signup requests.")
       ).toBeInTheDocument();
     });
+  });
+
+  it("shows retry when approve action fails", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          json: async () => ({ error: "Forbidden" }),
+        })
+      )
+    );
+
+    render(<AdminPanel initialPending={[pendingMember]} />);
+
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Action failed. Check your connection and try again."
+    );
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });

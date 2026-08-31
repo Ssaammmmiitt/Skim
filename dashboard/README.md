@@ -184,17 +184,19 @@ See [`docs/vercel-deploy.md`](../docs/vercel-deploy.md).
 
 ```bash
 cd dashboard
-npm test          # 81 tests, run once
+npm test          # 86 tests, run once
 npm run test:watch
 npm run build     # production build
 ```
 
-Coverage: components, hybrid retrieval, multi-provider LLM client, API routes, email preview, preferences, theme toggle.
+Coverage: components, Zustand stores, hybrid retrieval, multi-provider LLM client, API routes, email preview, preferences, theme toggle.
 
 ## Project docs
 
 | Document | Contents |
 |----------|----------|
+| [`docs/dashboard.md`](../docs/dashboard.md) | **Dashboard architecture** — App Router, Zustand, call chains |
 | [`progress.md`](../progress.md) | Complete serial progress (all phases) |
+| [`docs/rag.md`](../docs/rag.md) | **RAG architecture**  -  retrieval, DB search, chat flow |
 | [`docs/report.md`](../docs/report.md) | Internal bug log, LLM config, deployment notes |
 | [`Design.md`](./Design.md) | Skim cyan design system spec |

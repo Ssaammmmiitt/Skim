@@ -3,7 +3,13 @@ import logging
 import pytest
 import requests
 
-from pipeline.config import LOG_DATE_FORMAT, LOG_FORMAT, RSS_SOURCES, USER_AGENT, configure_logging
+from pipeline.config import (
+    LOG_DATE_FORMAT,
+    LOG_FORMAT,
+    RSS_SOURCES,
+    USER_AGENT,
+    configure_logging,
+)
 
 REQUEST_HEADERS = {"User-Agent": USER_AGENT}
 
@@ -32,7 +38,9 @@ def test_log_records_include_module_name(caplog):
     caplog.set_level(logging.INFO)
     logging.getLogger("pipeline.tests.logging_probe").info("structured probe")
 
-    assert any(record.name == "pipeline.tests.logging_probe" for record in caplog.records)
+    assert any(
+        record.name == "pipeline.tests.logging_probe" for record in caplog.records
+    )
     assert any(record.levelname == "INFO" for record in caplog.records)
     assert any("structured probe" in record.message for record in caplog.records)
 
@@ -44,6 +52,6 @@ def test_rss_source_returns_valid_feed(source):
     content_type = response.headers.get("content-type", "").lower()
 
     assert response.status_code == 200, source["url"]
-    assert "xml" in content_type or "rss" in content_type or "atom" in content_type, (
-        f"{source['name']}: unexpected content-type {content_type!r}"
-    )
+    assert (
+        "xml" in content_type or "rss" in content_type or "atom" in content_type
+    ), f"{source['name']}: unexpected content-type {content_type!r}"

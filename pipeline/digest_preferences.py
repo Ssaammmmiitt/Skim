@@ -69,7 +69,7 @@ def filter_articles_for_user(
     if topic_filters:
         allowed = set(topic_filters)
         filtered = [article for article in filtered if article.get("topic") in allowed]
-    return filtered[:normalize_max_stories(max_stories)]
+    return filtered[: normalize_max_stories(max_stories)]
 
 
 def subscriber_defaults(email: str) -> dict[str, Any]:

@@ -63,3 +63,25 @@ def test_compose_digest_multiple_stories_numbered():
     assert "#2" in html
     assert "Story One" in html
     assert "Story Two" in html
+
+
+def test_compose_digest_brief_format_omits_insight_body():
+    html = compose_digest(
+        [_sample_article()],
+        format_name="brief",
+    )
+
+    assert "OpenAI ships GPT-5" in html
+    assert "Revisit inference cost assumptions." in html
+    assert "shifts how teams budget inference" not in html
+
+
+def test_compose_digest_headlines_format_shows_title_only():
+    html = compose_digest(
+        [_sample_article()],
+        format_name="headlines",
+    )
+
+    assert "OpenAI ships GPT-5" in html
+    assert "Major model release for developers." not in html
+    assert "Revisit inference cost assumptions." not in html

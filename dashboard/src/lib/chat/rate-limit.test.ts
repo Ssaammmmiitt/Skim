@@ -7,8 +7,6 @@ import {
 } from "@/lib/chat/rate-limit";
 
 const mockFrom = vi.fn();
-const mockSelect = vi.fn();
-const mockEq = vi.fn();
 const mockMaybeSingle = vi.fn();
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();

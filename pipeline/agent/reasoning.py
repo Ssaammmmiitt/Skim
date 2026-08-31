@@ -9,7 +9,12 @@ from pipeline.agent.prompts import (
     build_insight_messages,
     build_selection_messages,
 )
-from pipeline.agent.tools import CLASSIFY_ARTICLE, GENERATE_INSIGHT, SELECT_TOP_STORIES, TOPIC_CATEGORIES
+from pipeline.agent.tools import (
+    CLASSIFY_ARTICLE,
+    GENERATE_INSIGHT,
+    SELECT_TOP_STORIES,
+    TOPIC_CATEGORIES,
+)
 from pipeline.db import (
     get_articles_by_ids,
     get_articles_needing_insights,
@@ -114,7 +119,9 @@ class ArticleAgent:
             if batch_index < len(batches) - 1 and self.batch_delay_seconds:
                 time.sleep(self.batch_delay_seconds)
 
-        missing = [article for article in articles if article["id"] not in classified_ids]
+        missing = [
+            article for article in articles if article["id"] not in classified_ids
+        ]
         for index, article in enumerate(missing):
             try:
                 retry_results = self._classify_single_batch([article])
@@ -231,9 +238,13 @@ class ArticleAgent:
             return None
 
         try:
-            args = self._validate_insight(response["tool_calls"][0]["arguments"], article)
+            args = self._validate_insight(
+                response["tool_calls"][0]["arguments"], article
+            )
         except (ValueError, KeyError, TypeError) as exc:
-            logger.warning("Skipping invalid insight for article %s: %s", article_id, exc)
+            logger.warning(
+                "Skipping invalid insight for article %s: %s", article_id, exc
+            )
             return None
 
         update_article_insight(
@@ -422,7 +433,8 @@ class ArticleAgent:
         )
         article_by_id = {article["id"]: article for article in all_classified}
         ordered_articles = [
-            article_by_id[article_id] for article_id in selection["selected_article_ids"]
+            article_by_id[article_id]
+            for article_id in selection["selected_article_ids"]
         ]
 
         return {
@@ -444,7 +456,9 @@ class ArticleAgent:
         target_count: int,
     ) -> dict[str, Any]:
         valid_ids = {article["id"] for article in all_classified}
-        selected_ids = [int(article_id) for article_id in arguments["selected_article_ids"]]
+        selected_ids = [
+            int(article_id) for article_id in arguments["selected_article_ids"]
+        ]
 
         if not selected_ids:
             raise ValueError("selected_article_ids must not be empty")
@@ -458,7 +472,9 @@ class ArticleAgent:
                 f"expected {min_count}-{max_count} stories, got {len(selected_ids)}"
             )
 
-        unknown_ids = [article_id for article_id in selected_ids if article_id not in valid_ids]
+        unknown_ids = [
+            article_id for article_id in selected_ids if article_id not in valid_ids
+        ]
         if unknown_ids:
             raise ValueError(f"Unknown article IDs in selection: {unknown_ids}")
 
@@ -489,14 +505,18 @@ def run_agent_reasoning(
         logger.info("Pass 1: no new articles to classify")
 
     logger.info("Pass 2: generating insights for top articles")
-    agent.generate_insights_for_top_articles(min_score=IMPORTANCE_THRESHOLD_FOR_INSIGHTS)
+    agent.generate_insights_for_top_articles(
+        min_score=IMPORTANCE_THRESHOLD_FOR_INSIGHTS
+    )
 
     all_classified = get_todays_classified_articles()
     if not all_classified:
         agent.llm.log_usage_summary()
         return {"articles": [], "selected_article_ids": [], "rationale": ""}
 
-    logger.info("Pass 3: selecting digest from %d classified articles", len(all_classified))
+    logger.info(
+        "Pass 3: selecting digest from %d classified articles", len(all_classified)
+    )
     try:
         result = agent.select_digest_stories(all_classified, n=n)
         if result["articles"]:
@@ -513,8 +533,6 @@ def run_agent_reasoning(
 
 
 if __name__ == "__main__":
-    import logging as _logging
-
     from pipeline.config import configure_logging
     from pipeline.db import get_unclassified_articles
 

@@ -42,9 +42,7 @@ def pipeline_mocks():
         ),
         "send_email": patch("pipeline.main.send_email", return_value=True),
         "ingest_all_sources": patch("pipeline.main.ingest_all_sources"),
-        "embed_all_articles": patch(
-            "pipeline.main.embed_all_articles", return_value=0
-        ),
+        "embed_all_articles": patch("pipeline.main.embed_all_articles", return_value=0),
         "select_digest_articles": patch("pipeline.main.select_digest_articles"),
     }
     started = {name: p.start() for name, p in patches.items()}
@@ -69,7 +67,10 @@ def test_run_pipeline_sends_fallback_digest_on_llm_failure(pipeline_mocks):
     assert "Summary for HN story" in html
     pipeline_mocks["record_digest_sent"].assert_called_once()
     pipeline_mocks["record_pipeline_complete"].assert_called_once()
-    assert pipeline_mocks["record_pipeline_complete"].call_args.kwargs["status"] == "partial"
+    assert (
+        pipeline_mocks["record_pipeline_complete"].call_args.kwargs["status"]
+        == "partial"
+    )
 
 
 def test_run_pipeline_sends_quiet_day_digest(pipeline_mocks):
@@ -118,5 +119,8 @@ def test_run_pipeline_raises_and_records_failure_when_ingest_crashes(pipeline_mo
         run_pipeline()
 
     pipeline_mocks["record_pipeline_complete"].assert_called_once()
-    assert pipeline_mocks["record_pipeline_complete"].call_args.kwargs["status"] == "failed"
+    assert (
+        pipeline_mocks["record_pipeline_complete"].call_args.kwargs["status"]
+        == "failed"
+    )
     pipeline_mocks["send_email"].assert_not_called()

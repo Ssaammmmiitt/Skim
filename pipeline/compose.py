@@ -40,7 +40,9 @@ def _prepare_stories(articles: list[dict[str, Any]]) -> list[dict[str, Any]]:
             {
                 **article,
                 "rank": rank,
-                "topic_label": TOPIC_LABELS.get(topic, str(topic).replace("_", " ").title()),
+                "topic_label": TOPIC_LABELS.get(
+                    topic, str(topic).replace("_", " ").title()
+                ),
             }
         )
     return stories

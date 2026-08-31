@@ -2,7 +2,7 @@
 
 import type { DashboardTheme } from "@/lib/auth/types";
 import { DASHBOARD_THEMES } from "@/lib/dashboard-theme";
-import { useDashboardTheme } from "@/components/theme/ThemeProvider";
+import { useThemeStore } from "@/store/theme-store";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/tailwind-ui";
 
@@ -17,12 +17,13 @@ export function DashboardThemeSelector({
   value,
   onChange,
 }: DashboardThemeSelectorProps) {
-  const context = live ? useDashboardTheme() : null;
-  const current = live ? context!.theme : value ?? "dark";
+  const liveTheme = useThemeStore((state) => state.theme);
+  const liveSetTheme = useThemeStore((state) => state.setTheme);
+  const current = live ? liveTheme : value ?? "dark";
 
   function select(theme: DashboardTheme) {
     if (live) {
-      void context!.setTheme(theme);
+      void liveSetTheme(theme);
       return;
     }
     onChange?.(theme);

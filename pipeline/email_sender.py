@@ -56,7 +56,7 @@ def _api_url() -> str:
     return SANDBOX_API_URL if _sandbox_enabled() else PRODUCTION_API_URL
 
 
-def _build_payload(*, subject: str, html: str, to: str) -> dict:
+def _build_payload(*, subject: str, html: str, to: str) -> dict[str, Any]:
     return {
         "from": {"email": _sender_email(), "name": _sender_name()},
         "to": [{"email": to}],

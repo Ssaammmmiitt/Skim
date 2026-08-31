@@ -39,7 +39,9 @@ def test_simplified_digest_articles_clears_insights():
 
 
 def test_simplified_digest_articles_limits_to_eight():
-    articles = simplified_digest_articles([_article(i, f"Story {i}") for i in range(12)])
+    articles = simplified_digest_articles(
+        [_article(i, f"Story {i}") for i in range(12)]
+    )
     assert len(articles) == 8
 
 
@@ -50,7 +52,9 @@ def test_fallback_article_pool_prefers_new_articles(_, __):
     assert fallback_article_pool(new) == new
 
 
-@patch("pipeline.degradation.get_todays_new_articles", return_value=[_article(3, "Today")])
+@patch(
+    "pipeline.degradation.get_todays_new_articles", return_value=[_article(3, "Today")]
+)
 @patch(
     "pipeline.degradation.get_todays_classified_articles",
     return_value=[_article(2, "Classified")],
@@ -87,7 +91,10 @@ def test_select_digest_articles_falls_back_on_llm_failure(mock_reasoning):
     mock_reasoning.assert_called_once()
 
 
-@patch("pipeline.degradation.run_agent_reasoning", return_value={"articles": [], "rationale": ""})
+@patch(
+    "pipeline.degradation.run_agent_reasoning",
+    return_value={"articles": [], "rationale": ""},
+)
 def test_select_digest_articles_falls_back_when_agent_returns_empty(_):
     articles, _, degraded = select_digest_articles([_article(1, "Backup")])
 

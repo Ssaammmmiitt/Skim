@@ -2,9 +2,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DigestPreferenceForm } from "@/components/settings/DigestPreferenceForm";
+import { resetPreferencesStore } from "@/store/preferences-store";
 
 describe("DigestPreferenceForm", () => {
   beforeEach(() => {
+    resetPreferencesStore();
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
@@ -72,5 +74,38 @@ describe("DigestPreferenceForm", () => {
     });
 
     expect(await screen.findByText("Preferences saved.")).toBeInTheDocument();
+  });
+
+  it("shows retry when save fails", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          json: async () => ({ error: "Server error" }),
+        })
+      )
+    );
+
+    render(
+      <DigestPreferenceForm
+        initial={{
+          theme: "cyan",
+          format: "full",
+          max_stories: 8,
+          topic_filters: [],
+          email_enabled: true,
+          dashboard_theme: "dark",
+        }}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save preferences" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not save preferences."
+    );
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });

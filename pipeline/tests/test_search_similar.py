@@ -26,7 +26,9 @@ def _delete_test_articles() -> None:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM articles WHERE url LIKE %s", (f"{TEST_URL_PREFIX}%",))
+            cur.execute(
+                "DELETE FROM articles WHERE url LIKE %s", (f"{TEST_URL_PREFIX}%",)
+            )
         conn.commit()
     finally:
         conn.close()

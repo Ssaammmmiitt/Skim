@@ -25,7 +25,9 @@ def test_ingest_continues_when_one_adapter_fails():
     bad_adapter.fetch.side_effect = RuntimeError("feed unavailable")
 
     with (
-        patch("pipeline.ingest._build_adapters", return_value=[bad_adapter, good_adapter]),
+        patch(
+            "pipeline.ingest._build_adapters", return_value=[bad_adapter, good_adapter]
+        ),
         patch("pipeline.ingest.insert_articles", return_value=1) as mock_insert,
         patch("pipeline.ingest.get_todays_new_articles", return_value=[]),
     ):

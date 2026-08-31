@@ -2,7 +2,7 @@
 
 import type { DashboardTheme } from "@/lib/auth/types";
 import { DASHBOARD_THEMES } from "@/lib/dashboard-theme";
-import { useDashboardTheme } from "@/components/theme/ThemeProvider";
+import { useThemeStore } from "@/store/theme-store";
 import { cn } from "@/lib/cn";
 
 const THEME_ORDER: DashboardTheme[] = ["light", "dark", "system"];
@@ -18,7 +18,9 @@ type ThemeToggleProps = {
 };
 
 export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
-  const { theme, setTheme, saving } = useDashboardTheme();
+  const theme = useThemeStore((state) => state.theme);
+  const setTheme = useThemeStore((state) => state.setTheme);
+  const saving = useThemeStore((state) => state.saving);
 
   if (variant === "menu") {
     return (

@@ -2,58 +2,27 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SearchResultCard } from "@/components/search/SearchResultCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SearchBar } from "@/components/ui/SearchBar";
+import { useSearchStore } from "@/store/search-store";
 import * as ui from "@/lib/tailwind-ui";
-import type { SearchResponse } from "@/lib/types";
 
 export function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q")?.trim() ?? "";
-  const [results, setResults] = useState<SearchResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const results = useSearchStore((state) => state.results);
+  const loading = useSearchStore((state) => state.loading);
+  const error = useSearchStore((state) => state.error);
+  const fetchSearch = useSearchStore((state) => state.fetchSearch);
 
   useEffect(() => {
-    if (!query) {
-      setResults(null);
-      setError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    fetch(`/api/search?q=${encodeURIComponent(query)}&limit=25`)
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok) {
-          throw new Error(body.error ?? "Search failed");
-        }
-        return body as SearchResponse & { mode?: string };
-      })
-      .then((data) => {
-        if (!cancelled) setResults(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Search failed");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
+    void fetchSearch(query);
+  }, [query, fetchSearch]);
 
   return (
     <div className="space-y-8">
@@ -75,7 +44,12 @@ export function SearchResults() {
 
       {query && loading ? <LoadingSpinner label="Searching…" /> : null}
 
-      {error ? <ErrorAlert message={error} /> : null}
+      {error ? (
+        <ErrorAlert
+          message={error}
+          onRetry={() => void fetchSearch(query)}
+        />
+      ) : null}
 
       {query && !loading && !error && results ? (
         <div className="space-y-4">

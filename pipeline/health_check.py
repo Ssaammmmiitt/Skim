@@ -25,8 +25,8 @@ class HealthReport:
     healthy: bool = True
     issues: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
-    pipeline_runs: list[dict] = field(default_factory=list)
-    digests: list[dict] = field(default_factory=list)
+    pipeline_runs: list[dict[str, Any]] = field(default_factory=list)
+    digests: list[dict[str, Any]] = field(default_factory=list)
     total_articles: int = 0
     articles_today: int = 0
     duplicate_urls: int = 0
@@ -59,9 +59,13 @@ def build_health_report(lookback_days: int = DEFAULT_LOOKBACK_DAYS) -> HealthRep
                 + (f": {run.get('error_message')}" if run.get("error_message") else "")
             )
         elif run.get("status") == "partial":
-            report.add_warning(f"Pipeline run on {run['run_date']} completed with partial success")
+            report.add_warning(
+                f"Pipeline run on {run['run_date']} completed with partial success"
+            )
         elif run.get("status") == "running":
-            report.add_warning(f"Pipeline run on {run['run_date']} is still marked running")
+            report.add_warning(
+                f"Pipeline run on {run['run_date']} is still marked running"
+            )
 
     recent_run_dates = {run["run_date"] for run in report.pipeline_runs}
     for offset in range(lookback_days):
