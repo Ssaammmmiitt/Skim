@@ -40,13 +40,13 @@
 - A **Python pipeline** ingests Hacker News + RSS feeds daily, embeds articles locally, runs a 3-pass LLM agent (classify → insight → select), and emails personalized HTML digests.
 - A **Next.js 16 dashboard** provides Google OAuth + email OTP auth with admin approval, digest browsing, archive, settings, and **hybrid RAG chat** over the full article corpus.
 
-**Phases 0–5 (pipeline) are complete.** Phase 6 (dashboard + auth + RAG + themes) is **~95% complete** — all pages, hybrid retrieval, multi-provider chat, and settings/themes are built; Vercel deploy and final polish remain.
+**Phases 0–5 (pipeline) are complete.** Phase 6 (dashboard + auth + RAG + themes) is **code-complete** — all pages, hybrid retrieval, multi-provider chat, settings/themes, error boundaries, and deploy config are built. **Remaining:** apply SQL migrations in Supabase and deploy to Vercel (see `docs/vercel-deploy.md`).
 
 | Metric | Count |
 |--------|-------|
 | Pipeline unit tests | 148 (pytest) |
-| Dashboard unit tests | 77 (Vitest) |
-| **Total automated tests** | **225** |
+| Dashboard unit tests | 80 (Vitest) |
+| **Total automated tests** | **228** |
 | SQL migrations | 6 |
 | News sources | 5 (HN + 4 RSS) |
 | Email themes | 3 |
@@ -96,7 +96,7 @@
 | **6B — Hybrid RAG** | ✅ Done | MiniLM + FTS + RRF; re-run `sql/005` (double precision fix) in Supabase |
 | **6C — Preferences** | ✅ Done | Email theme/format, live preview, pipeline personalization |
 | **6E — Themes** | ✅ Done | Dashboard light/dark/system, `sql/006`, email preview API |
-| **6B — Deploy + polish** | 🔄 In progress | Vercel deploy, error boundaries, Lighthouse |
+| **6B — Deploy + polish** | ✅ Code complete | Error boundaries, skeletons, theme toggle; Vercel deploy docs ready |
 | **7 — Go Live** | 📋 Planned | Onboard ~10 users, demo video, 14-day uptime check |
 
 ---
@@ -293,8 +293,8 @@ Phase 6 is split into sub-phases:
 | **6.7** Chat UI | ✅ | `ChatInterface`, loading steps, `ChatErrorPanel`, provider badges |
 | **6.8** SearchBar | ✅ | Navbar SearchBar + dedicated `/search` page |
 | **6.9** Settings | ✅ | `DigestPreferenceForm`, email preview, dashboard theme selector |
-| **6.10** Polish | 🔄 Partial | Chat loaders/errors done; error boundaries + Lighthouse pending |
-| **6.11** Vercel deploy | 📋 Pending | Production deploy + env vars |
+| **6.10** Polish | ✅ | Error boundaries (`error.tsx`, `global-error.tsx`), `loading.tsx`, `not-found.tsx`, `DigestFeedSkeleton`, theme toggle in navbar + user menu |
+| **6.11** Vercel deploy | 📋 Ready | `vercel.json` + `docs/vercel-deploy.md` — user deploys + sets env vars |
 
 #### Phase 6C — Per-User Digest Preferences ✅
 
@@ -811,7 +811,7 @@ cd pipeline && pytest -m "not integration"
 | Resilience | `test_resilience.py`, `test_degradation.py` | Retry, fallback |
 | DB/Embed | `test_db.py`, `test_embed.py`, `test_search_rpc.py` | Connection, embeddings, RPC |
 
-### Dashboard — 77 unit tests (Vitest)
+### Dashboard — 80 unit tests (Vitest)
 
 ```bash
 cd dashboard && npm test
@@ -929,8 +929,7 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 |------|----------|-------|
 | **Re-run `sql/005` in Supabase** | High | Fixes hybrid RPC type error; removes slow in-process fallback |
 | **Run `sql/006` in Supabase** | High | Dashboard theme column |
-| **6.11 Vercel deploy** | High | Production hosting + all env vars (Gemini + Groq keys) |
-| **6.10 Polish (remaining)** | Medium | Error boundaries, Lighthouse, optional theme toggle in UserMenu |
+| **6.11 Vercel deploy** | High | Follow `docs/vercel-deploy.md` — production hosting + all env vars |
 | **Phase 7 — Onboarding** | Medium | Invite ~10 users, demo walkthrough, quota monitoring |
 | **14-day pipeline uptime** | Low | Verify consecutive `pipeline_runs` successes |
 | **Remove `embed_gemini.py`** or integrate | Low | Experimental; RAG uses MiniLM only |
@@ -976,7 +975,15 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 5. **Chat UX** — `ChatLoadingBubble` (3-step progress), `ChatErrorPanel` (quota/retry/providers tried)
 6. **SQL fix** — `005_hybrid_search.sql` uses `double precision` (fixes RPC type mismatch)
 7. **Model update** — `gemini-3.6-flash` primary (replaces deprecated `gemini-2.0-flash`)
-8. **Tests** — 77 dashboard tests; `llm-client.test.ts`, `errors.test.ts`
+8. **Tests** — 80 dashboard tests; `llm-client.test.ts`, `errors.test.ts`, `ThemeToggle.test.tsx`, `error.test.tsx`
+
+### Session 3 — Phase 6 polish + deploy prep
+
+1. **Error boundaries** — `error.tsx`, `global-error.tsx`, `not-found.tsx`, `loading.tsx`
+2. **Loading skeletons** — `DigestFeedSkeleton` on archive + route-level loading
+3. **Theme toggle** — `ThemeToggle` in navbar (`AppNav`) and user menu dropdown
+4. **Vercel config** — `dashboard/vercel.json` (60s API timeout), `docs/vercel-deploy.md` checklist
+5. **Tests** — 80 dashboard tests pass; production build verified
 
 ### Auth bugs fixed
 

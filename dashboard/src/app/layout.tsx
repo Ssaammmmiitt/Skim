@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -18,13 +15,14 @@ export const metadata: Metadata = {
   description: "Agentic tech news digest dashboard",
 };
 
-const themeInitScript = `(function(){try{var t=localStorage.getItem('skim-dashboard-theme')||'dark';var r=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.dataset.theme=r;}catch(e){document.documentElement.classList.add('dark');}})();`;
+const themeInitScript = `(function(){try{var t=localStorage.getItem('skim-dashboard-theme')||'light';var r=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.dataset.theme=r;}catch(e){document.documentElement.classList.add('light');}})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full dark`}
+      data-scroll-behavior="smooth"
+      className={`${inter.variable} h-full light`}
       suppressHydrationWarning
     >
       <head>

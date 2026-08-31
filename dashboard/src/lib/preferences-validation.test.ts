@@ -33,6 +33,6 @@ describe("validatePreferences", () => {
     expect(result.theme).toBe("cyan");
     expect(result.format).toBe("full");
     expect(result.max_stories).toBe(12);
-    expect(result.dashboard_theme).toBe("dark");
+    expect(result.dashboard_theme).toBe("light");
   });
 });

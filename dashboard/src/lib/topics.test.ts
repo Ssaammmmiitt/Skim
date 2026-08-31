@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { topicClass, topicLabel } from "@/lib/topics";
+import { BADGE_CHIP_CLASS, topicClass, topicLabel } from "@/lib/topics";
 
 describe("topics", () => {
   it("maps known topic ids to labels", () => {
@@ -15,14 +15,8 @@ describe("topics", () => {
     expect(topicLabel(null)).toBe("Other");
   });
 
-  it("returns distinct Tailwind classes per topic", () => {
-    const ai = topicClass("ai_ml");
-    const web = topicClass("web_dev");
-    expect(ai).not.toBe(web);
-    expect(ai).toContain("bg-topic-ai");
-  });
-
-  it("uses default classes for unknown topics", () => {
-    expect(topicClass("unknown")).toBe("bg-surface-raised text-secondary");
+  it("uses unified badge-chip classes for all topics", () => {
+    expect(topicClass("ai_ml")).toBe(BADGE_CHIP_CLASS);
+    expect(topicClass("web_dev")).toBe(BADGE_CHIP_CLASS);
   });
 });

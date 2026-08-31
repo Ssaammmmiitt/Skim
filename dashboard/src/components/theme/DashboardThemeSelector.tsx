@@ -6,7 +6,6 @@ import { useDashboardTheme } from "@/components/theme/ThemeProvider";
 import { cn } from "@/lib/cn";
 
 type DashboardThemeSelectorProps = {
-  /** When true, changes apply immediately via ThemeProvider */
   live?: boolean;
   value?: DashboardTheme;
   onChange?: (theme: DashboardTheme) => void;
@@ -18,7 +17,7 @@ export function DashboardThemeSelector({
   onChange,
 }: DashboardThemeSelectorProps) {
   const context = live ? useDashboardTheme() : null;
-  const current = live ? context!.theme : value ?? "dark";
+  const current = live ? context!.theme : value ?? "light";
 
   function select(theme: DashboardTheme) {
     if (live) {
@@ -39,23 +38,23 @@ export function DashboardThemeSelector({
             type="button"
             onClick={() => select(key)}
             className={cn(
-              "rounded-card border p-4 text-left transition",
+              "skim-card rounded-card border p-4 text-left transition",
               selected
-                ? "border-cyan-core bg-cyan-muted"
-                : "border-surface-raised bg-surface hover:border-cyan-deep"
+                ? "border-primary ring-1 ring-primary"
+                : "border-surface-raised hover:border-primary/50"
             )}
           >
             <div
               className={cn(
-                "mb-3 h-16 rounded-lg border border-surface-raised",
-                key === "light" && "bg-[#f8fafc]",
-                key === "dark" && "bg-[#0f1419]",
+                "mb-3 h-16 rounded-sm border border-surface-raised",
+                key === "light" && "bg-white",
+                key === "dark" && "bg-[#25282b]",
                 key === "system" &&
-                  "bg-gradient-to-r from-[#f8fafc] via-[#94a3b8] to-[#0f1419]"
+                  "bg-gradient-to-r from-white via-[#bebebe] to-[#25282b]"
               )}
             />
-            <p className="font-medium text-foreground">{meta.label}</p>
-            <p className="mt-1 text-xs text-secondary">{meta.description}</p>
+            <p className="font-bold text-foreground">{meta.label}</p>
+            <p className="mt-1 text-sm text-body">{meta.description}</p>
           </button>
         );
       })}

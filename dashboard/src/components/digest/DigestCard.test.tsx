@@ -7,7 +7,7 @@ describe("DigestCard", () => {
   it("renders rank, title, source, and links", () => {
     render(<DigestCard article={sampleArticle} rank={1} />);
 
-    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
     expect(screen.getByText(sampleArticle.title)).toBeInTheDocument();
     expect(screen.getByText("TechCrunch")).toBeInTheDocument();
     expect(screen.getByText(sampleArticle.key_takeaway!)).toBeInTheDocument();

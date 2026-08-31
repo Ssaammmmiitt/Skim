@@ -10,6 +10,10 @@ vi.mock("@/components/ui/SearchBar", () => ({
   SearchBar: () => <input aria-label="Search articles" />,
 }));
 
+vi.mock("@/components/layout/ThemeToggle", () => ({
+  ThemeToggle: () => <div aria-label="Theme toggle" />,
+}));
+
 const profile = {
   email: "admin@example.com",
   display_name: "Admin",
@@ -22,9 +26,11 @@ describe("AppNav", () => {
   it("highlights the active route and shows admin link", () => {
     render(<AppNav profile={profile} />);
 
-    const archiveLink = screen.getByRole("link", { name: "Archive" });
-    expect(archiveLink).toHaveAttribute("aria-current", "page");
+    const archiveLinks = screen.getAllByRole("link", { name: "Archive" });
+    expect(
+      archiveLinks.some((link) => link.getAttribute("aria-current") === "page")
+    ).toBe(true);
     expect(screen.getAllByRole("link", { name: "Admin" }).length).toBeGreaterThan(0);
-    expect(screen.getByLabelText("Search articles")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Search articles").length).toBeGreaterThan(0);
   });
 });

@@ -32,8 +32,8 @@ export function EmailThemePreview({
       className={cn(
         "w-full rounded-card border p-3 text-left transition",
         selected
-          ? "border-cyan-core ring-1 ring-cyan-core"
-          : "border-surface-raised hover:border-cyan-deep"
+          ? "border-primary ring-1 ring-primary"
+          : "border-surface-raised hover:border-primary/50"
       )}
     >
       <div

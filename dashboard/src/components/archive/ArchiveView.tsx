@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { DatePicker } from "@/components/archive/DatePicker";
 import { DigestFeed } from "@/components/digest/DigestFeed";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DigestFeedSkeleton } from "@/components/ui/DigestFeedSkeleton";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { todayUtc } from "@/lib/digests";
 import type { DigestResponse } from "@/lib/types";
 
@@ -80,7 +80,7 @@ export function ArchiveView({
         onChange={handleDateChange}
       />
 
-      {loading ? <LoadingSpinner label="Loading digest…" /> : null}
+      {loading ? <DigestFeedSkeleton cards={4} /> : null}
 
       {error ? <ErrorAlert message={error} /> : null}
 

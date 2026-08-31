@@ -15,7 +15,7 @@ export async function AppShell({ children }: AppShellProps) {
   } = await supabase.auth.getUser();
 
   let profile: NavProfile | null = null;
-  let dashboardTheme: DashboardTheme = "dark";
+  let dashboardTheme: DashboardTheme = "light";
 
   if (user) {
     const [profileResult, prefsResult] = await Promise.all([

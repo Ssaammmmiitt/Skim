@@ -54,7 +54,7 @@ describe("DigestPreferenceForm", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "AI / ML" }));
-    await user.click(screen.getByRole("button", { name: "Save all preferences" }));
+    await user.click(screen.getByRole("button", { name: "Save preferences" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith("/api/settings/preferences", {

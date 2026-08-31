@@ -29,7 +29,7 @@ export default async function SettingsPage() {
           topic_filters: preferences?.topic_filters ?? [],
           email_enabled: preferences?.email_enabled ?? true,
           dashboard_theme: normalizeDashboardTheme(
-            preferences?.dashboard_theme ?? "dark"
+            preferences?.dashboard_theme ?? "light"
           ),
         }}
       />

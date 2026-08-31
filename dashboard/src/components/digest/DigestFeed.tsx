@@ -72,12 +72,10 @@ export function DigestFeed({ digest, isToday = false }: DigestFeedProps) {
         </div>
       </div>
 
-      <div className="skim-timeline">
-        <div className="flex flex-col gap-4">
-          {digest.articles.map((article, index) => (
-            <DigestCard key={article.id} article={article} rank={index + 1} />
-          ))}
-        </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {digest.articles.map((article, index) => (
+          <DigestCard key={article.id} article={article} rank={index + 1} />
+        ))}
       </div>
     </div>
   );

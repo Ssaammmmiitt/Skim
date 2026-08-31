@@ -33,62 +33,59 @@ type DigestCardProps = {
 
 export function DigestCard({ article, rank }: DigestCardProps) {
   return (
-    <article className="group relative pl-12">
-      <div className="skim-timeline-rank" aria-hidden>
-        {rank}
+    <article className="group skim-card-interactive flex h-full flex-col p-4 sm:p-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="skim-meta">#{rank}</span>
+        <TopicBadge topic={article.topic} />
+        <span className="skim-meta">{formatSource(article.source)}</span>
+        {article.published_at ? (
+          <span className="skim-meta">· {timeAgo(article.published_at)}</span>
+        ) : null}
       </div>
 
-      <div className="skim-card-interactive p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <TopicBadge topic={article.topic} />
-          <span className="skim-meta">{formatSource(article.source)}</span>
-          {article.published_at ? (
-            <span className="skim-meta">· {timeAgo(article.published_at)}</span>
-          ) : null}
-        </div>
+      <h2 className="skim-subheading mt-3 transition-colors group-hover:text-primary">
+        <Link
+          href={article.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:underline"
+        >
+          {article.title}
+        </Link>
+      </h2>
 
-        <h2 className="skim-subheading mt-3 transition-colors group-hover:text-cyan-glow">
-          <Link
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            {article.title}
-          </Link>
-        </h2>
+      {article.key_takeaway ? (
+        <p className="mt-2 text-base font-semibold text-foreground">
+          {article.key_takeaway}
+        </p>
+      ) : null}
 
-        {article.key_takeaway ? (
-          <p className="mt-2 text-sm font-medium text-subtle">
-            {article.key_takeaway}
-          </p>
+      {article.insight ? (
+        <p className="mt-3 flex-1 text-base leading-relaxed text-body">
+          {article.insight}
+        </p>
+      ) : article.summary ? (
+        <p className="mt-3 flex-1 text-base leading-relaxed text-body">
+          {article.summary}
+        </p>
+      ) : (
+        <div className="flex-1" />
+      )}
+
+      <div className="mt-4 flex items-center justify-between gap-4 border-t border-surface-raised pt-4">
+        <Link
+          href={article.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="skim-link"
+        >
+          Read story →
+        </Link>
+        {article.importance_score != null ? (
+          <span className="skim-meta">
+            Score {article.importance_score.toFixed(1)}
+          </span>
         ) : null}
-
-        {article.insight ? (
-          <p className="mt-3 text-sm leading-relaxed text-secondary">
-            {article.insight}
-          </p>
-        ) : article.summary ? (
-          <p className="mt-3 text-sm leading-relaxed text-secondary">
-            {article.summary}
-          </p>
-        ) : null}
-
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <Link
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="skim-link"
-          >
-            Read more →
-          </Link>
-          {article.importance_score != null ? (
-            <span className="skim-meta">
-              Score {article.importance_score.toFixed(1)}
-            </span>
-          ) : null}
-        </div>
       </div>
     </article>
   );

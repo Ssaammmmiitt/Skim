@@ -133,15 +133,34 @@ Sign up (Google or email OTP)
 
 Unauthenticated requests return `401`. Pending users receive `403` on all API routes.
 
-## Design
+## Design (Task 6.10)
 
-UI follows [`Design.md`](./Design.md) — Skim cyan theme with **light / dark / system** modes. Theme preference is stored in `user_digest_preferences.dashboard_theme` and synced via `ThemeProvider`.
+Styling uses **Tailwind CSS v4** + **shadcn/ui** primitives (`Button`, `Card`, `Input`) on top of Skim design tokens.
+
+| Concern | Implementation |
+|---|---|
+| **Styles** | `src/styles/globals.css` (tokens, `skim-*` components, shadcn CSS variables) |
+| **Config** | `tailwind.config.ts` — content paths; breakpoints in CSS `@theme` |
+| **Typography** | [Inter](https://fonts.google.com/specimen/Inter) (UI) + JetBrains Mono (labels/meta) |
+| **Dark mode** | `html.light` / `html.dark` classes; system preference via `ThemeProvider` + inline boot script |
+| **Theme toggle** | Navbar (tablet+) + user menu + mobile nav drawer |
+| **Cards** | `skim-card`, `skim-card-interactive`, shadcn `Card` for composable layouts |
+| **Breakpoints** | Mobile `<768px` · Tablet `md` (768px) · Desktop `2xl` (1440px) |
+
+### Responsive test checklist
+
+1. Open each page at **375px**, **768px**, and **1440px** (browser devtools).
+2. Confirm nav collapses to hamburger on mobile; search moves into mobile drawer.
+3. Toggle **light / dark / system** in navbar or user menu — no flash, colors update.
+4. Digest cards use card layout with readable typography at all widths.
+
+Full design spec: [`Design.md`](./Design.md). Theme preference is stored in `user_digest_preferences.dashboard_theme` and synced via `ThemeProvider`.
 
 ## Tests
 
 ```bash
 cd dashboard
-npm test          # run once (77 tests)
+npm test          # run once
 npm run test:watch  # watch mode
 ```
 

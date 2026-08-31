@@ -6,13 +6,13 @@ export const DASHBOARD_THEMES: Record<
   DashboardTheme,
   { label: string; description: string }
 > = {
-  dark: {
-    label: "Dark",
-    description: "Skim brand — near-black canvas with cyan accents",
-  },
   light: {
     label: "Light",
-    description: "Clean light surfaces for bright environments",
+    description: "White canvas band with ink text — default Vodafone rhythm",
+  },
+  dark: {
+    label: "Dark",
+    description: "Ink surfaces with light text across the dashboard",
   },
   system: {
     label: "System",
@@ -26,7 +26,7 @@ export function normalizeDashboardTheme(value: unknown): DashboardTheme {
   if (value === "light" || value === "dark" || value === "system") {
     return value;
   }
-  return "dark";
+  return "light";
 }
 
 export function resolveDashboardTheme(theme: DashboardTheme): "light" | "dark" {

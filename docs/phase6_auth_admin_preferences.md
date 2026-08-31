@@ -138,7 +138,7 @@ GEMINI_MODEL=gemini-3.6-flash
 
 ### 6. Vercel
 
-Add the same env vars. Redeploy after changes.
+Add the same env vars. Redeploy after changes. Full checklist: [`docs/vercel-deploy.md`](../vercel-deploy.md).
 
 ### 7. Verify end-to-end
 

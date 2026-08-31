@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-type PageSize = "sm" | "md" | "lg";
+type PageSize = "sm" | "md" | "lg" | "xl";
 
 type PageContainerProps = {
   children: ReactNode;
@@ -11,19 +11,20 @@ type PageContainerProps = {
 
 const SIZE_CLASS: Record<PageSize, string> = {
   sm: "max-w-2xl",
-  md: "max-w-3xl",
-  lg: "max-w-4xl",
+  md: "max-w-4xl",
+  lg: "max-w-6xl",
+  xl: "max-w-7xl",
 };
 
 export function PageContainer({
   children,
-  size = "md",
+  size = "lg",
   className,
 }: PageContainerProps) {
   return (
     <div
       className={cn(
-        "mx-auto px-4 py-8 sm:py-10",
+        "mx-auto w-full px-4 py-8 sm:px-6 sm:py-10 md:px-8 2xl:px-12",
         SIZE_CLASS[size],
         className
       )}

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { shouldShowNav } from "@/lib/nav";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import type { DashboardTheme } from "@/lib/auth/types";
+import { AppFooter } from "./AppFooter";
 import { AppNav } from "./AppNav";
 import type { NavProfile } from "./UserMenu";
 
@@ -26,7 +27,8 @@ export function AppShellClient({
       {showNav ? (
         <>
           <AppNav profile={profile} />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 bg-canvas">{children}</main>
+          <AppFooter />
         </>
       ) : (
         children

@@ -16,8 +16,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 function modeTabClass(active: boolean) {
   return cn(
-    "flex-1 rounded-pill py-2 text-sm font-medium transition",
-    active ? "bg-cyan-core text-black" : "text-secondary"
+    "flex-1 rounded-pill-lg py-2 text-base font-semibold transition",
+    active ? "bg-primary text-on-primary" : "text-body"
   );
 }
 
@@ -107,12 +107,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
-      <div className="skim-card w-full max-w-md p-8">
-        <p className="skim-eyebrow">Skim</p>
-        <h1 className="skim-heading mt-2">
+    <div className="flex min-h-screen flex-col bg-canvas">
+      <div className="skim-hero-band">
+        <p className="skim-eyebrow text-on-primary">Welcome</p>
+        <h1 className="skim-heading mt-3 text-on-dark">
           {mode === "signup" ? "Create account" : "Sign in"}
         </h1>
+      </div>
+      <div className="flex flex-1 items-start justify-center px-4 py-10 sm:px-8">
+      <div className="skim-card w-full max-w-md border border-surface-raised p-8">
         <p className="mt-2 skim-body">
           {mode === "signup"
             ? "Register with email OTP or Google. New accounts need admin approval."
@@ -198,6 +201,7 @@ export default function LoginPage() {
         )}
 
         {message ? <p className="mt-4 skim-success">{message}</p> : null}
+      </div>
       </div>
     </div>
   );
