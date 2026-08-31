@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireActiveUser } from "@/lib/auth/require-active-user";
 import { ChatLlmError } from "@/lib/chat/errors";
-import { generateChatAnswer } from "@/lib/chat/llm-client";
 import {
   CHAT_DAILY_LIMIT,
   checkChatRateLimit,
   getChatUsage,
   incrementChatUsage,
 } from "@/lib/chat/rate-limit";
-import { hybridRetrieve } from "@/lib/retrieval";
 import type { ChatSource } from "@/lib/types";
 
 type ChatHistoryItem = {
@@ -19,15 +17,28 @@ type ChatHistoryItem = {
 const RETRIEVAL_LIMIT = 8;
 
 export async function GET() {
-  const auth = await requireActiveUser();
-  if (!auth.ok) return auth.response;
+  try {
+    const auth = await requireActiveUser();
+    if (!auth.ok) return auth.response;
 
-  const used = await getChatUsage(auth.ctx.user.id);
-  return NextResponse.json({
-    limit: CHAT_DAILY_LIMIT,
-    used,
-    remaining: Math.max(0, CHAT_DAILY_LIMIT - used),
-  });
+    const used = await getChatUsage(auth.ctx.user.id);
+    return NextResponse.json({
+      limit: CHAT_DAILY_LIMIT,
+      used,
+      remaining: Math.max(0, CHAT_DAILY_LIMIT - used),
+    });
+  } catch (error) {
+    const details = error instanceof Error ? error.message : "Chat quota check failed";
+    console.error("GET /api/chat failed:", details);
+    return NextResponse.json(
+      {
+        error: "Chat is temporarily unavailable. Check server configuration.",
+        error_code: "config",
+        details,
+      },
+      { status: 503 }
+    );
+  }
 }
 
 export async function POST(request: Request) {
@@ -65,6 +76,9 @@ export async function POST(request: Request) {
   );
 
   try {
+    const { hybridRetrieve } = await import("@/lib/retrieval");
+    const { generateChatAnswer } = await import("@/lib/chat/llm-client");
+
     const articles = await hybridRetrieve(auth.ctx.supabase, message, {
       limit: RETRIEVAL_LIMIT,
       history,
@@ -75,7 +89,15 @@ export async function POST(request: Request) {
       articles,
       history
     );
-    await incrementChatUsage(auth.ctx.user.id);
+
+    try {
+      await incrementChatUsage(auth.ctx.user.id);
+    } catch (usageErr) {
+      console.warn(
+        "Failed to increment chat usage:",
+        usageErr instanceof Error ? usageErr.message : usageErr
+      );
+    }
 
     const used = rate.used + 1;
     const sources: ChatSource[] = articles.map((article) => ({
@@ -106,6 +128,7 @@ export async function POST(request: Request) {
     }
     const errMessage =
       error instanceof Error ? error.message : "Failed to generate answer";
+    console.error("POST /api/chat failed:", errMessage);
     return NextResponse.json(
       {
         error: "Something went wrong while generating an answer.",

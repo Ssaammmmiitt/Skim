@@ -1,3 +1,5 @@
+> **Note:** This document describes a **Vodafone** branding experiment. It is **not** the design system used by the Skim dashboard. For the actual Skim UI (cyan theme, dark/light modes), see [`dashboard/Design.md`](dashboard/Design.md).
+
 ## Overview
 
 Vodafone is a global telecom super-brand and its web surface delivers exactly that posture: heroic editorial photography, occasionally cropping a portrait so tight only an eye line and a phone hand are visible, with a single colossal uppercase headline floating on top in the brand's proprietary heavy display weight. The page reads like a campaign poster more than a corporate site, then breaks into a calmer content rhythm of light-canvas story cards and a single red marker (the iconic speechmark logo) drawing the eye to the brand's centre of gravity. There is no second accent colour competing — the entire decorative palette is `{colors.primary}` Vodafone red, near-black `{colors.ink}`, and the surrounding white and grayscale neutrals.

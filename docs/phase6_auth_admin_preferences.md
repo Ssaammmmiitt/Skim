@@ -57,7 +57,7 @@ Shown when `profiles.status` is `pending` or `rejected`.
 | **Contact admin** button | Opens email to admin with pre-filled access request |
 | Sign out | Return to `/login` |
 
-Middleware blocks `/`, `/archive`, `/chat`, `/settings`, and all APIs until `status = active`.
+Middleware blocks `/`, `/archive`, `/chat`, `/search`, `/settings`, and all APIs until `status = active`.
 
 ### E. Admin approval
 
@@ -113,8 +113,8 @@ Run in Supabase SQL Editor **in order**:
 
 | Setting | Value |
 |---|---|
-| Site URL | `https://your-app.vercel.app` (or `http://localhost:3000` for dev) |
-| Redirect URLs | `.../auth/callback`, `.../auth/complete`, `http://localhost:3000/auth/callback`, `http://localhost:3000/auth/complete` |
+| Site URL | `https://skim-azure.vercel.app` (or `http://localhost:3000` for dev) |
+| Redirect URLs | `https://skim-azure.vercel.app/auth/callback`, `https://skim-azure.vercel.app/auth/complete`, plus localhost URLs |
 
 ### 5. Dashboard environment variables
 
@@ -131,9 +131,16 @@ MAILTRAP_API_TOKEN=...
 MAILTRAP_SENDER_EMAIL=digest@yourdomain.com
 MAILTRAP_SENDER_NAME=Skim
 
-# Chat RAG (Gemini LLM + hybrid retrieval)
-GEMINI_API_KEYS=your-key-here
+# Chat RAG (required for /chat on Vercel)
+GEMINI_API_KEYS=key1,key2,...
+GROQ_API_KEYS=gsk_...,gsk_...
+HF_TOKEN=hf_...                    # Required on Vercel for query embeddings
 GEMINI_MODEL=gemini-3.6-flash
+GEMINI_FALLBACK_MODELS=gemini-2.0-flash,gemini-3.5-flash-lite
+
+# Server-only
+SUPABASE_SECRET_KEY=...
+NEXT_PUBLIC_SITE_URL=https://skim-azure.vercel.app
 ```
 
 ### 6. Vercel
@@ -148,6 +155,9 @@ Add the same env vars. Redeploy after changes. Full checklist: [`docs/vercel-dep
 - [ ] Email sign-in (approved user) → dashboard
 - [ ] Admin receives signup notification email
 - [ ] Admin approves test user → user reaches dashboard + digest list
+- [ ] `/search?q=AI` returns hybrid results
+- [ ] `/chat` sends a question and returns cited answer (set `HF_TOKEN` on Vercel)
+- [ ] `/settings` — theme toggle, email preview, save preferences
 
 ---
 

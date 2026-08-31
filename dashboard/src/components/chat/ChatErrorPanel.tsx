@@ -63,7 +63,10 @@ export function ChatErrorPanel({ error, onRetry, className }: ChatErrorPanelProp
             </details>
           ) : null}
 
-          {error.details && process.env.NODE_ENV === "development" ? (
+          {error.details &&
+          (process.env.NODE_ENV === "development" ||
+            error.error_code === "config" ||
+            error.error_code === "unknown") ? (
             <p className="mt-2 break-all font-mono text-[10px] text-muted">
               {error.details.slice(0, 280)}
               {error.details.length > 280 ? "…" : ""}

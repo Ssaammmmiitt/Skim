@@ -2,6 +2,8 @@
 
 Next.js app for browsing digests, hybrid search, multi-provider RAG chat, and per-user preferences. **All routes require admin approval** except `/login` and `/pending`.
 
+**Production:** [https://skim-azure.vercel.app](https://skim-azure.vercel.app)
+
 ## Auth model
 
 | Method | Use case | After success |
@@ -10,7 +12,8 @@ Next.js app for browsing digests, hybrid search, multi-provider RAG chat, and pe
 | **Email OTP (Sign up)** | New account registration only | Wait page until admin approves |
 | **Email OTP (Sign in)** | Returning approved users | Dashboard (or wait page if still pending) |
 
-Full setup guide: [`docs/phase6_auth_admin_preferences.md`](../docs/phase6_auth_admin_preferences.md)
+Full setup guide: [`docs/phase6_auth_admin_preferences.md`](../docs/phase6_auth_admin_preferences.md)  
+Deploy guide: [`docs/vercel-deploy.md`](../docs/vercel-deploy.md)
 
 ## Prerequisites
 
@@ -21,7 +24,7 @@ Full setup guide: [`docs/phase6_auth_admin_preferences.md`](../docs/phase6_auth_
 
 **SQL order:** `schema.sql` → `002` → `003` → `004_search_fts.sql` → `005_hybrid_search.sql` → `006_dashboard_theme.sql`
 
-> **Important:** Re-run `sql/005_hybrid_search.sql` if you see `Hybrid RPC unavailable` in logs. The latest version uses `double precision` return types to fix Postgres type mismatches.
+> **Important:** Re-run `sql/005_hybrid_search.sql` if you see `Hybrid RPC unavailable` in logs. The latest version uses `double precision` return types.
 
 ## Local development
 
@@ -43,6 +46,7 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 | `SUPABASE_SECRET_KEY` | Yes | Service role key for profile sync + admin API |
 | `SKIM_SUPERUSER_EMAIL` | Yes | Your email — auto-approved as superuser |
 | `SKIM_ADMIN_CONTACT_EMAIL` | Yes | Email on wait page + signup alert recipient |
+| `NEXT_PUBLIC_SITE_URL` | Recommended | Public URL (admin alert links) |
 | `MAILTRAP_API_TOKEN` | For alerts | Sends admin email on new signup |
 | `MAILTRAP_SENDER_EMAIL` | For alerts | Verified sender address |
 | `MAILTRAP_SENDER_NAME` | No | Default: `Skim` |
@@ -51,14 +55,17 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 | `GEMINI_FALLBACK_MODELS` | No | Default: `gemini-2.0-flash,gemini-3.5-flash-lite` |
 | `GROQ_API_KEYS` | For chat fallback | Comma-separated Groq keys (last resort) |
 | `GROQ_MODEL` | No | Default: `openai/gpt-oss-120b` |
+| `HF_TOKEN` | **Vercel chat** | Hugging Face token — **required on Vercel** for query embeddings |
+| `SKIM_EMBEDDING_MODE` | No | `hf` \| `local` \| `off` (auto: `hf` on Vercel, `local` locally) |
 
-Query embeddings run locally via `@xenova/transformers` (MiniLM) — no extra API key needed.
+**Local dev:** query embeddings use `@xenova/transformers` (MiniLM).  
+**Vercel:** uses Hugging Face Inference API — set `HF_TOKEN` (same token as pipeline).
 
 ## Hybrid RAG retrieval
 
 Search and chat share the same retrieval stack:
 
-1. **Query embedding** — `all-MiniLM-L6-v2` (384-dim, same model as the pipeline) via `@xenova/transformers`
+1. **Query embedding** — `all-MiniLM-L6-v2` (384-dim, same model as the pipeline)
 2. **Vector search** — pgvector cosine similarity on `articles.embedding`
 3. **Keyword search** — Postgres FTS (`search_vector`) with `websearch_to_tsquery`
 4. **Fusion** — Reciprocal Rank Fusion (RRF, k=60) with vector weight 0.55 / FTS weight 0.45
@@ -79,6 +86,7 @@ Gemini primary model (gemini-3.6-flash)
 ```
 
 The chat UI shows:
+- **Scrollable message area** with fixed input bar (no mobile overflow)
 - **Animated loading** — embed → search → generate steps
 - **Provider badge** on answers (`gemini · gemini-3.6-flash` or `groq · …`)
 - **Structured errors** — quota/rate-limit messages, providers tried, retry button
@@ -135,33 +143,58 @@ Unauthenticated requests return `401`. Pending users receive `403` on all API ro
 
 ## Design (Task 6.10)
 
-Styling uses **Tailwind CSS v4** + **shadcn/ui** primitives (`Button`, `Card`, `Input`) on top of Skim design tokens.
+Styling uses **Tailwind CSS v4** with Skim **cyan** design tokens and shadcn/ui primitives.
 
 | Concern | Implementation |
 |---|---|
-| **Styles** | `src/styles/globals.css` (tokens, `skim-*` components, shadcn CSS variables) |
-| **Config** | `tailwind.config.ts` — content paths; breakpoints in CSS `@theme` |
-| **Typography** | [Inter](https://fonts.google.com/specimen/Inter) (UI) + JetBrains Mono (labels/meta) |
-| **Dark mode** | `html.light` / `html.dark` classes; system preference via `ThemeProvider` + inline boot script |
-| **Theme toggle** | Navbar (tablet+) + user menu + mobile nav drawer |
-| **Cards** | `skim-card`, `skim-card-interactive`, shadcn `Card` for composable layouts |
-| **Breakpoints** | Mobile `<768px` · Tablet `md` (768px) · Desktop `2xl` (1440px) |
+| **Tokens** | `src/styles/globals.css` — CSS variables only (`--skim-cyan-core`, surfaces, text) |
+| **Components** | `src/lib/tailwind-ui.ts` — shared class strings (`btnPrimary`, `card`, `navLink`, etc.) |
+| **Config** | `tailwind.config.mjs` — content paths; theme extensions in CSS `@theme` |
+| **Typography** | [Inter](https://fonts.google.com/specimen/Inter) (UI) |
+| **Themes** | Light / dark / system via `html.light` / `html.dark`; default **dark** |
+| **Theme toggle** | Navbar + user menu + mobile drawer |
+| **Primary color** | Cyan `#06b6d4` — buttons, links, active nav, topic accents |
+| **Breakpoints** | Mobile `<768px` · Tablet `md` (768px) · Desktop `lg` (1024px)+ |
+
+### Layout notes
+
+- **Chat page:** full viewport height with `min-h-0` flex chain — messages scroll, input stays pinned
+- **Nav:** three-tier responsive (mobile drawer, tablet strip, desktop centered links)
+- **Footer:** hidden on `/chat` to maximize vertical space
 
 ### Responsive test checklist
 
-1. Open each page at **375px**, **768px**, and **1440px** (browser devtools).
-2. Confirm nav collapses to hamburger on mobile; search moves into mobile drawer.
-3. Toggle **light / dark / system** in navbar or user menu — no flash, colors update.
-4. Digest cards use card layout with readable typography at all widths.
+1. Open each page at **375px**, **768px**, and **1440px**.
+2. Confirm nav collapses to hamburger on mobile.
+3. Toggle **light / dark / system** — no flash, colors update.
+4. Chat: send a message — no horizontal/vertical overflow on mobile.
 
-Full design spec: [`Design.md`](./Design.md). Theme preference is stored in `user_digest_preferences.dashboard_theme` and synced via `ThemeProvider`.
+Full design spec: [`Design.md`](./Design.md). Theme preference stored in `user_digest_preferences.dashboard_theme`.
+
+## Deploy to Vercel
+
+1. Set **Root Directory** to `dashboard`
+2. Add all env vars from the table above (especially `HF_TOKEN` + `GEMINI_API_KEYS` for chat)
+3. Add Supabase redirect URLs for your Vercel domain
+4. Smoke test `/chat` after deploy
+
+See [`docs/vercel-deploy.md`](../docs/vercel-deploy.md).
 
 ## Tests
 
 ```bash
 cd dashboard
-npm test          # run once
-npm run test:watch  # watch mode
+npm test          # 81 tests, run once
+npm run test:watch
+npm run build     # production build
 ```
 
-Coverage includes components, hybrid retrieval, multi-provider LLM client, API routes, email preview, and preferences validation (Vitest + Testing Library).
+Coverage: components, hybrid retrieval, multi-provider LLM client, API routes, email preview, preferences, theme toggle.
+
+## Project docs
+
+| Document | Contents |
+|----------|----------|
+| [`progress.md`](../progress.md) | Complete serial progress (all phases) |
+| [`docs/report.md`](../docs/report.md) | Internal bug log, LLM config, deployment notes |
+| [`Design.md`](./Design.md) | Skim cyan design system spec |

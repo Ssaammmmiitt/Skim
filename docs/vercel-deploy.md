@@ -2,6 +2,8 @@
 
 Deploy the Next.js dashboard from the `dashboard/` directory. The Python pipeline stays on GitHub Actions — only the web app goes to Vercel.
 
+**Current production:** [https://skim-azure.vercel.app](https://skim-azure.vercel.app)
+
 ## Prerequisites
 
 - [ ] Supabase migrations applied through `sql/006_dashboard_theme.sql`
@@ -28,12 +30,13 @@ Set these in **Vercel → Project → Settings → Environment Variables** (Prod
 | `SUPABASE_SECRET_KEY` | Yes | Service role — server only |
 | `SKIM_SUPERUSER_EMAIL` | Yes | Auto-approved admin |
 | `SKIM_ADMIN_CONTACT_EMAIL` | Yes | Wait page + signup alerts |
-| `GEMINI_API_KEYS` | For chat | Comma-separated |
-| `GEMINI_FALLBACK_MODELS` | No | `gemini-2.0-flash,gemini-3.5-flash-lite` |
+| `GEMINI_API_KEYS` | For chat | Comma-separated (same as pipeline) |
 | `GROQ_API_KEYS` | For chat fallback | Comma-separated |
+| `HF_TOKEN` | For chat on Vercel | Hugging Face read token — **required** for query embeddings in production (local MiniLM does not run reliably on serverless) |
+| `GEMINI_FALLBACK_MODELS` | No | `gemini-2.0-flash,gemini-3.5-flash-lite` |
 | `MAILTRAP_API_TOKEN` | For alerts | Admin signup emails |
 | `MAILTRAP_SENDER_EMAIL` | For alerts | Verified sender |
-| `NEXT_PUBLIC_SITE_URL` | Recommended | `https://your-app.vercel.app` |
+| `NEXT_PUBLIC_SITE_URL` | Recommended | `https://skim-azure.vercel.app` |
 
 **Never** prefix Gemini/Groq keys with `NEXT_PUBLIC_`.
 
@@ -42,9 +45,11 @@ Set these in **Vercel → Project → Settings → Environment Variables** (Prod
 In **Supabase → Authentication → URL Configuration**, add:
 
 ```
-https://<your-vercel-domain>/auth/callback
-https://<your-vercel-domain>/auth/complete
+https://skim-azure.vercel.app/auth/callback
+https://skim-azure.vercel.app/auth/complete
 ```
+
+(Replace with your domain if different.)
 
 Keep localhost URLs for local dev:
 
@@ -69,7 +74,10 @@ Set **Site URL** to your production Vercel URL.
 
 ## 5. Chat / RAG on Vercel
 
-- First chat message may be slow (~10s) — cold start loads MiniLM via `@xenova/transformers`
+- Set **`GEMINI_API_KEYS`** (and optionally **`GROQ_API_KEYS`**) — without these chat returns 503, not a working answer
+- Set **`HF_TOKEN`** — query embeddings use the Hugging Face Inference API on Vercel (`SKIM_EMBEDDING_MODE` defaults to `hf` when `VERCEL` is set). Same token as the pipeline uses for model downloads
+- Optional: `SKIM_EMBEDDING_MODE=hf|local|off` — force embedding strategy (default: `hf` on Vercel, `local` locally)
+- First chat message may be slow (~10–30s) — cold start + HF model load
 - `vercel.json` sets API route `maxDuration: 60` for `/api/chat` and `/api/search`
 - Hobby plan: 10s default limit on some regions — upgrade or use Pro if chat times out
 

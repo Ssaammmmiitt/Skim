@@ -1,6 +1,6 @@
 # Skim — Complete Project Progress Report
 
-> **Last updated:** 2026-08-31  
+> **Last updated:** 2026-08-31 (Session 4 — UI refactor, Vercel deploy, chat fix)  
 > **Purpose:** Serial record of everything built, integrated, fixed, and planned — across all phases and this development session.  
 > **Audience:** Developers onboarding to the project or resuming work after a break.
 
@@ -40,13 +40,14 @@
 - A **Python pipeline** ingests Hacker News + RSS feeds daily, embeds articles locally, runs a 3-pass LLM agent (classify → insight → select), and emails personalized HTML digests.
 - A **Next.js 16 dashboard** provides Google OAuth + email OTP auth with admin approval, digest browsing, archive, settings, and **hybrid RAG chat** over the full article corpus.
 
-**Phases 0–5 (pipeline) are complete.** Phase 6 (dashboard + auth + RAG + themes) is **code-complete** — all pages, hybrid retrieval, multi-provider chat, settings/themes, error boundaries, and deploy config are built. **Remaining:** apply SQL migrations in Supabase and deploy to Vercel (see `docs/vercel-deploy.md`).
+**Phases 0–6 are complete.** Pipeline runs daily on GitHub Actions; dashboard is deployed to **Vercel** at [https://skim-azure.vercel.app](https://skim-azure.vercel.app). Phase 7 (onboarding, demo, uptime) is next.
 
 | Metric | Count |
 |--------|-------|
-| Pipeline unit tests | 148 (pytest) |
-| Dashboard unit tests | 80 (Vitest) |
-| **Total automated tests** | **228** |
+| Pipeline unit tests | 148+ (pytest) |
+| Dashboard unit tests | 81 (Vitest) |
+| **Total automated tests** | **229+** |
+| Production URL | `https://skim-azure.vercel.app` |
 | SQL migrations | 6 |
 | News sources | 5 (HN + 4 RSS) |
 | Email themes | 3 |
@@ -96,7 +97,8 @@
 | **6B — Hybrid RAG** | ✅ Done | MiniLM + FTS + RRF; re-run `sql/005` (double precision fix) in Supabase |
 | **6C — Preferences** | ✅ Done | Email theme/format, live preview, pipeline personalization |
 | **6E — Themes** | ✅ Done | Dashboard light/dark/system, `sql/006`, email preview API |
-| **6B — Deploy + polish** | ✅ Code complete | Error boundaries, skeletons, theme toggle; Vercel deploy docs ready |
+| **6B — Deploy + polish** | ✅ Done | Error boundaries, skeletons, theme toggle, cyan Tailwind refactor |
+| **6.11 — Vercel deploy** | ✅ Live | [skim-azure.vercel.app](https://skim-azure.vercel.app); chat embedding fix for serverless |
 | **7 — Go Live** | 📋 Planned | Onboard ~10 users, demo video, 14-day uptime check |
 
 ---
@@ -236,7 +238,7 @@
 
 ---
 
-### Phase 6 — Dashboard, Auth & RAG 🔄
+### Phase 6 — Dashboard, Auth & RAG ✅
 
 Phase 6 is split into sub-phases:
 
@@ -294,7 +296,7 @@ Phase 6 is split into sub-phases:
 | **6.8** SearchBar | ✅ | Navbar SearchBar + dedicated `/search` page |
 | **6.9** Settings | ✅ | `DigestPreferenceForm`, email preview, dashboard theme selector |
 | **6.10** Polish | ✅ | Error boundaries (`error.tsx`, `global-error.tsx`), `loading.tsx`, `not-found.tsx`, `DigestFeedSkeleton`, theme toggle in navbar + user menu |
-| **6.11** Vercel deploy | 📋 Ready | `vercel.json` + `docs/vercel-deploy.md` — user deploys + sets env vars |
+| **6.11** Vercel deploy | ✅ | Live at `https://skim-azure.vercel.app`; `vercel.json` + `docs/vercel-deploy.md` |
 
 #### Phase 6C — Per-User Digest Preferences ✅
 
@@ -328,7 +330,8 @@ User query (+ optional chat history)
             ▼
 ┌───────────────────────┐
 │ embedQuery            │  all-MiniLM-L6-v2 (384-dim)
-│ (chat/embeddings.ts)  │  @xenova/transformers — SAME model as pipeline
+│ (chat/embeddings.ts)  │  Local: @xenova/transformers (dynamic import)
+│                       │  Vercel: Hugging Face Inference API (HF_TOKEN)
 └───────────┬───────────┘
             ▼
 ┌───────────────────────────────────────────────────┐
@@ -384,7 +387,9 @@ If any step fails, retrieval degrades gracefully:
 | `dashboard/src/lib/retrieval.ts` | `hybridRetrieve()` orchestrator with full fallback chain |
 | `dashboard/src/lib/retrieval/query.ts` | `buildRetrievalQueries()` — conversational query expansion |
 | `dashboard/src/lib/retrieval/rrf.ts` | `reciprocalRankFusion()` + `boostByImportance()` |
-| `dashboard/src/lib/chat/embeddings.ts` | MiniLM query embedding (server-side) |
+| `dashboard/src/lib/chat/embeddings.ts` | MiniLM local / HF API on Vercel; `SKIM_EMBEDDING_MODE` |
+| `dashboard/src/lib/tailwind-ui.ts` | Shared Tailwind class strings (buttons, cards, nav, inputs) |
+| `dashboard/src/styles/globals.css` | Cyan design tokens only (no component CSS classes) |
 | `dashboard/src/lib/chat/llm-client.ts` | Multi-key Gemini rotation, model fallbacks, Groq failover |
 | `dashboard/src/lib/chat/prompt.ts` | System prompt + context building |
 | `dashboard/src/lib/chat/errors.ts` | `ChatLlmError`, quota/rate-limit parsing |
@@ -458,7 +463,9 @@ If any step fails, retrieval degrades gracefully:
 | **Chat 404 on Gemini** | `gemini-2.0-flash` deprecated; `.env` overrode default | Default → `gemini-3.6-flash`; update `GEMINI_MODEL` in `.env` | `chat/llm-client.ts`, `.env.example` |
 | **Chat 500 on quota** | Single Gemini key, no fallbacks | Multi-key rotation → fallback models → Groq (`groq-sdk`) | `chat/llm-client.ts` |
 | **Raw JSON errors in UI** | API returned unparsed Gemini error blobs | Structured `ChatLlmError` + `ChatErrorPanel` with retry | `chat/errors.ts`, `ChatInterface.tsx` |
-| **Slow search/chat** | Hybrid RPC failing → in-process RRF fallback | Re-run fixed `sql/005` in Supabase | Supabase migration |
+| **Chat 500 on Vercel** | `@xenova/transformers` crashes serverless | HF Inference API + dynamic imports; `HF_TOKEN` on Vercel | `embeddings.ts`, `route.ts` |
+| **Chat UI overflow** | Fixed viewport height without flex `min-h-0` | Full-height flex chain; footer hidden on `/chat` | `AppShellClient`, `ChatInterface` |
+| **Vodafone red theme** | Experimental rebrand | Reverted to cyan Skim tokens + Tailwind utilities | `globals.css`, `tailwind-ui.ts` |
 
 ### Pipeline Fixes (Phases 1–5) — Summary
 
@@ -558,6 +565,7 @@ flowchart TB
 3. sql/003_fix_profiles_rls.sql        — RLS recursion fix (if 002 already applied)
 4. sql/004_search_fts.sql              — search_vector tsvector + GIN index
 5. sql/005_hybrid_search.sql           — Hybrid RAG RPCs (vector + FTS + RRF)
+6. sql/006_dashboard_theme.sql         — dashboard_theme column on preferences
 ```
 
 ### Table Reference
@@ -625,70 +633,43 @@ pipeline/
 
 ```
 dashboard/
+├── vercel.json                 # API maxDuration 60s, region iad1
 ├── src/
 │   ├── middleware.ts           # Auth gate: public/pending/active/admin
+│   ├── styles/globals.css      # Cyan design tokens (CSS variables only)
 │   ├── app/
-│   │   ├── layout.tsx            # Root layout + AppNav
-│   │   ├── page.tsx              # Home — today's digest
-│   │   ├── login/page.tsx        # Google OAuth + email OTP
-│   │   ├── pending/page.tsx      # Wait page
-│   │   ├── admin/page.tsx        # User approval queue
-│   │   ├── settings/page.tsx     # Digest preferences
-│   │   ├── archive/page.tsx      # Past digests
-│   │   ├── chat/page.tsx         # RAG chat interface
-│   │   ├── supabase-test/page.tsx # Dev connectivity test
-│   │   ├── auth/
-│   │   │   ├── callback/route.ts  # OAuth/OTP callback
-│   │   │   ├── complete/route.ts  # Profile sync + admin notify
-│   │   │   └── signout/route.ts
-│   │   └── api/
-│   │       ├── digests/route.ts       # GET digest by date
-│   │       ├── digests/dates/route.ts # GET available dates
-│   │       ├── search/route.ts        # GET hybrid/keyword search
-│   │       ├── chat/route.ts          # GET quota, POST RAG Q&A
-│   │       ├── settings/preferences/route.ts  # GET/PUT preferences
-│   │       └── admin/users/route.ts   # GET pending, POST approve/reject
+│   │   ├── layout.tsx          # Inter font, theme boot script, AppShell
+│   │   ├── page.tsx            # Home — today's digest
+│   │   ├── error.tsx, global-error.tsx, loading.tsx, not-found.tsx
+│   │   ├── login/page.tsx      # Google OAuth + email OTP
+│   │   ├── pending/page.tsx    # Wait page
+│   │   ├── admin/page.tsx      # User approval queue
+│   │   ├── settings/page.tsx   # Digest + dashboard preferences
+│   │   ├── archive/page.tsx    # Past digests
+│   │   ├── chat/page.tsx       # RAG chat (full-height layout)
+│   │   ├── search/page.tsx     # Hybrid search results
+│   │   ├── auth/               # callback, complete, signout routes
+│   │   └── api/                # digests, search, chat, settings, admin
 │   ├── components/
-│   │   ├── AppNav.tsx            # Auth-aware navigation
-│   │   ├── DigestFeed.tsx        # StoryStream timeline
-│   │   ├── DigestCard.tsx        # Individual story card
-│   │   ├── ArchiveView.tsx       # Date picker + archived digest
-│   │   ├── DatePicker.tsx        # Calendar selector
-│   │   ├── ChatInterface.tsx     # Chat UI with history
-│   │   ├── ChatMessage.tsx       # User/assistant bubble
-│   │   ├── SourceCitation.tsx    # Source link + retrieval badges
-│   │   ├── TopicBadge.tsx        # Topic category pill
-│   │   ├── DigestPreferenceForm.tsx  # Settings form
-│   │   └── AdminPanel.tsx        # Pending user queue
-│   ├── lib/
-│   │   ├── auth/
-│   │   │   ├── require-active-user.ts  # API auth guard
-│   │   │   └── types.ts                # Profile, isAdmin()
-│   │   ├── supabase/
-│   │   │   ├── server.ts         # SSR client (cookies)
-│   │   │   ├── client.ts         # Browser client
-│   │   │   └── admin.ts          # Service role client
-│   │   ├── chat/
-│   │   │   ├── embeddings.ts     # MiniLM query embedding
-│   │   │   ├── gemini.ts         # LLM answer generation
-│   │   │   └── rate-limit.ts     # Daily chat quota
-│   │   ├── retrieval/
-│   │   │   ├── query.ts          # Conversational query building
-│   │   │   └── rrf.ts            # RRF fusion + importance boost
-│   │   ├── retrieval.ts          # hybridRetrieve() orchestrator
-│   │   ├── search.ts             # Keyword FTS/ILIKE search
-│   │   ├── digests.ts            # Digest fetch helpers
-│   │   ├── digest-preferences.ts # Preference validation
-│   │   ├── topics.ts             # Topic label mapping
-│   │   └── types.ts              # Shared TypeScript interfaces
-│   └── test/
-│       ├── fixtures.ts           # Test data
-│       └── mock-supabase.ts      # Supabase mocks
-├── Design.md                     # UI design system spec
-├── README.md                     # Dashboard setup guide
-├── next.config.ts                # serverExternalPackages for transformers
-├── vitest.config.ts              # Test configuration
-└── package.json                  # Dependencies incl. @xenova/transformers
+│   │   ├── layout/             # AppShell, AppNav, PageContainer, ThemeToggle, UserMenu
+│   │   ├── digest/             # DigestFeed, DigestCard, TopicBadge
+│   │   ├── chat/               # ChatInterface, ChatMessage, ChatErrorPanel, SourceCitation
+│   │   ├── search/             # SearchResults, SearchResultCard
+│   │   ├── settings/           # DigestPreferenceForm
+│   │   ├── theme/              # ThemeProvider, DashboardThemeSelector
+│   │   ├── admin/              # AdminPanel
+│   │   ├── archive/            # DatePicker
+│   │   └── ui/                 # Button, EmptyState, SearchBar, skeletons, ErrorAlert
+│   └── lib/
+│       ├── tailwind-ui.ts      # Shared Tailwind class strings
+│       ├── retrieval.ts        # hybridRetrieve orchestrator
+│       ├── retrieval/          # query.ts, rrf.ts
+│       ├── chat/               # embeddings, llm-client, errors, rate-limit, prompt
+│       ├── auth/               # require-active-user, types
+│       ├── supabase/           # server, client, admin
+│       └── dashboard-theme.ts  # Theme normalization
+├── Design.md                   # Skim cyan design system
+└── README.md                   # Dashboard setup + API reference
 ```
 
 ---
@@ -744,7 +725,7 @@ Additional endpoints:
 | `SearchResults` | `/search` | Result cards with retrieval metadata |
 | `AdminPanel` | `/admin` | Pending queue with approve/reject buttons |
 
-**Design system:** `dashboard/Design.md` — dark canvas `#0f1419`, cyan accents, Space Grotesk + DM Sans + JetBrains Mono.
+**Design system:** `dashboard/Design.md` — cyan accents (`#06b6d4`), dark default canvas `#0f1419`, light/dark/system themes. Implementation via `tailwind-ui.ts` + `globals.css` tokens (Inter UI font).
 
 ---
 
@@ -811,7 +792,7 @@ cd pipeline && pytest -m "not integration"
 | Resilience | `test_resilience.py`, `test_degradation.py` | Retry, fallback |
 | DB/Embed | `test_db.py`, `test_embed.py`, `test_search_rpc.py` | Connection, embeddings, RPC |
 
-### Dashboard — 80 unit tests (Vitest)
+### Dashboard — 81 unit tests (Vitest)
 
 ```bash
 cd dashboard && npm test
@@ -874,9 +855,11 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 | `GEMINI_FALLBACK_MODELS` | No | Default: `gemini-2.0-flash,gemini-3.5-flash-lite` |
 | `GROQ_API_KEYS` | For chat fallback | Comma-separated Groq keys |
 | `GROQ_MODEL` | No | Default: `openai/gpt-oss-120b` |
+| `HF_TOKEN` | For chat on Vercel | Hugging Face Inference API for query embeddings (required in production) |
+| `SKIM_EMBEDDING_MODE` | No | `hf` \| `local` \| `off` — auto `hf` when `VERCEL` is set |
 | `MAILTRAP_API_TOKEN` | For alerts | Admin signup notification emails |
 
-**Note:** Query embeddings run locally via `@xenova/transformers` — no extra API key needed.
+**Note:** Local dev uses `@xenova/transformers` for embeddings. Vercel uses HF Inference API — set `HF_TOKEN`.
 
 ---
 
@@ -914,12 +897,14 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 - [ ] Chat returns answers with sources
 - [ ] Search returns hybrid results
 
-### Production (pending)
+### Production
 
-- [ ] Vercel deploy with env vars
-- [ ] Run SQL migrations on production Supabase
-- [ ] Verify cron digest still runs
-- [ ] Onboard first users
+- [x] Vercel deploy at `https://skim-azure.vercel.app`
+- [ ] Set all Vercel env vars (`GEMINI_API_KEYS`, `HF_TOKEN`, Supabase keys)
+- [ ] Redeploy after chat embedding fix
+- [ ] Verify `/chat` returns answers (not 500)
+- [ ] Run SQL migrations on production Supabase if not done
+- [ ] Onboard first users (Phase 7)
 
 ---
 
@@ -927,9 +912,8 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 
 | Task | Priority | Notes |
 |------|----------|-------|
-| **Re-run `sql/005` in Supabase** | High | Fixes hybrid RPC type error; removes slow in-process fallback |
-| **Run `sql/006` in Supabase** | High | Dashboard theme column |
-| **6.11 Vercel deploy** | High | Follow `docs/vercel-deploy.md` — production hosting + all env vars |
+| **Redeploy chat embedding fix** | High | Push `embeddings.ts` + `route.ts`; set `HF_TOKEN` on Vercel |
+| **Verify production chat** | High | `GET/POST /api/chat` should not return 500 |
 | **Phase 7 — Onboarding** | Medium | Invite ~10 users, demo walkthrough, quota monitoring |
 | **14-day pipeline uptime** | Low | Verify consecutive `pipeline_runs` successes |
 | **Remove `embed_gemini.py`** or integrate | Low | Experimental; RAG uses MiniLM only |
@@ -952,7 +936,9 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 | Scheduler | GitHub Actions cron | Free, no server to maintain |
 | CI database | Supavisor pooler (6543) | IPv4-compatible; direct host is IPv6-only |
 | Vector index | HNSW (not ivfflat) | Works at any corpus size; ivfflat fails on small tables |
-| Testing | pytest + Vitest | 225 tests; integration tests deselected in CI |
+| Testing | pytest + Vitest | 229+ tests; integration tests deselected in CI |
+| UI styling | Tailwind v4 + `tailwind-ui.ts` | No static component CSS; responsive breakpoints |
+| Embeddings (Vercel) | HF Inference API | `@xenova/transformers` unreliable on serverless |
 
 ---
 
@@ -985,6 +971,16 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 4. **Vercel config** — `dashboard/vercel.json` (60s API timeout), `docs/vercel-deploy.md` checklist
 5. **Tests** — 80 dashboard tests pass; production build verified
 
+### Session 4 — UI refactor, Vercel deploy, production chat fix
+
+1. **Cyan theme restore** — removed Vodafone red experiment; cyan (`#06b6d4`) primary across dashboard
+2. **Tailwind refactor** — removed static `skim-*` CSS classes; shared utilities in `lib/tailwind-ui.ts`
+3. **Responsive layout** — chat overflow fix (`min-h-0` flex chain); mobile nav drawer; footer hidden on `/chat`
+4. **Vercel deployment** — live at `https://skim-azure.vercel.app`
+5. **Chat 500 fix** — HF Inference API for embeddings on Vercel; dynamic imports; `HF_TOKEN` required
+6. **Default theme** — dark dashboard theme; per-topic badge colors restored
+7. **Tests** — 81 dashboard tests pass; production build verified
+
 ### Auth bugs fixed
 
 | Bug | Fix |
@@ -996,15 +992,19 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 
 ### Key files (latest)
 
+- `dashboard/src/lib/tailwind-ui.ts` — shared Tailwind UI classes
+- `dashboard/src/styles/globals.css` — cyan design tokens
+- `dashboard/src/lib/chat/embeddings.ts` — MiniLM local / HF API on Vercel
 - `dashboard/src/lib/chat/llm-client.ts` — multi-provider answer generation
-- `dashboard/src/lib/chat/errors.ts` — structured LLM errors
-- `dashboard/src/components/chat/ChatErrorPanel.tsx`, `ChatLoadingBubble.tsx`
+- `dashboard/src/app/api/chat/route.ts` — RAG API with dynamic imports
+- `dashboard/src/components/chat/ChatInterface.tsx` — overflow-safe chat layout
 - `sql/005_hybrid_search.sql`, `sql/006_dashboard_theme.sql`
-- `dashboard/src/components/settings/DigestPreferenceForm.tsx` — email + dashboard themes
+- `docs/vercel-deploy.md` — production deploy checklist
 
-### Supabase project
+### Production
 
-- **Ref:** `eqedawnpptnbvraslqwv`
+- **URL:** https://skim-azure.vercel.app
+- **Supabase ref:** `eqedawnpptnbvraslqwv`
 - **Superuser:** `poudyal.sammit@gmail.com`
 
 ---
@@ -1016,8 +1016,10 @@ See `dashboard/.env.example` and `docs/phase6_auth_admin_preferences.md`.
 | Main README | `README.md` | Quick start, env vars, architecture |
 | Dashboard README | `dashboard/README.md` | Auth model, hybrid RAG, API table |
 | Phase 6 setup | `docs/phase6_auth_admin_preferences.md` | Auth flows, DB order, Supabase config |
-| Internal report | `docs/report.md` | LLM config, bug log, phase history (private) |
-| Design system | `dashboard/Design.md` | Colors, typography, components |
+| Internal report | `docs/report.md` | LLM config, bug log, Vercel chat fix, deployment |
+| Design system | `dashboard/Design.md` | Cyan tokens, Tailwind implementation |
+| Vodafone experiment | `design.md` | **Not** used by dashboard — reference only |
+| Vercel deploy | `docs/vercel-deploy.md` | Production checklist, env vars, smoke tests |
 | **This file** | `progress.md` | Complete serial progress report |
 
 ---

@@ -1,19 +1,21 @@
 # Skim Design System
 
+> **Implementation:** Tokens live in `src/styles/globals.css`. Component classes are composed in `src/lib/tailwind-ui.ts` (Tailwind utilities). Default theme is **dark**; light and system modes supported via `ThemeProvider`.
+
 ## 1. Visual Theme & Atmosphere
 
-Skim is a dark, editorial dashboard for a daily tech digest. The canvas is near-black (`#0f1419`), headlines are bold and condensed, and **cyan** is the through-line — accents, links, active states, and story highlights all live in the same electric family. Story tiles are rounded color blocks on a timeline feed, not quiet gray cards. The mood is **developer console meets morning briefing**: sharp, readable, and fast to scan.
+Skim is an editorial dashboard for a daily tech digest. The default experience is **dark** (`#0f1419` canvas) with **cyan** as the primary accent — CTAs, links, active states, and story highlights. A **light** theme (`#f1f5f9` canvas) is available via settings. Story tiles use rounded cards on a timeline feed. The mood is **developer console meets morning briefing**: sharp, readable, and fast to scan.
 
 The signature layout is the **StoryStream** timeline: a vertical feed where each item is a pill-cornered card on a dashed cyan rail, with mono-uppercase timestamps on the left. Above it, a bold **Skim** wordmark anchors the masthead. Depth comes from **1px borders and color**, not shadows.
 
 **Key characteristics**
-- Near-black canvas (`#0f1419`) — dark mode only
-- Cyan accent family (`#22d3ee` → `#0891b2`) for CTAs, links, borders, and highlights
-- Heavy display headlines (60–96px) for hero moments; UI stays in sans/mono
-- Pill cards: 16/20/24/32px corner radii
-- Saturated story tiles (cyan, teal, slate, white) on a dark page
-- StoryStream timeline with mono uppercase timestamps
-- Flat depth — 1px cyan or white borders instead of elevation shadows
+- Dark-default canvas (`#0f1419`) with optional light mode (`#f1f5f9`)
+- Cyan accent family (`#22d3ee` → `#0891b2`) for CTAs, links, borders, highlights
+- Inter for UI typography (replaces Space Grotesk/DM Sans in implementation)
+- Pill buttons and rounded cards (`rounded-2xl`, `rounded-full`)
+- Per-topic badge colors (`bg-topic-ai`, etc.)
+- Flat depth — 1px borders instead of shadows
+- Responsive: mobile drawer nav, tablet strip, desktop centered nav
 
 ## 2. Color Palette
 
@@ -206,22 +208,19 @@ No `box-shadow` for elevation. The single allowed shadow is `inset 0 -2px 0 #06b
 ## 7. Do's and Don'ts
 
 ### Do
-- Use `#0f1419` canvas everywhere — dark mode is the product
-- Lead with cyan: CTAs, links, kickers, active states, timeline rail
-- Round all containers (minimum `8px` radius)
-- Use JetBrains Mono UPPERCASE for labels and timestamps
-- Use color-block tiles to highlight top stories
-- Hover links to `#67e8f9`
-- Show pipeline health with semantic status badges
+- Use cyan for CTAs, links, kickers, active states (`#06b6d4` / `#22d3ee`)
+- Support both dark and light themes via CSS variables
+- Round all containers (minimum `8px` radius; pills `rounded-full`)
+- Use `tailwind-ui.ts` shared classes — avoid one-off static CSS
+- Hover links to `#67e8f9` (dark) or `#0891b2` (light)
+- Keep chat layout within viewport (`min-h-0` flex children)
 
 ### Don't
-- Use light backgrounds on the main dashboard
+- Use Vodafone red or ink tokens — Skim is cyan-branded
 - Add elevation shadows — use borders and cyan fills
-- Use square corners on cards or buttons
-- Use display font below 60px
-- Use lowercase mono
-- Wash the canvas in cyan — accents only, never full-page tint
-- Use gradients or glow blurs
+- Use square corners on cards or primary buttons
+- Wash the canvas in cyan — accents only
+- Import `@xenova/transformers` at module top level (breaks Vercel)
 
 ## 8. Responsive
 
@@ -264,3 +263,16 @@ Focus:        #1eaedb
 4. Cyan on accents only? → not as page wash
 5. Mono labels UPPERCASE with 1.1–1.8px tracking?
 6. Links hover to `#67e8f9`?
+
+## 10. Implementation Reference
+
+| File | Role |
+|------|------|
+| `src/styles/globals.css` | CSS variables for dark/light themes |
+| `src/lib/tailwind-ui.ts` | Composed Tailwind strings (`btnPrimary`, `card`, `navLink`, …) |
+| `src/lib/dashboard-theme.ts` | Theme metadata + normalization |
+| `src/components/theme/ThemeProvider.tsx` | DB + localStorage sync |
+| `tailwind.config.mjs` | Tailwind v4 config |
+| `src/app/layout.tsx` | Inter font, theme boot script |
+
+**Related:** [`README.md`](./README.md) · [`docs/vercel-deploy.md`](../docs/vercel-deploy.md) · [`progress.md`](../progress.md)
