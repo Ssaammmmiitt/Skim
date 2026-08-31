@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Skim logo">
+  <defs>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0f1419"/>
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="none" stroke="#164e63" stroke-width="4"/>
+  <text
+    x="256"
+    y="348"
+    font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="300"
+    font-weight="700"
+    fill="url(#glow)"
+    text-anchor="middle"
+  >S</text>
+</svg>

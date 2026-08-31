@@ -17,6 +17,7 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 ## Table of Contents
 
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Design Decisions](#design-decisions)
@@ -60,6 +61,58 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 | **Settings** | Email theme/format, dashboard light/dark/system, live preview |
 | **Admin** | Approve or reject pending signups |
 | **UX polish** | Per-route loading skeletons, error alerts with retry, empty states |
+
+---
+
+## Screenshots
+
+Daily digest emails are personalized HTML (cyan, classic, or minimal theme). Add inbox screenshots here so visitors can see what subscribers receive.
+
+### Where to save images
+
+Put PNG or WebP files in [`docs/screenshots/`](docs/screenshots/). App logo for Google OAuth: [`docs/branding/skim-logo-120.png`](docs/branding/skim-logo-120.png).
+
+| File | What to capture |
+|------|-----------------|
+| `digest-inbox.png` | Inbox list view — subject line, sender, preview snippet |
+| `digest-open-cyan.png` | Opened email — **cyan** theme (default) |
+| `digest-open-classic.png` | Opened email — **classic** theme |
+| `digest-open-minimal.png` | Opened email — **minimal** theme |
+| `digest-mobile.png` | Optional — same digest on a phone mail client |
+
+### How to capture them
+
+1. **Run the pipeline** (or wait for the GitHub Actions cron) so a digest is sent:
+   ```bash
+   cd pipeline && source venv/bin/activate && python -m pipeline.main
+   ```
+2. Open your mail client (Gmail, Apple Mail, etc.) or **Mailtrap** inbox if using sandbox mode.
+3. Screenshot the **inbox row** and the **opened digest** (scroll if needed; one shot of the hero + story cards is enough).
+4. For other themes, change theme in dashboard **Settings → Email theme**, save, then trigger another send (or use **Settings → Live email preview** and screenshot the iframe for a quick static shot).
+
+### Embed in this README
+
+Uncomment or replace the paths below once files exist:
+
+```markdown
+### Inbox
+
+![Skim digest in inbox](docs/screenshots/digest-inbox.png)
+
+### Cyan theme (opened)
+
+![Skim daily digest — cyan theme](docs/screenshots/digest-open-cyan.png)
+
+### Classic theme (opened)
+
+![Skim daily digest — classic theme](docs/screenshots/digest-open-classic.png)
+
+### Minimal theme (opened)
+
+![Skim daily digest — minimal theme](docs/screenshots/digest-open-minimal.png)
+```
+
+**Live preview (no send required):** signed-in users can open `/settings` → **Open full preview** or the iframe preview to capture theme HTML before adding production inbox shots.
 
 ---
 
@@ -390,6 +443,7 @@ Skim/
 │
 ├── sql/                      # Supabase migrations (001–006)
 ├── docs/                     # Guides and technical references
+│   ├── screenshots/          # README digest email screenshots
 │   ├── rag.md                # RAG architecture deep dive
 │   ├── dashboard.md          # Next.js dashboard architecture & Zustand
 │   ├── vercel-deploy.md      # Production deploy checklist

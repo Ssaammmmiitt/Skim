@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/complete", "/auth/signout"];
+const PUBLIC_PATHS = ["/login", "/privacy", "/auth/callback", "/auth/complete", "/auth/signout"];
 
 function isApiRoute(path: string) {
   return path.startsWith("/api/");
