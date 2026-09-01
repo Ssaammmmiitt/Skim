@@ -384,4 +384,4 @@ For large changes (new sources, retrieval strategy, auth model), open an issue f
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
