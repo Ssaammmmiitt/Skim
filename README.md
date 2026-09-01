@@ -12,6 +12,10 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 
 **Live dashboard:** [skim-azure.vercel.app](https://skim-azure.vercel.app)
 
+![Skim digest preview](docs/screenshots/digest-email-themes.png)
+
+![Skim full digest](docs/screenshots/digest-email-formats.png)
+
 ---
 
 ## Table of Contents
@@ -20,7 +24,6 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 - [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
-- [Design Decisions](#design-decisions)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
 - [Configuration](#configuration)
@@ -29,7 +32,6 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 - [API Overview](#api-overview)
 - [Project Structure](#project-structure)
 - [Documentation](#documentation)
-- [Future Work](#future-work)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -60,175 +62,79 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 | **RAG chat** | Cited answers over the corpus; Gemini with Groq fallback (20 queries/day) |
 | **Settings** | Email theme/format, dashboard light/dark/system, live preview |
 | **Admin** | Approve or reject pending signups |
-| **UX polish** | Per-route loading skeletons, error alerts with retry, empty states |
+| **UX** | Per-route loading skeletons, error alerts with retry, empty states |
 
 ---
 
 ## Screenshots
 
-Daily digest emails are personalized HTML (cyan, classic, or minimal theme). Add inbox screenshots here so visitors can see what subscribers receive.
+### Daily digest email
 
-### Where to save images
+Personalized HTML digests sent each morning via Mailtrap. Users pick **email theme** (cyan / classic / minimal) and **format** in Settings.
 
-Put PNG or WebP files in [`docs/screenshots/`](docs/screenshots/). App logo for Google OAuth: [`docs/branding/skim-logo-120.png`](docs/branding/skim-logo-120.png).
+| Digest preview | Full digest |
+|----------------|-------------|
+| ![Skim digest preview](docs/screenshots/digest-email-themes.png) | ![Skim full digest](docs/screenshots/digest-email-formats.png) |
 
-| File | What to capture |
-|------|-----------------|
-| `digest-inbox.png` | Inbox list view — subject line, sender, preview snippet |
-| `digest-open-cyan.png` | Opened email — **cyan** theme (default) |
-| `digest-open-classic.png` | Opened email — **classic** theme |
-| `digest-open-minimal.png` | Opened email — **minimal** theme |
-| `digest-mobile.png` | Optional — same digest on a phone mail client |
+### Dashboard
 
-### How to capture them
+Browse today's briefing in the web app  -  topic badges, agent summaries, and importance scores. Supports **light** and **dark** themes.
 
-1. **Run the pipeline** (or wait for the GitHub Actions cron) so a digest is sent:
-   ```bash
-   cd pipeline && source venv/bin/activate && python -m pipeline.main
-   ```
-2. Open your mail client (Gmail, Apple Mail, etc.) or **Mailtrap** inbox if using sandbox mode.
-3. Screenshot the **inbox row** and the **opened digest** (scroll if needed; one shot of the hero + story cards is enough).
-4. For other themes, change theme in dashboard **Settings → Email theme**, save, then trigger another send (or use **Settings → Live email preview** and screenshot the iframe for a quick static shot).
+| Dark mode | Light mode |
+|-----------|------------|
+| ![Skim dashboard  -  dark theme](docs/screenshots/dashboard.png) | ![Skim dashboard  -  light theme](docs/screenshots/dashboard-light.png) |
 
-### Embed in this README
+### Hybrid search
 
-Uncomment or replace the paths below once files exist:
+Semantic + full-text retrieval fused with RRF across the full article corpus.
 
-```markdown
-### Inbox
+![Skim hybrid search results](docs/screenshots/search.png)
 
-![Skim digest in inbox](docs/screenshots/digest-inbox.png)
+### RAG chat
 
-### Cyan theme (opened)
+Ask questions in natural language; answers cite sources from the corpus with provider failover (Gemini → Groq).
 
-![Skim daily digest — cyan theme](docs/screenshots/digest-open-cyan.png)
-
-### Classic theme (opened)
-
-![Skim daily digest — classic theme](docs/screenshots/digest-open-classic.png)
-
-### Minimal theme (opened)
-
-![Skim daily digest — minimal theme](docs/screenshots/digest-open-minimal.png)
-```
-
-**Live preview (no send required):** signed-in users can open `/settings` → **Open full preview** or the iframe preview to capture theme HTML before adding production inbox shots.
+![Skim RAG chat with citations](docs/screenshots/rag-answer.png)
 
 ---
 
 ## Architecture
 
+Skim is a **batch pipeline + web application** that share one Postgres database:
+
+- **Pipeline** (Python, GitHub Actions)  -  ingest, embed, agent reasoning, compose digests, send email.
+- **Dashboard** (Next.js on Vercel)  -  browse digests, hybrid search, RAG chat, user settings, admin approval.
+
 ```mermaid
-flowchart TB
-  subgraph cron [GitHub Actions — daily 00:15 UTC]
-    ingest[Ingest HN + RSS]
-    embed[Embed MiniLM 384-dim]
-    agent[3-pass LLM agent]
-    compose[Compose HTML digest]
-    email[Mailtrap email]
-    ingest --> embed --> agent --> compose --> email
+flowchart LR
+  subgraph ingest [Daily pipeline]
+    A[Ingest] --> B[Embed] --> C[Agent] --> D[Email]
   end
-
-  subgraph db [Supabase Postgres]
-    articles[(articles + pgvector)]
-    digests[(digests)]
-    profiles[(profiles + RLS)]
-    chat_usage[(chat_usage)]
-  end
-
-  subgraph dash [Next.js Dashboard — Vercel]
-    pages[Pages: / /archive /search /chat /settings /admin]
-    api[API routes]
-    pages --> api
-  end
-
-  cron --> db
-  db --> api
-  api --> pages
-
-  subgraph rag [RAG path — search & chat]
-    qembed[Query embedding]
-    vec[Vector search]
-    fts[Full-text search]
-    rrf[RRF fusion]
-    llm[Gemini → Groq answer]
-    qembed --> vec --> rrf
-    qembed --> fts --> rrf
-    rrf --> llm
-  end
-
-  api --> rag
+  DB[(Supabase Postgres)]
+  DASH[Next.js Dashboard]
+  ingest --> DB
+  DB --> DASH
 ```
 
-**Daily loop:** cron ingests and reasons over news → stores articles + embeddings → emails personalized digests → dashboard reads the same corpus for browse, hybrid search, and cited chat.
+For system diagrams, data model, auth flows, deployment topology, and engineering decisions, see **[`docs/architecture.md`](docs/architecture.md)**.
 
-**RAG flow:** embed query (MiniLM locally / HF API on Vercel) → vector + FTS retrieval → reciprocal rank fusion (k=60) → (chat only) multi-provider LLM with numbered citations.
-
-See [`docs/rag.md`](docs/rag.md) for retrieval and generation details.
+Topic-specific deep dives: [`docs/rag.md`](docs/rag.md) (retrieval & chat) · [`docs/dashboard.md`](docs/dashboard.md) (app structure).
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|-------|------------|-----|
-| Pipeline | Python 3.11, pytest, sentence-transformers | Mature scraping/ML ecosystem; local embeddings avoid API cost at ingest scale |
-| Agent / LLM | Google Gemini 3.6 Flash, Groq `openai/gpt-oss-120b` | Generous free tiers; Groq is last-resort failover when Gemini quotas hit |
-| Database | Supabase (PostgreSQL + pgvector + RLS) | One system for relational data, vectors, and auth — no separate vector DB bill |
-| Embeddings | `all-MiniLM-L6-v2` (384-dim) | Same vector space in pipeline and dashboard; HF Inference API on Vercel serverless |
-| Email | Mailtrap HTTP API | Sandbox for dev; verified domain for production sends |
-| Dashboard | Next.js 16, React 19, TypeScript, Tailwind v4, Zustand | App Router + server components for auth/data; Zustand for client chat/search state |
-| Auth | Supabase Auth (Google OAuth, email OTP) | Managed OAuth + magic links; RLS ties access to `profiles.status` |
-| CI / CD | GitHub Actions (pipeline cron + `test.yml`) | Free scheduling with no server to maintain; tests gate every PR |
-| Hosting | Vercel (`dashboard/`) | Hobby tier auto-deploy; pipeline stays on Actions, not serverless |
-
-Designed to run primarily on **free-tier** infrastructure.
-
----
-
-## Design Decisions
-
-Five trade-offs that shape how Skim is built and operated:
-
-### 1. pgvector in Postgres vs. a dedicated vector database
-
-**Choice:** Store embeddings in Supabase Postgres with an HNSW index.
-
-**Alternatives:** Pinecone, Weaviate, or a separate vector service.
-
-**Why:** Articles, digests, user profiles, and vectors live in one place. Hybrid search (vector + full-text) runs in SQL via RPCs. Zero extra monthly cost and simpler ops for a ~10-user deployment.
-
-### 2. Local MiniLM vs. cloud embedding APIs
-
-**Choice:** `all-MiniLM-L6-v2` in the pipeline; same model for RAG queries (HF API on Vercel where local inference is unreliable).
-
-**Alternatives:** OpenAI `text-embedding-3-small`, Cohere, or Gemini embeddings.
-
-**Why:** Ingestion embeds hundreds of articles daily — local inference is free at any volume. Keeping 384-dim MiniLM end-to-end avoids mixing embedding spaces.
-
-### 3. Multi-pass agent vs. single LLM call
-
-**Choice:** Three passes — classify all → generate insights for top candidates → holistically select and order stories.
-
-**Alternatives:** One-shot “pick top 8 stories” prompt.
-
-**Why:** Separating classification, insight generation, and selection improves digest quality and makes each step testable. Function-calling returns structured JSON, not free-form prose.
-
-### 4. GitHub Actions cron vs. always-on server
-
-**Choice:** Daily pipeline on GitHub Actions; dashboard on Vercel.
-
-**Alternatives:** Railway/Fly cron, AWS Lambda, or a VPS running `cron`.
-
-**Why:** No server to patch or pay for when idle. The pipeline is batch-oriented (once per day); the dashboard is the only always-on surface.
-
-### 5. Invite-by-approval auth vs. open signup
-
-**Choice:** Google OAuth + email OTP with admin approval; ~10 member cap.
-
-**Alternatives:** Open registration or invite-only magic links without an admin queue.
-
-**Why:** Controls Gemini/Groq/Mailtrap quotas on free tiers, keeps the digest list intentional, and demonstrates a realistic B2B-style access pattern (RLS + `profiles.status`).
+| Layer | Technology |
+|-------|------------|
+| Pipeline | Python 3.11, pytest, sentence-transformers |
+| Agent / LLM | Google Gemini, Groq (fallback) |
+| Database | Supabase (PostgreSQL, pgvector, RLS) |
+| Embeddings | `all-MiniLM-L6-v2` (384-dim) |
+| Email | Mailtrap HTTP API |
+| Dashboard | Next.js 16, React 19, TypeScript, Tailwind v4, Zustand |
+| Auth | Supabase Auth (Google OAuth, email OTP) |
+| CI / CD | GitHub Actions |
+| Hosting | Vercel (dashboard), GitHub Actions (pipeline) |
 
 ---
 
@@ -267,7 +173,7 @@ Run these files in the **Supabase SQL Editor**, in order:
 | 6 | `sql/006_dashboard_theme.sql` | Dashboard theme preference column |
 | 7 | `sql/007_preferences_insert_policy.sql` | RLS INSERT policy for saving preferences |
 
-Then configure Supabase Auth (Google OAuth + email OTP) and redirect URLs. Full checklist: [`docs/phase6_auth_admin_preferences.md`](docs/phase6_auth_admin_preferences.md).
+Then configure Supabase Auth (Google OAuth + email OTP) and redirect URLs. See [`docs/phase6_auth_admin_preferences.md`](docs/phase6_auth_admin_preferences.md).
 
 ### 3. Pipeline (local)
 
@@ -362,7 +268,7 @@ cd pipeline
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-pytest -m "not integration"       # unit tests only (161)
+pytest -m "not integration"       # unit tests only
 pytest                            # includes integration tests (needs live DB + API keys)
 ```
 
@@ -370,15 +276,13 @@ pytest                            # includes integration tests (needs live DB + 
 
 ```bash
 cd dashboard
-npm test                            # 91 tests
+npm test
 npm run test:watch
 npm run build                       # production build + TypeScript check
 npm run lint
 ```
 
 **CI:** `.github/workflows/test.yml` runs pipeline unit tests (Python 3.11) and dashboard Vitest on every push to `main` and on pull requests.
-
-**Total automated tests:** 161 pipeline + 91 dashboard = **252** (integration tests excluded in CI).
 
 ---
 
@@ -415,7 +319,7 @@ All routes require an **active** authenticated user (`profiles.status = active`)
 | `/api/settings/digest-preview` | GET | Email HTML preview |
 | `/api/admin/users` | GET/POST | Pending user queue (admin) |
 
-Full API details: [`dashboard/README.md`](dashboard/README.md) · Dashboard architecture: [`docs/dashboard.md`](docs/dashboard.md) · RAG internals: [`docs/rag.md`](docs/rag.md)
+Full API details: [`dashboard/README.md`](dashboard/README.md)
 
 ---
 
@@ -428,34 +332,25 @@ Skim/
 │   ├── sources/              # Hacker News + RSS adapters
 │   ├── templates/            # Email HTML (classic, cyan, minimal)
 │   ├── main.py               # Orchestrator entry point
-│   ├── ingest.py             # Multi-source ingestion
-│   ├── embed.py              # MiniLM embeddings → pgvector
-│   ├── compose.py            # Jinja2 digest rendering
-│   ├── email_sender.py       # Mailtrap delivery
 │   └── tests/                # pytest suite
 │
 ├── dashboard/                # Next.js web app (Vercel)
 │   ├── src/
 │   │   ├── app/              # App Router pages + API routes
-│   │   ├── components/       # UI (layout, chat, digest, search, …)
+│   │   ├── components/       # UI components
 │   │   └── lib/              # Retrieval, chat, auth, Supabase clients
-│   ├── vercel.json
 │   └── Design.md             # Cyan design system
 │
-├── sql/                      # Supabase migrations (001–006)
-├── docs/                     # Guides and technical references
-│   ├── screenshots/          # README digest email screenshots
-│   ├── rag.md                # RAG architecture deep dive
-│   ├── dashboard.md          # Next.js dashboard architecture & Zustand
-│   ├── vercel-deploy.md      # Production deploy checklist
-│   ├── phase6_auth_admin_preferences.md
-│   └── report.md             # Internal build log
+├── sql/                      # Supabase migrations
+├── docs/                     # Architecture and feature guides
+│   ├── architecture.md       # System architecture (start here)
+│   ├── rag.md                # RAG deep dive
+│   ├── dashboard.md          # Dashboard architecture
+│   └── screenshots/          # README screenshots
 │
-├── .github/workflows/
-│   ├── digest.yml            # Daily pipeline cron
-│   └── test.yml              # CI unit tests
-│
-└── progress.md               # Full serial progress report
+└── .github/workflows/
+    ├── digest.yml            # Daily pipeline cron
+    └── test.yml              # CI unit tests
 ```
 
 ---
@@ -464,43 +359,13 @@ Skim/
 
 | Document | Description |
 |----------|-------------|
-| [`progress.md`](progress.md) | Complete build history, file inventory, API reference |
-| [`docs/rag.md`](docs/rag.md) | Hybrid retrieval, embeddings, DB search, chat flow |
-| [`docs/dashboard.md`](docs/dashboard.md) | Next.js architecture, Zustand stores, component call chains |
+| [`docs/architecture.md`](docs/architecture.md) | System architecture, data model, auth, deployment |
+| [`docs/rag.md`](docs/rag.md) | Hybrid retrieval, embeddings, chat flow |
+| [`docs/dashboard.md`](docs/dashboard.md) | Next.js structure, stores, component call chains |
 | [`docs/vercel-deploy.md`](docs/vercel-deploy.md) | Vercel setup, env vars, smoke tests |
 | [`docs/phase6_auth_admin_preferences.md`](docs/phase6_auth_admin_preferences.md) | Auth flows, Supabase config, approval workflow |
-| [`dashboard/README.md`](dashboard/README.md) | Dashboard setup, pages, API, design |
+| [`dashboard/README.md`](dashboard/README.md) | Dashboard setup, pages, API |
 | [`dashboard/Design.md`](dashboard/Design.md) | UI design system (cyan theme) |
-| [`docs/report.md`](docs/report.md) | Internal bug log and LLM configuration notes |
-
----
-
-## Future Work
-
-| Item | Priority | Notes |
-|------|----------|-------|
-| **User onboarding** | P0 | Invite ~10 users; monitor Gemini/Groq/Mailtrap quotas |
-| **Agent eval dataset (7.3)** | P1 | 20-article labeled set; topic/importance accuracy benchmarks |
-| **`docs/architecture.md` (7.7)** | P2 | ER diagram, pipeline sequence, extended decision log |
-| **Demo video (7.8)** | P2 | 2–3 min walkthrough for README link |
-| **14-day uptime (7.9)** | P2 | Query `pipeline_runs` for consecutive successes |
-| **Additional news sources** | P3 | arXiv, more RSS feeds; adapter pattern in `pipeline/sources/` |
-| **Remove `embed_gemini.py`** | P3 | Experimental 768-dim path; RAG uses MiniLM only |
-
-### Phase 7 progress
-
-| Task | Status | Summary |
-|------|--------|---------|
-| 7.1 Pipeline cleanup | ✅ | black/isort, type hints, dead code removal |
-| 7.2 Unit tests | ✅ | Idempotency, dedup, compose coverage |
-| 7.3 Agent eval dataset | 🔲 | Not started |
-| 7.4 Dashboard cleanup | ✅ | ESLint clean; server/client splits; no `any` types |
-| 7.5 Loading & error states | ✅ | Skeletons, `ErrorAlert` + retry on all interactive pages |
-| 7.6 README | ✅ | This document |
-| 7.7 Architecture docs | 🔲 | `docs/architecture.md` |
-| 7.8 Demo video | 🔲 | 2–3 min walkthrough |
-| 7.9 14-day uptime | 🔲 | Query `pipeline_runs` for consecutive successes |
-| 7.10 Production verification | 🔲 | Full smoke test on Vercel + latest email |
 
 ---
 

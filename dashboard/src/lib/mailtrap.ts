@@ -77,7 +77,7 @@ export async function notifyAdminOfSignup(profile: {
 
   await sendMail({
     to: adminEmail,
-    subject: `Skim: new signup — ${profile.email}`,
+    subject: `Skim: new signup  -  ${profile.email}`,
     html,
     category: "Skim Admin",
   });
@@ -97,7 +97,7 @@ export async function notifyUserApproved(profile: {
     <p>You can sign in now to browse daily digests, search the corpus, and use RAG chat:</p>
     <p><a href="${loginUrl}">${loginUrl}</a></p>
     <p>You'll receive the daily digest email according to your Settings preferences.</p>
-    <p>— Skim</p>
+    <p> -  Skim</p>
   `;
 
   await sendMail({

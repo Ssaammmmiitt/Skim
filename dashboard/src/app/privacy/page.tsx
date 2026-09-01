@@ -3,7 +3,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import * as ui from "@/lib/tailwind-ui";
 
 export const metadata = {
-  title: "Privacy Policy — Skim",
+  title: "Privacy Policy  -  Skim",
   description: "How Skim collects and uses your data.",
 };
 
@@ -31,15 +31,15 @@ export default function PrivacyPage() {
           </h2>
           <ul className={`${ui.body} list-inside list-disc space-y-2`}>
             <li>
-              <strong>Account data</strong> — email, display name, and profile
+              <strong>Account data</strong>  -  email, display name, and profile
               picture from Google sign-in (or email address for OTP login).
             </li>
             <li>
-              <strong>Preferences</strong> — digest theme, format, topic
+              <strong>Preferences</strong>  -  digest theme, format, topic
               filters, and dashboard appearance settings you save in Settings.
             </li>
             <li>
-              <strong>Usage</strong> — chat query counts for daily rate limits;
+              <strong>Usage</strong>  -  chat query counts for daily rate limits;
               pipeline run logs (no message content stored long-term beyond chat
               session).
             </li>

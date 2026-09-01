@@ -6,7 +6,7 @@
 | `skim-logo-120.png` | **Google Cloud OAuth** app logo (120×120 minimum) |
 | `skim-logo-512.png` | Favicon, README, social previews |
 
-## Google Cloud Console — publish OAuth app
+## Google Cloud Console  -  publish OAuth app
 
 Use the **same GCP project** as your Supabase Google provider Client ID.
 

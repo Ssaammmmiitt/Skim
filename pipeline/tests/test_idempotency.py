@@ -43,11 +43,11 @@ def test_record_digest_sent_inserts_with_on_conflict(mock_get_connection):
 
     digest_date = date(2026, 8, 31)
     article_ids = [10, 20, 30]
-    record_digest_sent(digest_date, article_ids, "Skim — Aug 31, 2026")
+    record_digest_sent(digest_date, article_ids, "Skim - Aug 31, 2026")
 
     mock_cursor.execute.assert_called_once()
     sql, params = mock_cursor.execute.call_args[0]
     assert "ON CONFLICT (digest_date) DO NOTHING" in sql
-    assert params == (digest_date, article_ids, 3, "Skim — Aug 31, 2026")
+    assert params == (digest_date, article_ids, 3, "Skim - Aug 31, 2026")
     mock_conn.commit.assert_called_once()
     mock_conn.close.assert_called_once()

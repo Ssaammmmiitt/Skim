@@ -61,7 +61,7 @@ export function DigestPreferenceForm({ initial }: Props) {
         <section>
           <h2 className={ui.eyebrow}>Dashboard appearance</h2>
           <p className={cn("mt-2", ui.body)}>
-            Light canvas or dark mode — or match your device.
+            Light canvas or dark mode  -  or match your device.
           </p>
           <div className="mt-4">
             <DashboardThemeSelector

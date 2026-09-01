@@ -1,4 +1,4 @@
-# Skim Dashboard — Architecture Guide
+# Skim Dashboard  -  Architecture Guide
 
 This document explains how the Next.js dashboard is structured: routing, server vs client components, authentication, API routes, Zustand state management, and the call chains that connect UI to Supabase and the RAG stack.
 
@@ -66,7 +66,7 @@ middleware.ts ──► auth session + profile status check
 dashboard/src/
 ├── app/                        # Next.js App Router
 │   ├── layout.tsx              # Root layout: font, theme flash script, AppShell
-│   ├── page.tsx                # / — today's digest (SSR)
+│   ├── page.tsx                # /  -  today's digest (SSR)
 │   ├── chat/page.tsx           # RAG chat UI
 │   ├── search/page.tsx         # Hybrid search
 │   ├── archive/page.tsx        # Past digests by date
@@ -212,7 +212,7 @@ if (!auth.ok) return auth.response;
 ### Root layout (`app/layout.tsx`)
 
 - Loads Inter font and global CSS.
-- Injects an inline `<script>` before paint to read `localStorage['skim-dashboard-theme']` and set `html.light` / `html.dark` — prevents theme flash.
+- Injects an inline `<script>` before paint to read `localStorage['skim-dashboard-theme']` and set `html.light` / `html.dark`  -  prevents theme flash.
 - Wraps all pages in `<AppShell>`.
 
 
@@ -246,12 +246,12 @@ layout.tsx
 | ----------- | ----------------- | ------------------------------------------- | ------------------------------------- |
 | `/`         | Server            | `fetchDigest(supabase, today)`              | None                                  |
 | `/archive`  | Server + Client   | SSR: digest + dates → `ArchiveView` props   | `useArchiveStore`                     |
-| `/search`   | Client (Suspense) | —                                           | `useSearchStore` → `GET /api/search`  |
-| `/chat`     | Client            | —                                           | `useChatStore` → `GET/POST /api/chat` |
+| `/search`   | Client (Suspense) |  -                                            | `useSearchStore` → `GET /api/search`  |
+| `/chat`     | Client            |  -                                            | `useChatStore` → `GET/POST /api/chat` |
 | `/settings` | Server + Client   | SSR: `user_digest_preferences` → form props | `usePreferencesStore`                 |
-| `/admin`    | Client            | —                                           | Local `useState` in `AdminPanel`      |
+| `/admin`    | Client            |  -                                            | Local `useState` in `AdminPanel`      |
 | `/login`    | Client            | Supabase browser client                     | Local state                           |
-| `/pending`  | Static            | —                                           | None                                  |
+| `/pending`  | Static            |  -                                            | None                                  |
 
 
 
@@ -370,7 +370,7 @@ This avoids prop-drilling during interaction while keeping first paint fast (SSR
 | ------------------------------------------------------- | ------------------------------------- | -------------------------------------------- | ------------------------- |
 | `ThemeToggle` / `DashboardThemeSelector` → `setTheme()` | ✓                                     | `PUT /api/settings/preferences` (theme only) | `applyDashboardTheme()`   |
 | Settings form → `save()`                                | ✓                                     | `PUT /api/settings/preferences` (full draft) | `applyTheme()` only       |
-| First visit                                             | read by inline script in `layout.tsx` | —                                            | set before React hydrates |
+| First visit                                             | read by inline script in `layout.tsx` |  -                                             | set before React hydrates |
 
 
 
@@ -381,9 +381,9 @@ This avoids prop-drilling during interaction while keeping first paint fast (SSR
 
 ### What is NOT in Zustand
 
-- **User profile / nav avatar** — server props from `AppShell`
-- **Today's digest on home** — fully server-rendered
-- **Admin pending list** — local `useState` in `AdminPanel` (simple CRUD, no shared state)
+- **User profile / nav avatar**  -  server props from `AppShell`
+- **Today's digest on home**  -  fully server-rendered
+- **Admin pending list**  -  local `useState` in `AdminPanel` (simple CRUD, no shared state)
 
 ---
 
@@ -520,16 +520,16 @@ npm run build   # Production build + TypeScript check
 
 | User action         | Component              | Store / fetch         | API / server                    | Database / external               |
 | ------------------- | ---------------------- | --------------------- | ------------------------------- | --------------------------------- |
-| Open home           | `page.tsx`             | —                     | `fetchDigest`                   | `digests`                         |
+| Open home           | `page.tsx`             |  -                      | `fetchDigest`                   | `digests`                         |
 | Send chat message   | `ChatInterface`        | `useChatStore`        | `POST /api/chat`                | `hybrid_search` RPC + Gemini/Groq |
 | Search corpus       | `SearchResults`        | `useSearchStore`      | `GET /api/search`               | `hybrid_search` RPC               |
 | Change archive date | `ArchiveView`          | `useArchiveStore`     | `GET /api/digests`              | `digests`                         |
 | Save preferences    | `DigestPreferenceForm` | `usePreferencesStore` | `PUT /api/settings/preferences` | `user_digest_preferences`         |
 | Toggle theme (nav)  | `ThemeToggle`          | `useThemeStore`       | `PUT /api/settings/preferences` | `user_digest_preferences`         |
 | Approve user        | `AdminPanel`           | `useState`            | `POST /api/admin/users`         | `profiles` (service role)         |
-| Login               | `login/page`           | —                     | Supabase Auth                   | `auth.users` + `profiles`         |
+| Login               | `login/page`           |  -                      | Supabase Auth                   | `auth.users` + `profiles`         |
 
 
 ---
 
-*Last updated: Phase 6 — Zustand adoption, 86 tests passing, production at skim-azure.vercel.app.*
+*Last updated: Phase 6  -  Zustand adoption, 86 tests passing, production at skim-azure.vercel.app.*

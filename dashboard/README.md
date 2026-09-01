@@ -195,7 +195,7 @@ Coverage: components, Zustand stores, hybrid retrieval, multi-provider LLM clien
 
 | Document | Contents |
 |----------|----------|
-| [`docs/dashboard.md`](../docs/dashboard.md) | **Dashboard architecture** — App Router, Zustand, call chains |
+| [`docs/dashboard.md`](../docs/dashboard.md) | **Dashboard architecture**  -  App Router, Zustand, call chains |
 | [`progress.md`](../progress.md) | Complete serial progress (all phases) |
 | [`docs/rag.md`](../docs/rag.md) | **RAG architecture**  -  retrieval, DB search, chat flow |
 | [`docs/report.md`](../docs/report.md) | Internal bug log, LLM config, deployment notes |
