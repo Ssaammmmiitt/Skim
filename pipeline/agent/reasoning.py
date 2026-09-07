@@ -444,9 +444,9 @@ class ArticleAgent:
         }
 
     def select_todays_digest_stories(
-        self, n: int = DEFAULT_DIGEST_SIZE
+        self, n: int = DEFAULT_DIGEST_SIZE, lookback_days: int = 2
     ) -> dict[str, Any]:
-        articles = get_todays_classified_articles()
+        articles = get_todays_classified_articles(lookback_days=lookback_days)
         return self.select_digest_stories(articles, n=n)
 
     def _validate_selection(
@@ -509,7 +509,7 @@ def run_agent_reasoning(
         min_score=IMPORTANCE_THRESHOLD_FOR_INSIGHTS
     )
 
-    all_classified = get_todays_classified_articles()
+    all_classified = get_todays_classified_articles(lookback_days=2)
     if not all_classified:
         agent.llm.log_usage_summary()
         return {"articles": [], "selected_article_ids": [], "rationale": ""}

@@ -3,7 +3,9 @@
 import { usePathname } from "next/navigation";
 import { shouldShowNav } from "@/lib/nav";
 import { AdminPendingBanner } from "@/components/layout/AdminPendingBanner";
+import { ScrollProgress } from "@/components/layout/ScrollProgress";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import type { DashboardTheme } from "@/lib/auth/types";
 import { AppFooter } from "./AppFooter";
 import { AppNav } from "./AppNav";
@@ -29,6 +31,9 @@ export function AppShellClient({
 
   return (
     <ThemeProvider initialTheme={dashboardTheme}>
+      {/* CSS-native scroll progress bar (zero JS rendering cost) */}
+      <ScrollProgress />
+
       {showNav ? (
         <div className="flex min-h-dvh flex-col">
           <AppNav
@@ -44,6 +49,9 @@ export function AppShellClient({
       ) : (
         children
       )}
+
+      {/* Global toast notification system */}
+      <ToastProvider />
     </ThemeProvider>
   );
 }

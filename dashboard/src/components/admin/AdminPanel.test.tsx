@@ -3,6 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { pendingMember } from "@/test/fixtures";
+import { toast } from "@/components/ui/Toast";
+
+vi.mock("@/components/ui/Toast", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -38,7 +46,7 @@ describe("AdminPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Approve" }));
 
-    expect(await screen.findByText("User approved.")).toBeInTheDocument();
+    expect(toast.success).toHaveBeenCalledWith("User approved.");
     await waitFor(() => {
       expect(
         screen.getByText("No pending signup requests.")
@@ -62,9 +70,10 @@ describe("AdminPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Approve" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Action failed. Check your connection and try again."
-    );
-    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Action failed. Check your connection and try again."
+      );
+    });
   });
 });

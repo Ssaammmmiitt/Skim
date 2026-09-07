@@ -53,18 +53,14 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       }
     }
 
-    set({ saving: true });
-    try {
-      await fetch("/api/settings/preferences", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dashboard_theme: normalized }),
-      });
-    } catch {
-      // Theme still applies locally.
-    } finally {
-      set({ saving: false });
-    }
+    // Fire-and-forget the API call so the UI never blocks.
+    fetch("/api/settings/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dashboard_theme: normalized }),
+    }).catch(() => {
+      // Theme still applies locally even if DB fails.
+    });
   },
 }));
 

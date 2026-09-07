@@ -283,7 +283,11 @@ async function keywordFallback(
   query: string,
   limit: number
 ): Promise<RetrievedArticle[]> {
-  const pattern = `%${query.replace(/[%_\\]/g, "\\$&")}%`;
+  // Escape ILIKE wildcards and PostgREST string characters
+  const safeQuery = query.replace(/[%_\\]/g, "\\$&");
+  const postgrestSafe = safeQuery.replace(/"/g, '""');
+  const pattern = `"%${postgrestSafe}%"`;
+
   const { data, error } = await supabase
     .from("articles")
     .select(

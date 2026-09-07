@@ -20,7 +20,7 @@ describe("DigestCard", () => {
 
   it("shows importance score when present", () => {
     render(<DigestCard article={sampleArticle} rank={2} />);
-    expect(screen.getByText("Score 8.7")).toBeInTheDocument();
+    expect(screen.getByText("★ 8.7")).toBeInTheDocument();
   });
 
   it("falls back to summary when insight is missing", () => {

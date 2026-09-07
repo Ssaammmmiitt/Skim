@@ -5,6 +5,8 @@ import { useState } from "react";
 import type { Profile } from "@/lib/auth/types";
 import { cn } from "@/lib/cn";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { toast } from "@/components/ui/Toast";
 import * as ui from "@/lib/tailwind-ui";
 
 type AdminPanelProps = {
@@ -14,7 +16,6 @@ type AdminPanelProps = {
 export function AdminPanel({ initialPending }: AdminPanelProps) {
   const router = useRouter();
   const [pending, setPending] = useState<Profile[]>(initialPending);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -38,7 +39,6 @@ export function AdminPanel({ initialPending }: AdminPanelProps) {
   }
 
   async function review(userId: string, action: "approve" | "reject") {
-    setMessage("");
     setError(null);
     const response = await fetch("/api/admin/users", {
       method: "POST",
@@ -46,12 +46,12 @@ export function AdminPanel({ initialPending }: AdminPanelProps) {
       body: JSON.stringify({ userId, action }),
     });
     if (response.ok) {
-      setMessage(action === "approve" ? "User approved." : "User rejected.");
+      toast.success(action === "approve" ? "User approved." : "User rejected.");
       await refreshPending();
       router.refresh();
       return;
     }
-    setError("Action failed. Check your connection and try again.");
+    toast.error("Action failed. Check your connection and try again.");
   }
 
   return (
@@ -61,11 +61,17 @@ export function AdminPanel({ initialPending }: AdminPanelProps) {
       ) : null}
 
       {refreshing && pending.length === 0 ? (
-        <p className={cn(ui.card, "p-6", ui.body)}>Loading pending users…</p>
+        <EmptyState
+          eyebrow="Loading"
+          title="Loading pending users…"
+          description="Please wait while we fetch the latest requests."
+        />
       ) : pending.length === 0 ? (
-        <p className={cn(ui.card, "p-6", ui.body)}>
-          No pending signup requests.
-        </p>
+        <EmptyState
+          eyebrow="All caught up"
+          title="No pending signup requests."
+          description="When users request access, they will appear here for review."
+        />
       ) : (
         pending.map((user) => (
           <div
@@ -106,7 +112,6 @@ export function AdminPanel({ initialPending }: AdminPanelProps) {
           </div>
         ))
       )}
-      {message ? <p className={ui.successText}>{message}</p> : null}
     </div>
   );
 }

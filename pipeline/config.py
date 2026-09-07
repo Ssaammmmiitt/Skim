@@ -11,11 +11,15 @@ LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 SUMMARY_MAX_CHARS = 1000
 
 RSS_SOURCES = [
-    {"url": "https://feeds.feedburner.com/TechCrunch", "name": "techcrunch"},
+    # feeds.feedburner.com/TechCrunch was hijacked by a spam blog (techncruncher.blogspot.com)
+    # as of ~2026-08-29. Use the direct TechCrunch RSS instead.
+    {"url": "https://techcrunch.com/feed/", "name": "techcrunch"},
     {"url": "https://feeds.arstechnica.com/arstechnica/index", "name": "arstechnica"},
     {"url": "https://www.theverge.com/rss/index.xml", "name": "theverge"},
     {"url": "https://www.technologyreview.com/feed/", "name": "mit_tech_review"},
+    {"url": "https://www.wired.com/feed/rss", "name": "wired"},
 ]
+
 
 
 def configure_logging(level: str | int | None = None) -> None:

@@ -213,7 +213,19 @@ def update_article_insight(article_id: int, insight: str, key_takeaway: str) -> 
         conn.close()
 
 
-def get_todays_classified_articles() -> list[dict[str, Any]]:
+def get_todays_classified_articles(
+    lookback_days: int = 1,
+) -> list[dict[str, Any]]:
+    """Return classified articles from the last *lookback_days* days.
+
+    ``lookback_days=1`` (default) restores the original today-only behaviour.
+    Pass ``lookback_days=2`` or more from the agent to catch articles from
+    slow-publishing RSS sources (MIT Tech Review, Wired, etc.) that may not
+    have published anything new today but still have valuable recent content.
+
+    Already-digested articles are excluded so we don't re-send the same
+    stories the next day.
+    """
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -222,11 +234,13 @@ def get_todays_classified_articles() -> list[dict[str, Any]]:
                 SELECT id, title, url, source, published_at, summary, topic, importance_score,
                        insight, key_takeaway
                 FROM articles
-                WHERE created_at::date = CURRENT_DATE
+                WHERE created_at >= CURRENT_DATE - (%s - 1) * INTERVAL '1 day'
                   AND topic IS NOT NULL
                   AND importance_score IS NOT NULL
+                  AND digest_date IS NULL
                 ORDER BY importance_score DESC, created_at DESC
-                """
+                """,
+                (lookback_days,),
             )
             columns = [desc[0] for desc in cur.description]
             return [dict(zip(columns, row)) for row in cur.fetchall()]

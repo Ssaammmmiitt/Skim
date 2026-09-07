@@ -87,7 +87,7 @@ async function callGemini(
       systemInstruction: CHAT_SYSTEM_INSTRUCTION,
       temperature: 0.3,
       topP: 0.85,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 4096,
     },
   });
 
@@ -119,7 +119,7 @@ async function callGroq(
     ],
     temperature: 0.3,
     top_p: 0.85,
-    max_tokens: 1024,
+    max_tokens: 4096,
   });
 
   const text = response.choices[0]?.message?.content?.trim();

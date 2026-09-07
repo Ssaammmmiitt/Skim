@@ -58,23 +58,64 @@ export function DigestFeed({ digest, isToday = false }: DigestFeedProps) {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4 sm:mb-8">
+      {/* Feed header */}
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className={ui.eyebrow}>{digest.subject ?? "Daily briefing"}</p>
           <h1 className={`${ui.heading} mt-2`}>
             {formatDigestDate(digest.date)}
           </h1>
         </div>
-        <div className="text-right text-sm text-muted">
-          <p>{digest.story_count} stories</p>
-          {sentLabel ? <p className="text-xs">Sent {sentLabel}</p> : null}
+        <div className="text-right">
+          <p className={ui.meta}>{digest.story_count} stories</p>
+          {sentLabel ? (
+            <p className="mt-1 text-xs text-muted">Sent {sentLabel}</p>
+          ) : null}
         </div>
       </div>
 
-      <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-        {digest.articles.map((article, index) => (
-          <DigestCard key={article.id} article={article} rank={index + 1} />
-        ))}
+      {/* StoryStream timeline — desktop shows dashed rail, mobile stacks */}
+      <div className="relative">
+        {/* Dashed vertical rail — hidden on mobile */}
+        <div
+          className="absolute inset-y-0 left-[7.5rem] hidden w-px border-l border-dashed border-cyan-deep md:block"
+          aria-hidden="true"
+        />
+
+        <div className="flex flex-col gap-5">
+          {digest.articles.map((article, index) => (
+            <div key={article.id} className="group animate-on-scroll">
+              {/* Layout: timestamp | rail dot | card */}
+              <div className="flex items-start gap-0 md:gap-4">
+                {/* Timestamp column (md+) */}
+                <div className="hidden w-28 shrink-0 pt-5 text-right md:block">
+                  <span className={ui.timelineTimestamp}>
+                    {article.published_at
+                      ? new Date(article.published_at).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })
+                      : `#${index + 1}`}
+                  </span>
+                </div>
+
+                {/* Rail dot (md+) */}
+                <div className="relative hidden shrink-0 items-start pt-5 md:flex">
+                  <div
+                    className="h-2 w-2 rounded-full border-2 border-cyan-core bg-canvas ring-4 ring-canvas"
+                    aria-hidden="true"
+                  />
+                </div>
+
+                {/* Card */}
+                <div className="min-w-0 flex-1">
+                  <DigestCard article={article} rank={index + 1} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

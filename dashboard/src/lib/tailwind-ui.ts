@@ -68,3 +68,37 @@ export const successText = "text-sm font-medium text-cyan-glow";
 
 export const errorBox =
   "rounded-lg border border-error-surface bg-error-surface/30 px-4 py-3 text-sm text-error";
+
+/* ─── Timeline rail (StoryStream) ───────────────────────────────────────── */
+export const timelineRail =
+  "border-l border-dashed border-cyan-deep";
+
+export const timelineTimestamp =
+  "font-mono text-[11px] font-medium uppercase tracking-widest text-muted";
+
+/* ─── Status badges (pipeline states) ───────────────────────────────────── */
+export const badgeSuccess =
+  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider bg-cyan-muted text-cyan-glow";
+
+export const badgeRunning =
+  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider bg-surface text-cyan-bright";
+
+export const badgePartial =
+  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider bg-[#422006] text-[#fbbf24]";
+
+export const badgeFailed =
+  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider bg-error-surface text-error";
+
+export const badgeTopic =
+  "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider";
+
+export const badgeCount =
+  "ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white";
+
+/* ─── Section divider ────────────────────────────────────────────────────── */
+export const sectionDivider =
+  "border-t border-surface-raised my-8 md:my-12";
+
+/* ─── Scroll-reveal helper ───────────────────────────────────────────────── */
+export const scrollReveal = "animate-on-scroll";
+

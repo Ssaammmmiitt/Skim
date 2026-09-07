@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -29,6 +29,55 @@ function useBodyScrollLock(locked: boolean) {
   }, [locked]);
 }
 
+/** SVG hamburger icon */
+function IconMenu({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path d="M2 5h16M2 10h16M2 15h16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** SVG close icon */
+function IconX({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** SVG search icon */
+function IconSearch({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M11.5 11.5l4 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
   const pathname = usePathname();
   const mobileOpen = useUiStore((state) => state.mobileNavOpen);
@@ -36,6 +85,8 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
   const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen);
   const setNavScrolled = useUiStore((state) => state.setNavScrolled);
   const closeMobileNav = useUiStore((state) => state.closeMobileNav);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useBodyScrollLock(mobileOpen);
 
@@ -55,11 +106,24 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
   useEffect(() => {
     if (!mobileOpen) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") closeMobileNav();
+      if (event.key === "Escape") {
+        closeMobileNav();
+        toggleRef.current?.focus();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileOpen, closeMobileNav]);
+
+  // Focus first focusable element when drawer opens
+  useEffect(() => {
+    if (mobileOpen && drawerRef.current) {
+      const first = drawerRef.current.querySelector<HTMLElement>(
+        "a[href], button:not([disabled])"
+      );
+      first?.focus();
+    }
+  }, [mobileOpen]);
 
   const closeMobile = useCallback(() => closeMobileNav(), [closeMobileNav]);
 
@@ -74,7 +138,7 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
   const pendingBadge =
     pendingApprovalCount > 0 ? (
       <span
-        className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white"
+        className={ui.badgeCount}
         aria-label={`${pendingApprovalCount} pending approvals`}
       >
         {pendingApprovalCount > 9 ? "9+" : pendingApprovalCount}
@@ -98,6 +162,7 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
             <BrandMark />
           </Link>
 
+          {/* Desktop nav (≥lg) */}
           <nav
             className="hidden min-w-0 flex-1 items-center justify-center lg:flex"
             aria-label="Main navigation"
@@ -118,17 +183,21 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
             </div>
           </nav>
 
+          {/* Search bar (md–xl) */}
           <div className="hidden min-w-0 flex-1 md:block md:max-w-xs lg:max-w-none lg:flex-none xl:max-w-sm">
             <SearchBar variant="nav" />
           </div>
 
+          {/* Right-side controls */}
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {/* Mobile search icon */}
             <Link
               href="/search"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-surface-raised text-lg text-secondary transition hover:border-cyan-core hover:text-cyan-bright md:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-surface-raised text-secondary transition hover:border-cyan-core hover:text-cyan-bright md:hidden"
               aria-label="Search articles"
+              id="nav-search-btn"
             >
-              ⌕
+              <IconSearch />
             </Link>
 
             <div className="hidden sm:block">
@@ -152,19 +221,23 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
 
             {profile ? <UserMenu profile={profile} /> : null}
 
+            {/* Hamburger toggle (< lg) */}
             <button
+              ref={toggleRef}
               type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-cyan-core hover:text-cyan-bright lg:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-cyan-core hover:text-cyan-bright lg:hidden"
               onClick={() => setMobileNavOpen(!mobileOpen)}
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-drawer"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              id="nav-mobile-toggle"
             >
-              {mobileOpen ? "✕" : "☰"}
+              {mobileOpen ? <IconX /> : <IconMenu />}
             </button>
           </div>
         </div>
 
+        {/* Tablet nav strip (md–lg) */}
         <nav
           className="hidden border-t border-surface-raised py-2 md:block lg:hidden"
           aria-label="Tablet navigation"
@@ -186,33 +259,42 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
         </nav>
       </div>
 
+      {/* Mobile drawer overlay + panel */}
       {mobileOpen ? (
         <>
+          {/* Backdrop */}
           <button
             type="button"
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
             aria-label="Close menu"
             onClick={closeMobile}
+            tabIndex={-1}
           />
+
+          {/* Drawer panel */}
           <div
+            ref={drawerRef}
             id="mobile-nav-drawer"
-            className="fixed inset-y-0 right-0 z-50 flex w-[min(100%,18rem)] flex-col border-l border-surface-raised bg-surface shadow-xl sm:w-80 lg:hidden"
+            className="fixed inset-y-0 right-0 z-50 flex w-[min(100%,20rem)] flex-col border-l border-surface-raised bg-surface shadow-2xl lg:hidden"
+            style={{ animation: "slideDrawerIn 280ms cubic-bezier(0.32, 0.72, 0, 1) both" }}
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
           >
+            {/* Drawer header */}
             <div className="flex items-center justify-between border-b border-surface-raised px-4 py-3">
               <BrandMark />
               <button
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-surface-raised text-secondary"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-cyan-core hover:text-cyan-bright"
                 onClick={closeMobile}
                 aria-label="Close menu"
               >
-                ✕
+                <IconX />
               </button>
             </div>
 
+            {/* Drawer body */}
             <div className="flex-1 overflow-y-auto p-4">
               <div className="mb-4 sm:hidden">
                 <ThemeToggle />
@@ -223,7 +305,7 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "rounded-xl px-3 py-3 transition",
+                      "rounded-xl px-3 py-3 transition-colors",
                       isNavActive(pathname, item.href)
                         ? "bg-cyan-muted text-cyan-glow"
                         : "text-secondary hover:bg-surface-raised hover:text-foreground"
@@ -245,7 +327,7 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                   <Link
                     href="/admin"
                     className={cn(
-                      "rounded-xl px-3 py-3 transition",
+                      "rounded-xl px-3 py-3 transition-colors",
                       isNavActive(pathname, "/admin")
                         ? "bg-cyan-muted text-cyan-glow"
                         : "text-secondary hover:bg-surface-raised hover:text-foreground"
@@ -267,6 +349,20 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
               </nav>
             </div>
           </div>
+
+          {/* Inline keyframe for drawer slide-in */}
+          <style>{`
+            @keyframes slideDrawerIn {
+              from { transform: translateX(100%); }
+              to   { transform: translateX(0); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+              @keyframes slideDrawerIn {
+                from { opacity: 0; }
+                to   { opacity: 1; }
+              }
+            }
+          `}</style>
         </>
       ) : null}
     </header>

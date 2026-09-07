@@ -28,19 +28,31 @@ function timeAgo(iso: string | null): string {
   return published.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+/** Importance score color */
+function scoreColor(score: number): string {
+  if (score >= 8) return "text-cyan-bright";
+  if (score >= 5) return "text-[#fbbf24]";
+  return "text-muted";
+}
+
 type DigestCardProps = {
   article: DigestArticle;
   rank: number;
 };
 
 export function DigestCard({ article, rank }: DigestCardProps) {
+  const isFeature = rank <= 3;
+
   return (
     <article
       className={cn(
         ui.cardInteractive,
-        "group flex h-full flex-col p-4 sm:p-5"
+        "group relative flex h-full flex-col overflow-hidden p-4 sm:p-5",
+        // Cyan left accent stripe for top-3 stories
+        isFeature && "border-l-[3px] border-l-cyan-core"
       )}
     >
+      {/* Metadata row */}
       <div className="flex flex-wrap items-center gap-2">
         <span className={ui.meta}>#{rank}</span>
         <TopicBadge topic={article.topic} />
@@ -50,6 +62,7 @@ export function DigestCard({ article, rank }: DigestCardProps) {
         ) : null}
       </div>
 
+      {/* Title */}
       <h2
         className={cn(
           ui.subheading,
@@ -66,12 +79,14 @@ export function DigestCard({ article, rank }: DigestCardProps) {
         </Link>
       </h2>
 
+      {/* Key takeaway */}
       {article.key_takeaway ? (
         <p className="mt-2 text-sm font-medium text-subtle sm:text-base">
           {article.key_takeaway}
         </p>
       ) : null}
 
+      {/* Body text */}
       {article.insight ? (
         <p className={cn(ui.body, "mt-3 flex-1")}>{article.insight}</p>
       ) : article.summary ? (
@@ -80,18 +95,27 @@ export function DigestCard({ article, rank }: DigestCardProps) {
         <div className="flex-1" />
       )}
 
+      {/* Footer row */}
       <div className="mt-4 flex items-center justify-between gap-4 border-t border-surface-raised pt-4">
         <Link
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className={ui.link}
+          className={cn(ui.link, "inline-flex min-h-[44px] items-center")}
+          aria-label={`Read more about ${article.title}`}
         >
           Read more →
         </Link>
         {article.importance_score != null ? (
-          <span className={ui.meta}>
-            Score {article.importance_score.toFixed(1)}
+          <span
+            className={cn(
+              ui.meta,
+              "tabular-nums",
+              scoreColor(article.importance_score)
+            )}
+            title="Importance score"
+          >
+            ★ {article.importance_score.toFixed(1)}
           </span>
         ) : null}
       </div>
