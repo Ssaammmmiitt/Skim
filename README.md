@@ -96,6 +96,12 @@ Ask questions in natural language; answers cite sources from the corpus with pro
 
 ![Skim RAG chat with citations](docs/screenshots/rag-answer.png)
 
+### Analytics Dashboard
+
+Monitor pipeline health, article topic distributions, and LLM classification scores through an interactive admin dashboard.
+
+![Skim analytics dashboard](docs/screenshots/Analytics.png)
+
 ---
 
 ## Architecture
