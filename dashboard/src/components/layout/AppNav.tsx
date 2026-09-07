@@ -205,18 +205,31 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
             </div>
 
             {showAdmin ? (
-              <Link
-                href="/admin"
-                className={cn(
-                  "hidden rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide sm:inline-flex sm:items-center",
-                  isNavActive(pathname, "/admin")
-                    ? "border-cyan-core bg-cyan-muted text-cyan-glow"
-                    : "border-surface-raised text-cyan-bright hover:border-cyan-core"
-                )}
-              >
-                Admin
-                {pendingBadge}
-              </Link>
+              <>
+                <Link
+                  href="/admin/stats"
+                  className={cn(
+                    "hidden rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide sm:inline-flex sm:items-center",
+                    pathname.startsWith("/admin/stats")
+                      ? "border-cyan-core bg-cyan-muted text-cyan-glow"
+                      : "border-surface-raised text-cyan-bright hover:border-cyan-core"
+                  )}
+                >
+                  Analytics
+                </Link>
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "hidden rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide sm:inline-flex sm:items-center",
+                    pathname === "/admin"
+                      ? "border-cyan-core bg-cyan-muted text-cyan-glow"
+                      : "border-surface-raised text-cyan-bright hover:border-cyan-core"
+                  )}
+                >
+                  Admin
+                  {pendingBadge}
+                </Link>
+              </>
             ) : null}
 
             {profile ? <UserMenu profile={profile} /> : null}
@@ -324,27 +337,49 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                   </Link>
                 ))}
                 {showAdmin ? (
-                  <Link
-                    href="/admin"
-                    className={cn(
-                      "rounded-xl px-3 py-3 transition-colors",
-                      isNavActive(pathname, "/admin")
-                        ? "bg-cyan-muted text-cyan-glow"
-                        : "text-secondary hover:bg-surface-raised hover:text-foreground"
-                    )}
-                    aria-current={
-                      isNavActive(pathname, "/admin") ? "page" : undefined
-                    }
-                    onClick={closeMobile}
-                  >
-                    <span className="flex items-center text-sm font-semibold">
-                      Admin
-                      {pendingBadge}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-muted">
-                      Approve pending signups
-                    </span>
-                  </Link>
+                  <>
+                    <Link
+                      href="/admin/stats"
+                      className={cn(
+                        "rounded-xl px-3 py-3 transition-colors",
+                        pathname.startsWith("/admin/stats")
+                          ? "bg-cyan-muted text-cyan-glow"
+                          : "text-secondary hover:bg-surface-raised hover:text-foreground"
+                      )}
+                      aria-current={
+                        pathname.startsWith("/admin/stats") ? "page" : undefined
+                      }
+                      onClick={closeMobile}
+                    >
+                      <span className="flex items-center text-sm font-semibold">
+                        Analytics
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted">
+                        View pipeline and article stats
+                      </span>
+                    </Link>
+                    <Link
+                      href="/admin"
+                      className={cn(
+                        "rounded-xl px-3 py-3 transition-colors",
+                        pathname === "/admin"
+                          ? "bg-cyan-muted text-cyan-glow"
+                          : "text-secondary hover:bg-surface-raised hover:text-foreground"
+                      )}
+                      aria-current={
+                        pathname === "/admin" ? "page" : undefined
+                      }
+                      onClick={closeMobile}
+                    >
+                      <span className="flex items-center text-sm font-semibold">
+                        Admin
+                        {pendingBadge}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted">
+                        Approve pending signups
+                      </span>
+                    </Link>
+                  </>
                 ) : null}
               </nav>
             </div>
