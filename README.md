@@ -61,7 +61,7 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 | **Hybrid search** | Semantic (pgvector) + full-text (Postgres FTS) fused with RRF |
 | **RAG chat** | Cited answers over the corpus; Gemini with Groq fallback (20 queries/day) |
 | **Settings** | Email theme/format, dashboard light/dark/system, live preview |
-| **Admin** | Approve or reject pending signups |
+| **Admin** | Approve/reject signups, view pipeline & classification analytics |
 | **UX** | Per-route loading skeletons, error alerts with retry, empty states |
 
 ---
@@ -137,7 +137,7 @@ Topic-specific deep dives: [`docs/rag.md`](docs/rag.md) (retrieval & chat) · [`
 | Database | Supabase (PostgreSQL, pgvector, RLS) |
 | Embeddings | `all-MiniLM-L6-v2` (384-dim) |
 | Email | Mailtrap HTTP API |
-| Dashboard | Next.js 16, React 19, TypeScript, Tailwind v4, Zustand |
+| Dashboard | Next.js 16, React 19, TypeScript, Tailwind v4, Zustand, Recharts |
 | Auth | Supabase Auth (Google OAuth, email OTP) |
 | CI / CD | GitHub Actions |
 | Hosting | Vercel (dashboard), GitHub Actions (pipeline) |
@@ -324,6 +324,7 @@ All routes require an **active** authenticated user (`profiles.status = active`)
 | `/api/settings/preferences` | GET/PUT | User preferences |
 | `/api/settings/digest-preview` | GET | Email HTML preview |
 | `/api/admin/users` | GET/POST | Pending user queue (admin) |
+| `/api/admin/stats` | GET | Pipeline & article analytics (admin) |
 
 Full API details: [`dashboard/README.md`](dashboard/README.md)
 
