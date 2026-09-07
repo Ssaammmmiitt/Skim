@@ -30,7 +30,7 @@ def _load_fallback_models() -> list[str]:
     single = os.environ.get("GEMINI_FALLBACK_MODEL", "").strip()
     if single:
         return [single]
-    return ["gemini-2.0-flash", "gemini-3.5-flash-lite"]
+    return ["gemini-3.5-flash-lite", "gemini-2.5-flash"]
 
 
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
@@ -38,9 +38,9 @@ GEMINI_FALLBACK_MODELS = _load_fallback_models()
 GEMINI_FALLBACK_MODEL = GEMINI_FALLBACK_MODELS[0]
 GROQ_MODEL = "openai/gpt-oss-120b"
 
-GEMINI_FALLBACK_STATUS_CODES = {403, 404, 429, 500, 502, 503, 504}
+GEMINI_FALLBACK_STATUS_CODES = {400, 403, 404, 429, 500, 502, 503, 504}
 GEMINI_RETRYABLE_STATUS_CODES = {500, 502, 503, 504}
-GEMINI_KEY_ROTATION_STATUS_CODES = {403, 404, 429}
+GEMINI_KEY_ROTATION_STATUS_CODES = {400, 403, 404, 429}
 HIGH_DEMAND_STATUS_CODES = {503, 504}
 GEMINI_MAX_RETRIES = 3
 GEMINI_RETRY_BACKOFF_SECONDS = 2

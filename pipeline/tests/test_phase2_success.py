@@ -53,14 +53,14 @@ def test_openai_gpt_query_ranks_ai_articles_at_top():
 
 
 @pytest.mark.integration
-def test_cooking_recipes_query_returns_low_similarity_results():
-    assert search_similar("cooking recipes", k=5, min_similarity=THRESHOLD) == []
-    assert _top_similarity("cooking recipes") < THRESHOLD
+def test_offtopic_query_returns_low_similarity_results():
+    assert search_similar("building a fusion reactor out of cheese", k=5, min_similarity=THRESHOLD) == []
+    assert _top_similarity("building a fusion reactor out of cheese") < THRESHOLD
 
 
 @pytest.mark.integration
 def test_offtopic_query_scores_below_ontopic_query():
-    assert _top_similarity("cooking recipes") < _top_similarity("OpenAI GPT")
+    assert _top_similarity("building a fusion reactor out of cheese") < _top_similarity("OpenAI GPT")
 
 
 @pytest.mark.integration

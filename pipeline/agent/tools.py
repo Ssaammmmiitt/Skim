@@ -36,6 +36,8 @@ CLASSIFY_ARTICLE = {
                     "description": (
                         "1=routine/minor, 5=notable, 8=significant, 10=groundbreaking"
                     ),
+                    "minimum": 1,
+                    "maximum": 10,
                 },
                 "reasoning": {
                     "type": "string",
