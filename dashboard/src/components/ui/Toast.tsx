@@ -152,7 +152,9 @@ export function ToastProvider() {
   useEffect(() => {
     const listener: Listener = (updated) => setItems(updated);
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   }, []);
 
   if (items.length === 0) return null;
