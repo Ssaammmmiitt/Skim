@@ -36,16 +36,16 @@ export const textarea =
   "min-h-[44px] w-full resize-none rounded-xl border border-surface-raised bg-canvas px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted focus:border-cyan-core focus:ring-2 focus:ring-cyan-core/25 disabled:opacity-50 sm:min-h-[52px] sm:px-4 sm:py-3";
 
 export const btnPrimary =
-  "inline-flex min-h-11 items-center justify-center rounded-full bg-cyan-core px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-black transition hover:bg-cyan-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-core focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-cyan-core px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-black transition hover:bg-cyan-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-core focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40";
 
 export const btnSecondary =
-  "inline-flex min-h-11 items-center justify-center rounded-full border border-surface-raised px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-secondary transition hover:border-cyan-core hover:text-cyan-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-core/40 disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-surface-raised px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-secondary transition hover:border-cyan-core hover:text-cyan-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-core/40 disabled:cursor-not-allowed disabled:opacity-40";
 
 export const btnGhost =
-  "inline-flex min-h-11 items-center justify-center rounded-full border border-cyan-core px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-cyan-bright transition hover:bg-cyan-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-core/40";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-cyan-core px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-cyan-bright transition hover:bg-cyan-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-core/40";
 
 export const btnDanger =
-  "inline-flex min-h-11 items-center justify-center rounded-full border border-error px-4 py-2 text-sm text-error transition hover:bg-error-surface/30";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-error px-4 py-2 text-sm text-error transition hover:bg-error-surface/30";
 
 export const pill =
   "inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide";

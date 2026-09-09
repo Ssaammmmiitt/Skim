@@ -7,7 +7,8 @@ import { cn } from "@/lib/cn";
 import * as ui from "@/lib/tailwind-ui";
 
 type Mode = "signin" | "signup";
-type Step = "email" | "verify-otp";
+type Method = "password" | "otp";
+type Step = "input" | "verify-otp" | "verify-email-link";
 type Feedback = { text: string; kind: "error" | "info" };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -25,7 +26,7 @@ function readUrlErrorMessage(): string {
 
 function modeTabClass(active: boolean) {
   return cn(
-    "flex-1 rounded-full py-2 text-sm font-medium transition",
+    "flex-1 rounded-full py-2 text-sm font-medium transition cursor-pointer",
     active ? "bg-cyan-core text-black" : "text-secondary"
   );
 }
@@ -33,10 +34,16 @@ function modeTabClass(active: boolean) {
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  
   const [mode, setMode] = useState<Mode>("signin");
-  const [step, setStep] = useState<Step>("email");
+  const [method, setMethod] = useState<Method>("password");
+  const [step, setStep] = useState<Step>("input");
+  
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  
   const [urlErrorMessage] = useState(readUrlErrorMessage);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,27 +74,64 @@ export default function LoginPage() {
     setLoading(false);
   }
 
-  async function sendOtp(event: React.FormEvent) {
+  async function submitInput(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
     setFeedback(null);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { shouldCreateUser: mode === "signup" },
-    });
-    setLoading(false);
-    if (error) {
-      setFeedback({ text: error.message, kind: "error" });
-      return;
+
+    if (method === "password") {
+      if (mode === "signup") {
+        const { error, data } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: { name: name.trim() },
+          },
+        });
+        
+        if (error) {
+          setFeedback({ text: error.message, kind: "error" });
+        } else {
+          if (data.session) {
+            router.push("/auth/complete");
+          } else {
+            setStep("verify-email-link");
+            setFeedback({
+              text: "Registration successful! Please check your email to verify your account before signing in.",
+              kind: "info",
+            });
+          }
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) {
+          setFeedback({ text: error.message, kind: "error" });
+        } else {
+          router.push("/auth/complete");
+        }
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { shouldCreateUser: mode === "signup" },
+      });
+      if (error) {
+        setFeedback({ text: error.message, kind: "error" });
+      } else {
+        setStep("verify-otp");
+        setFeedback({
+          text:
+            mode === "signup"
+              ? "Enter the 6-digit code we sent to verify your new account."
+              : "Enter the 6-digit login code from your email.",
+          kind: "info",
+        });
+      }
     }
-    setStep("verify-otp");
-    setFeedback({
-      text:
-        mode === "signup"
-          ? "Enter the 6-digit code we sent to verify your new account."
-          : "Enter the 6-digit login code from your email.",
-      kind: "info",
-    });
+    setLoading(false);
   }
 
   async function verifyOtp(event: React.FormEvent) {
@@ -109,7 +153,7 @@ export default function LoginPage() {
 
   function switchMode(next: Mode) {
     setMode(next);
-    setStep("email");
+    setStep("input");
     setOtp("");
     setFeedback(null);
   }
@@ -127,8 +171,8 @@ export default function LoginPage() {
         <div className={cn(ui.card, "w-full max-w-md p-6 sm:p-8")}>
           <p className={ui.body}>
             {mode === "signup"
-              ? "Register with email OTP or Google. New accounts need admin approval."
-              : "Sign in with Google or a login code. Approved accounts only."}
+              ? "Register with email or Google. New accounts need admin approval."
+              : "Sign in with Google, password, or login code. Approved accounts only."}
           </p>
 
           <div className="mt-6 flex rounded-full border border-surface-raised p-1">
@@ -183,14 +227,38 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setStep("email")}
-                className="w-full text-sm text-secondary hover:text-cyan-bright"
+                onClick={() => setStep("input")}
+                className="w-full text-sm text-secondary hover:text-cyan-bright cursor-pointer"
               >
                 Use a different email
               </button>
             </form>
+          ) : step === "verify-email-link" ? (
+            <div className="space-y-4">
+              <p className="text-sm text-secondary">
+                We've sent a confirmation link to your email. Please check your inbox and spam folder.
+              </p>
+              <button
+                type="button"
+                onClick={() => setStep("input")}
+                className="w-full text-sm text-secondary hover:text-cyan-bright cursor-pointer"
+              >
+                Back to sign in
+              </button>
+            </div>
           ) : (
-            <form onSubmit={sendOtp} className="space-y-4">
+            <form onSubmit={submitInput} className="space-y-4">
+              {mode === "signup" && method === "password" && (
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={ui.input}
+                  required
+                />
+              )}
+              
               <input
                 type="email"
                 placeholder="you@email.com"
@@ -199,14 +267,43 @@ export default function LoginPage() {
                 className={ui.input}
                 required
               />
+              
+              {method === "password" && (
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={ui.input}
+                  required
+                />
+              )}
+
               <button
                 type="submit"
                 disabled={loading}
                 className={cn(ui.btnGhost, "w-full")}
               >
-                {mode === "signup"
-                  ? "Send registration code"
-                  : "Send login code"}
+                {method === "password"
+                  ? mode === "signup"
+                    ? "Create account"
+                    : "Sign in with password"
+                  : mode === "signup"
+                    ? "Send registration code"
+                    : "Send login code"}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setMethod(method === "password" ? "otp" : "password");
+                  setFeedback(null);
+                }}
+                className="w-full text-sm text-secondary hover:text-cyan-bright mt-2 cursor-pointer"
+              >
+                {method === "password" 
+                  ? "Use an email login code instead" 
+                  : "Use a password instead"}
               </button>
             </form>
           )}

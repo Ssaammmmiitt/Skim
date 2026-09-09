@@ -24,6 +24,8 @@ jobs:
         run: pip install -r pipeline/requirements.txt
 
       - name: Run pipeline unit tests
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: pytest pipeline/tests -m "not integration" -q
 
       - name: Set up Node.js
