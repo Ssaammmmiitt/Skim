@@ -37,6 +37,12 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
 GEMINI_FALLBACK_MODELS = _load_fallback_models()
 GEMINI_FALLBACK_MODEL = GEMINI_FALLBACK_MODELS[0]
 GROQ_MODEL = "openai/gpt-oss-120b"
+GROQ_MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "qwen/qwen3.6-27b"
+]
 GROQ_MODEL_SELECTION = "openai/gpt-oss-120b"
 
 GEMINI_FALLBACK_STATUS_CODES = {400, 401, 403, 404, 429, 500, 502, 503, 504}
@@ -609,28 +615,46 @@ class LLMClient:
         model: str | None = None,
     ) -> dict[str, Any]:
         last_error: Exception | None = None
-        active_model = model or GROQ_MODEL
+        models_to_try = [model] if model else GROQ_MODELS
+        
+        for active_model in models_to_try:
+            key_retries = 2
+            while key_retries > 0:
+                try:
+                    response = self._get_groq().chat.completions.create(
+                        model=active_model,
+                        messages=self._normalize_messages_for_groq(messages),
+                        tools=tools,
+                        tool_choice=tool_choice or "auto",
+                    )
+                    self.provider = "groq"
+                    with self._groq_lock:
+                        self._groq_calls += 1
+                    return self._parse_groq_response(response)
+                except Exception as exc:
+                    last_error = exc
+                    status_code = getattr(exc, "status_code", 500)
+                    
+                    if status_code == 400:
+                        logger.warning("Groq model %s failed with 400 (%s), trying next model", active_model, exc)
+                        break  # Break key retry loop to try next model
+                        
+                    if status_code == 429:
+                        logger.warning("Groq model %s rate limited (%s)", active_model, exc)
+                        if self._advance_groq_key():
+                            key_retries -= 1
+                            continue
+                        break  # Break key retry loop to try next model
+                        
+                    logger.warning("Groq model %s failed (%s)", active_model, exc)
+                    if self._advance_groq_key():
+                        key_retries -= 1
+                        continue
+                    break  # Break key retry loop to try next model
 
-        while True:
-            try:
-                response = self._get_groq().chat.completions.create(
-                    model=active_model,
-                    messages=self._normalize_messages_for_groq(messages),
-                    tools=tools,
-                    tool_choice=tool_choice or "auto",
-                )
-                self.provider = "groq"
-                with self._groq_lock:
-                    self._groq_calls += 1
-                return self._parse_groq_response(response)
-            except Exception as exc:
-                last_error = exc
-                if self._advance_groq_key():
-                    logger.warning("Groq key failed (%s), trying next key", exc)
-                    continue
-                raise LLMProviderError(
-                    f"Both Gemini and Groq failed. Groq error: {last_error}"
-                ) from last_error
+        raise LLMProviderError(
+            f"Both Gemini and Groq failed. Groq error: {last_error}"
+        ) from last_error
 
     def log_usage_summary(self) -> None:
         if self._pool is not None:
