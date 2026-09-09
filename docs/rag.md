@@ -1,8 +1,15 @@
 # Skim RAG  -  Architecture & Implementation Guide
 
-Complete reference for how retrieval-augmented generation works in Skim: what gets stored, how the database searches, how queries flow from the UI to Postgres and back through the LLM.
+Complete reference for how Retrieval-Augmented Generation (RAG) works in Skim: storage design, vector and full-text database search, query embedding flows, Reciprocal Rank Fusion (RRF), importance score boosting, and multi-provider LLM failover.
 
-**Related docs:** `[progress.md](../progress.md)` · `[vercel-deploy.md](./vercel-deploy.md)` · `[dashboard/README.md](../dashboard/README.md)`
+**Related documentation**
+
+| Document | Scope |
+|---|---|
+| [docs/README.md](./README.md) | Central documentation directory index |
+| [docs/architecture.md](./architecture.md) | High-level system architecture and data model |
+| [docs/dashboard.md](./dashboard.md) | Dashboard routes, stores, and API handlers |
+| [docs/vercel-deploy.md](./vercel-deploy.md) | Vercel environment variables & deployment |
 
 ---
 
@@ -25,27 +32,24 @@ Complete reference for how retrieval-augmented generation works in Skim: what ge
 15. [Source file map](#source-file-map)
 16. [Troubleshooting](#troubleshooting)
 17. [Design decisions](#design-decisions)
+18. [SQL migration checklist](#sql-migration-checklist)
 
 ---
 
 ## What RAG means in Skim
 
-**Retrieval-Augmented Generation (RAG)** here means:
+**Retrieval-Augmented Generation (RAG)** in Skim operates as follows:
 
-1. **Retrieve**  -  find the most relevant articles from the Skim corpus for a user question.
-2. **Augment**  -  pass those articles (title, summary, insight, takeaway, URL) into the LLM prompt as grounded context.
-3. **Generate**  -  the LLM writes an answer that cites specific sources and does not invent facts.
+1. **Retrieve**  -  Find the most relevant articles from the Skim corpus for a user question using hybrid semantic + full-text search.
+2. **Augment**  -  Inject those articles (title, summary, insight, key takeaway, URL, published date) into the LLM prompt as strictly grounded context.
+3. **Generate**  -  The LLM generates a cohesive answer citing specific numbered sources (`[1]`, `[2]`), avoiding hallucinations.
 
-Skim does **not** fine-tune a model on your articles. It uses **off-the-shelf** embeddings + a general LLM (Gemini, with Groq fallback) over retrieved context.
+Skim uses an **off-the-shelf** sentence transformer (`all-MiniLM-L6-v2`) and multi-provider LLMs (Google Gemini with Groq fallback) over the retrieved context.
 
-Two user-facing features share the same retrieval stack:
-
-
-| Feature    | Route                        | Retrieval | Generation                            |
-| ---------- | ---------------------------- | --------- | ------------------------------------- |
-| **Search** | `/search`, `GET /api/search` | ✅ Hybrid  | ❌ Returns ranked articles only        |
-| **Chat**   | `/chat`, `POST /api/chat`    | ✅ Hybrid  | ✅ Gemini → Groq answer with citations |
-
+| Feature | Route | Retrieval | Generation |
+|---|---|---|---|
+| **Search** | `/search`, `GET /api/search` | ✅ Hybrid | ❌ Returns ranked articles only |
+| **Chat** | `/chat`, `POST /api/chat` | ✅ Hybrid | ✅ Gemini → Groq answer with citations |
 
 ---
 
@@ -54,14 +58,14 @@ Two user-facing features share the same retrieval stack:
 ```mermaid
 flowchart TB
     subgraph ingest [Daily Pipeline - GitHub Actions]
-        RSS[RSS + Hacker News]
-        ING[ingest.py]
+        RSS[RSS Feeds + Hacker News]
+        ING[pipeline/ingest.py]
         EMB[pipeline/embed.py<br/>all-MiniLM-L6-v2]
         AGT[agent/reasoning.py<br/>topic, insight, importance]
     end
 
     subgraph db [Supabase Postgres]
-        ART[(articles)]
+        ART[(articles table)]
         VEC[embedding vector384]
         FTS[search_vector tsvector]
         HNSW[HNSW index]
@@ -86,13 +90,10 @@ flowchart TB
 
     Q --> EQ --> HR
     HR --> RPC
-    HR --> HR
     RPC --> ART
     HR --> PROMPT --> LLM --> UI
     HR --> UI
 ```
-
-
 
 ### Chat request lifecycle (step by step)
 
@@ -130,85 +131,53 @@ JSON { answer, sources[], provider, model, retrieval_method, remaining }
 
 ## The corpus: what gets indexed
 
-All RAG search runs over the `articles` table in Supabase.
+All RAG search queries run against the `articles` table in Supabase.
 
 ### Indexed text
 
+| Field | Used for | Notes |
+|---|---|---|
+| `title` | Vector + FTS | Primary lexical and semantic signal |
+| `summary` | Vector + FTS | RSS excerpt, HTML-stripped, capped at 1000 chars |
+| `raw_text` | ❌ Not used | Column exists; kept NULL (no full-text scraping needed) |
 
-| Field      | Used for     | Notes                                          |
-| ---------- | ------------ | ---------------------------------------------- |
-| `title`    | Vector + FTS | Primary signal                                 |
-| `summary`  | Vector + FTS | RSS excerpt, HTML-stripped, max 1000 chars     |
-| `raw_text` | ❌ Not used   | Column exists; always NULL in current pipeline |
+**Pipeline embedding input string:** `f"{title} {summary}"` (in `pipeline/embed.py`).
 
+### Agent-enriched metadata
 
-**Pipeline embedding input:** `f"{title} {summary}"` (see `pipeline/embed.py`).
-
-### Agent-enriched metadata (retrieval boost + LLM context)
-
-
-| Field              | Set by                  | Used in RAG                  |
-| ------------------ | ----------------------- | ---------------------------- |
-| `topic`            | Agent Pass 1 (classify) | Topic badges, prompt context |
-| `importance_score` | Agent Pass 1 (0–10)     | RRF reranking boost          |
-| `insight`          | Agent Pass 2            | LLM prompt context           |
-| `key_takeaway`     | Agent Pass 2            | LLM prompt context           |
-| `published_at`     | Ingestion               | Sorting, citation dates      |
-| `source`           | Ingestion               | hackernews, techcrunch, etc. |
-
-
-### What is NOT in the corpus
-
-- Full article body text (no scraping in Phase 1)
-- External web pages (no live browsing)
-- User-uploaded documents
-- Email digest HTML (digests reference article IDs, not separate RAG index)
+| Field | Set by | Used in RAG |
+|---|---|---|
+| `topic` | Agent Pass 1 (classify) | Topic badges, structured prompt context |
+| `importance_score` | Agent Pass 1 (0–10) | RRF reranking importance boost |
+| `insight` | Agent Pass 2 | Editorial "Why it matters" prompt context |
+| `key_takeaway` | Agent Pass 2 | Concise takeaway prompt context |
+| `published_at` | Ingestion | Citation timestamps and recency sorting |
+| `source` | Ingestion | Source attribution (`hackernews`, `techcrunch`, etc.) |
 
 ---
 
 ## Embeddings: one shared vector space
 
-### Model
+### Model specifications
 
+| Property | Value |
+|---|---|
+| Model | `sentence-transformers/all-MiniLM-L6-v2` |
+| Dimensions | **384** |
+| Distance metric | Cosine (`<=>` operator in pgvector) |
+| Normalization | L2-normalized (`normalize_embeddings=True` in Python) |
 
-| Property        | Value                                                 |
-| --------------- | ----------------------------------------------------- |
-| Model           | `all-MiniLM-L6-v2`                                    |
-| Dimensions      | **384**                                               |
-| Distance metric | Cosine (`<=>` operator in pgvector)                   |
-| Normalization   | L2-normalized (pipeline: `normalize_embeddings=True`) |
+### Shared vector space rule
 
+Query vectors **must** reside in the identical 384-dimensional space as `articles.embedding`.
 
-### Where embeddings are created
+### Query embedding implementation (`dashboard/src/lib/chat/embeddings.ts`)
 
-
-| Layer                 | When                    | How                               | Stored in              |
-| --------------------- | ----------------------- | --------------------------------- | ---------------------- |
-| **Pipeline**          | Daily after ingest      | `sentence-transformers` in Python | `articles.embedding`   |
-| **Dashboard (query)** | Per search/chat request | Local or HF API                   | Not stored (ephemeral) |
-
-
-### Critical rule: same model, same space
-
-Query vectors **must** live in the same 384-dim space as `articles.embedding`.
-
-An earlier experiment used Gemini `gemini-embedding-001` (768-dim) in a separate column. That was **removed**  -  mixing embedding models makes vector search return garbage. Skim RAG uses **MiniLM only**.
-
-### Query embedding implementation
-
-**File:** `dashboard/src/lib/chat/embeddings.ts`
-
-
-| Environment | Mode                               | Mechanism                                                             |
-| ----------- | ---------------------------------- | --------------------------------------------------------------------- |
-| Local dev   | `local` (default)                  | `@xenova/transformers` - dynamic import, quantized MiniLM             |
-| Vercel      | `hf` (auto when `VERCEL` set)      | Hugging Face Inference API (`sentence-transformers/all-MiniLM-L6-v2`) |
-| Override    | `SKIM_EMBEDDING_MODE=hf|local|off` | Force strategy                                                        |
-
-
-On Vercel, local MiniLM + onnxruntime is unreliable in serverless lambdas. `**HF_TOKEN` is required** for production chat/search vector leg.
-
-If embedding fails entirely, retrieval **degrades** to FTS and keyword fallbacks (no vector leg).
+| Environment | Mode | Strategy |
+|---|---|---|
+| Local dev | `local` | `@xenova/transformers` - dynamic import of quantized MiniLM |
+| Vercel | `hf` (auto when `VERCEL` is set) | Hugging Face Inference API (`sentence-transformers/all-MiniLM-L6-v2`) via `HF_TOKEN` |
+| Override | `SKIM_EMBEDDING_MODE=hf\|local\|off` | Explicit override |
 
 ---
 
@@ -218,19 +187,17 @@ If embedding fails entirely, retrieval **degrades** to FTS and keyword fallbacks
 
 ### Default parameters
 
-
-| Parameter         | Chat | Search | Notes                              |
-| ----------------- | ---- | ------ | ---------------------------------- |
-| `limit`           | 8    | 20     | Max articles returned              |
-| `vectorWeight`    | 0.55 | 0.55   | RRF weight for semantic leg        |
-| `ftsWeight`       | 0.45 | 0.45   | RRF weight for keyword leg         |
-| `rrf_k`           | 60   | 60     | RRF smoothing constant             |
-| `match_threshold` | 0.2  | 0.2    | Min cosine similarity (vector RPC) |
-
+| Parameter | Chat | Search | Notes |
+|---|---|---|---|
+| `limit` | 8 | 20 | Max articles returned |
+| `vectorWeight` | 0.55 | 0.55 | RRF weight for semantic leg |
+| `ftsWeight` | 0.45 | 0.45 | RRF weight for keyword leg |
+| `rrf_k` | 60 | 60 | RRF smoothing constant |
+| `match_threshold` | 0.20 | 0.20 | Minimum cosine similarity |
 
 ### Fallback chain
 
-Retrieval never hard-fails if one leg is unavailable. It tries in order:
+Retrieval never hard-fails if one subsystem is degraded:
 
 ```
 1. search_articles_hybrid RPC     (fastest  -  SQL-side RRF)
@@ -239,28 +206,24 @@ Retrieval never hard-fails if one leg is unavailable. It tries in order:
 2. In-process RRF                 (parallel vector + FTS RPCs, fuse in TypeScript)
         │ fails or empty
         ▼
-3. Vector-only                      search_articles_vector → search_similar_articles
+3. Vector-only                    search_articles_vector → search_similar_articles
         │ fails or empty
         ▼
-4. FTS-only                         search_articles_fts → Supabase textSearch
+4. FTS-only                       search_articles_fts → Supabase textSearch
         │ fails or empty
         ▼
-5. Keyword ILIKE                    title ILIKE %query% OR summary ILIKE %query%
+5. Keyword ILIKE                  title ILIKE %query% OR summary ILIKE %query%
 ```
 
-Each result is tagged with `retrieval_method`: `"hybrid"` | `"vector"` | `"fts"` | `"keyword"`.
+Each result is tagged with `retrieval_method`: `"hybrid" | "vector" | "fts" | "keyword"`.
 
 ### Importance boost (post-RRF)
 
-After fusion, articles are reranked by agent importance score:
+After RRF fusion, articles are adjusted by agent importance score:
 
-```
-adjusted_rrf = rrf_score × (1 + importance_score / 25)
-```
+$$\text{adjusted\_rrf} = \text{rrf\_score} \times \left(1 + \frac{\text{importance\_score}}{25}\right)$$
 
-Default importance when NULL is treated as **5** in the boost formula. High-importance stories from the agent pipeline surface more often in RAG results.
-
-**File:** `dashboard/src/lib/retrieval/rrf.ts` → `boostByImportance()`
+Default importance is treated as 5.0 when NULL. High-importance stories surface higher in RAG context.
 
 ---
 
@@ -280,118 +243,34 @@ search_vector tsvector GENERATED ALWAYS AS (
 
 ### Indexes
 
+| Index | Type | Column | Purpose |
+|---|---|---|---|
+| `articles_embedding_hnsw_idx` | HNSW | `embedding` | Approximate nearest neighbor vector search |
+| `articles_search_vector_idx` | GIN | `search_vector` | Full-text keyword search |
+| `articles_topic_idx` | B-tree | `topic` | Topic taxonomy filtering |
 
-| Index                         | Type   | Column          | Purpose                            |
-| ----------------------------- | ------ | --------------- | ---------------------------------- |
-| `articles_embedding_hnsw_idx` | HNSW   | `embedding`     | Fast approximate nearest neighbor  |
-| `articles_search_vector_idx`  | GIN    | `search_vector` | Full-text search                   |
-| `articles_topic_idx`          | B-tree | `topic`         | Filtering (not used in hybrid RPC) |
+### SQL RPC functions (`sql/005_hybrid_search.sql`)
 
+| Function | Input | Output | Role |
+|---|---|---|---|
+| `search_articles_vector` | `vector(384)`, count, threshold | Articles + `similarity` | Semantic vector leg |
+| `search_articles_fts` | `text`, count | Articles + `fts_rank` | Keyword FTS leg |
+| `search_articles_hybrid` | vector + text + weights | Articles + `similarity`, `fts_rank`, `rrf_score` | Fused ranking |
 
-**Why HNSW, not ivfflat:** ivfflat needs a large corpus to train its cluster lists. On ~100 articles it returned irrelevant matches (e.g. 0.16 similarity for "OpenAI GPT"). HNSW works at any scale.
-
-### Vector similarity math
-
-pgvector uses the **cosine distance** operator `<=>`:
-
-```sql
-similarity = 1 - (embedding <=> query_embedding)
-```
-
-- `1.0` = identical direction (perfect match)
-- `0.0` = orthogonal
-- Results filtered by `match_threshold` (default 0.2 in hybrid RPC, 0.25 in standalone vector RPC)
-
-Query embedding is passed as a string literal: `"[0.12, -0.34, ...]"` (see `vectorLiteral()` in `retrieval.ts`).
-
-### Full-text search (FTS)
-
-**Migration:** `sql/004_search_fts.sql`
-
-- English `to_tsvector` on `title + summary`
-- Queries use `websearch_to_tsquery('english', query_text)`  -  supports quoted phrases, `OR`, `-` negation (Google-style)
-- Ranking: `ts_rank_cd(search_vector, query)`
-
-### SQL RPC functions
-
-**Migration:** `sql/005_hybrid_search.sql` (run after `004`)
-
-
-| Function                  | Input                           | Output                                         | Role                          |
-| ------------------------- | ------------------------------- | ---------------------------------------------- | ----------------------------- |
-| `search_articles_vector`  | `vector(384)`, count, threshold | Articles + `similarity`                        | Semantic leg                  |
-| `search_articles_fts`     | `text`, count                   | Articles + `fts_rank`                          | Keyword leg                   |
-| `search_articles_hybrid`  | vector + text + weights         | Articles + similarity, fts_rank, **rrf_score** | Fused ranking                 |
-| `search_similar_articles` | `vector(384)`                   | Legacy RPC from `schema.sql`                   | Fallback if `005` not applied |
-
-
-All RPCs are `SECURITY DEFINER` with `GRANT EXECUTE` to `authenticated` and `anon` (dashboard calls them via user's Supabase session; RLS on `articles` still applies for direct table access).
-
-**Type note:** `005` uses `double precision` return types. An earlier version used `real`/`float` and caused Postgres error: *"structure of query does not match function result type"*. Re-run `005` if you see `Hybrid RPC unavailable` in logs.
-
-### How hybrid RPC works internally
-
-```sql
--- Simplified view of search_articles_hybrid
-WITH vector_results AS (
-  SELECT *, ROW_NUMBER() OVER (ORDER BY similarity DESC) AS rank_v
-  FROM search_articles_vector(embedding, match_count * 2, 0.2)
-),
-fts_results AS (
-  SELECT *, ROW_NUMBER() OVER (ORDER BY fts_rank DESC) AS rank_f
-  FROM search_articles_fts(query_text, match_count * 2)
-)
-SELECT *,
-  vector_weight / (rrf_k + rank_v) + fts_weight / (rrf_k + rank_f) AS rrf_score
-FROM vector_results FULL OUTER JOIN fts_results ON id
-ORDER BY rrf_score DESC
-LIMIT match_count;
-```
-
-The TypeScript `reciprocalRankFusion()` in `rrf.ts` implements the same formula when the SQL RPC is unavailable.
+All RPCs are defined with `double precision` return types for cross-platform precision and stability.
 
 ---
 
 ## Reciprocal Rank Fusion (RRF)
 
-RRF combines ranked lists from different retrieval methods without normalizing their raw scores (which are on incompatible scales).
+RRF combines ranked lists from different retrieval methods without requiring score normalization:
 
-### Formula
-
-For document `d`:
-
-```
-RRF(d) = Σ  weight_i / (k + rank_i(d))
-```
+$$RRF(d) = \sum_{i} \frac{w_i}{k + \text{rank}_i(d)}$$
 
 Where:
-
-- `rank_i(d)` = 1-based rank in list `i` (vector list, FTS list)
-- `k` = 60 (smoothing  -  prevents top-ranked items from dominating)
-- `vector_weight` = 0.55, `fts_weight` = 0.45
-
-### Why hybrid?
-
-
-| Leg                   | Strength                                              | Weakness                        |
-| --------------------- | ----------------------------------------------------- | ------------------------------- |
-| **Vector (semantic)** | Paraphrases, concepts ("AI regulation" ↔ "EU AI Act") | Misses exact names, rare tokens |
-| **FTS (keyword)**     | Exact terms, company names, acronyms                  | Misses semantic similarity      |
-
-
-RRF surfaces articles that rank well in **either** or **both** lists.
-
-### Example
-
-
-| Article | Vector rank | FTS rank | RRF contribution           |
-| ------- | ----------- | -------- | -------------------------- |
-| A       | 1           | 5        | 0.55/61 + 0.45/65 ≈ 0.0160 |
-| B       | 8           | 1        | 0.55/68 + 0.45/61 ≈ 0.0154 |
-| C       | 2           | -        | 0.55/62 ≈ 0.0089           |
-
-
-Article A wins  -  strong in both legs.
+- $\text{rank}_i(d)$ is the 1-based rank in list $i$
+- $k = 60$ (smoothing constant)
+- $w_{\text{vector}} = 0.55$, $w_{\text{fts}} = 0.45$
 
 ---
 
@@ -399,67 +278,21 @@ Article A wins  -  strong in both legs.
 
 **File:** `dashboard/src/lib/retrieval/query.ts`
 
-Chat passes `history` into retrieval so follow-ups stay grounded.
-
-### Vector query
-
-Combines the **last 2 user turns** + current message (deduplicated), capped at 512 characters:
-
-```
-"What happened in AI?"  →  vectorQuery: "What happened in AI?"
-"What about funding?"   →  vectorQuery: "What happened in AI? What about funding?"
-```
-
-Semantic search benefits from richer context.
-
-### FTS query
-
-Uses the **current message** only, unless it's a short follow-up (≤4 words):
-
-```
-"What about funding?"  →  ftsQuery: "What happened in AI? What about funding?"
-```
-
-Keyword search stays focused but inherits context for vague follow-ups.
+- **Vector query:** Combines the last 2 user turns + current message (deduplicated), capped at 512 characters.
+- **FTS query:** Uses the current message only, unless it is a short follow-up (≤4 words), inheriting previous context.
 
 ---
 
 ## Generation: from articles to answers
 
-Retrieval and generation are **separate steps**. Search stops after retrieval; Chat continues.
+### Prompt construction (`dashboard/src/lib/chat/prompt.ts`)
 
-### Prompt construction
+1. **System Instruction:** Citation rules, partial-answer behavior, refusal only when 0 articles found.
+2. **Conversation History:** Last conversation turns wrapped in `<conversation_history>`.
+3. **Retrieved Articles:** Numbered `[1]`, `[2]`, … with title, URL, summary, insight, key takeaway, topic, and scores.
+4. **User Question:** Wrapped in `<user_question>`.
 
-**File:** `dashboard/src/lib/chat/prompt.ts`
-
-1. **System instruction** (`CHAT_SYSTEM_INSTRUCTION`)  -  citation rules, partial-answer behavior, refusal only when 0 articles
-2. **Conversation history**  -  last turns wrapped in `<conversation_history>`
-3. **Retrieved articles**  -  numbered `[1]`, `[2]`, … with title, URL, summary, insight, takeaway, topic, scores
-4. **User question**  -  wrapped in `<user_question>`
-
-Example structure sent to the LLM:
-
-```xml
-<conversation_history>
-User: What happened in AI this week?
-Assistant: According to [1], OpenAI released...
-</conversation_history>
-
-<retrieved_articles count="8" retrieval="hybrid">
-[1] OpenAI announces new model - techcrunch, Aug 28 [sim=0.82, rrf=0.015]
-    URL: https://...
-    Summary: ...
-    Insight: ...
-</retrieved_articles>
-
-<user_question>
-What about European startups?
-</user_question>
-```
-
-### LLM provider chain
-
-**File:** `dashboard/src/lib/chat/llm-client.ts`
+### LLM provider chain (`dashboard/src/lib/chat/llm-client.ts`)
 
 ```
 gemini-3.6-flash (primary, GEMINI_MODEL)
@@ -468,32 +301,20 @@ gemini-3.6-flash (primary, GEMINI_MODEL)
   → Groq openai/gpt-oss-120b (GROQ_API_KEYS)
 ```
 
-Errors are structured as `ChatLlmError` with `error_code`, `tried_providers`, `retry_after_seconds`.
-
-### Citation behavior
-
-- LLM instructed to cite `[1]`, `[2]` inline
-- UI maps numbers to `SourceCitation` component with URLs, topic badges, similarity bars
-- Sources in API response are the **retrieved articles**, not LLM-hallucinated links
-
 ---
 
 ## Search page vs Chat
 
-
-| Aspect        | `/search`                                            | `/chat`                                                   |
-| ------------- | ---------------------------------------------------- | --------------------------------------------------------- |
-| API           | `GET /api/search?q=...`                              | `POST /api/chat`                                          |
-| Default mode  | `hybrid`                                             | always hybrid                                             |
-| Alt mode      | `?mode=keyword` (FTS/ILIKE only via `lib/search.ts`) | -                                                         |
-| Default limit | 20                                                   | 8                                                         |
-| History       | No                                                   | Yes - last 6 turns to LLM, last 2 user turns to retrieval |
-| LLM           | No                                                   | Yes                                                       |
-| Rate limit    | None                                                 | 20 queries/user/day                                       |
-| UI            | `SearchResultCard` with rank, similarity %           | `ChatMessage` + `SourceCitation`                          |
-
-
-Both call `hybridRetrieve()` when `mode=hybrid`.
+| Aspect | `/search` | `/chat` |
+|---|---|---|
+| API | `GET /api/search?q=...` | `POST /api/chat` |
+| Default mode | `hybrid` | `hybrid` |
+| Alternate mode | `?mode=keyword` (FTS/ILIKE) |  -  |
+| Default limit | 20 | 8 |
+| History | None | Up to 6 turns in LLM, 2 in vector retrieval |
+| LLM | No | Yes |
+| Rate limit | None | 20 queries/user/day |
+| UI | `SearchResultCard` with similarity % | `ChatMessage` + `SourceCitation` |
 
 ---
 
@@ -501,205 +322,82 @@ Both call `hybridRetrieve()` when `mode=hybrid`.
 
 ### `GET /api/search`
 
-**Auth:** Active user required.
-
-
-| Param   | Default  | Description                         |
-| ------- | -------- | ----------------------------------- |
-| `q`     | -        | Search query (required for results) |
-| `mode`  | `hybrid` | `hybrid` or `keyword`               |
-| `limit` | 20       | 1–50                                |
-
-
-**Response (hybrid):**
-
-```json
-{
-  "results": [
-    {
-      "id": 42,
-      "title": "...",
-      "url": "...",
-      "source": "techcrunch",
-      "summary": "...",
-      "insight": "...",
-      "topic": "ai_ml",
-      "importance_score": 7.5,
-      "similarity": 0.78,
-      "fts_rank": 0.12,
-      "rrf_score": 0.014,
-      "retrieval_method": "hybrid"
-    }
-  ],
-  "query": "OpenAI",
-  "mode": "hybrid"
-}
-```
+Parameters: `q` (query string, required), `mode` (`hybrid` | `keyword`), `limit` (1–50, default 20).
 
 ### `GET /api/chat`
 
-Returns daily quota:
-
-```json
-{ "limit": 20, "used": 3, "remaining": 17 }
-```
+Returns user quota: `{ "limit": 20, "used": 3, "remaining": 17 }`.
 
 ### `POST /api/chat`
 
-**Body:**
-
-```json
-{
-  "message": "What happened in AI this week?",
-  "history": [
-    { "role": "user", "content": "..." },
-    { "role": "assistant", "content": "..." }
-  ]
-}
-```
-
-**Success response:**
-
-```json
-{
-  "answer": "According to [1], ...",
-  "sources": [
-    {
-      "id": 42,
-      "title": "...",
-      "url": "...",
-      "similarity": 0.78,
-      "rrf_score": 0.014,
-      "retrieval_method": "hybrid"
-    }
-  ],
-  "remaining": 16,
-  "used": 4,
-  "retrieval_method": "hybrid",
-  "provider": "gemini",
-  "model": "gemini-3.6-flash",
-  "articles_retrieved": 8
-}
-```
-
-**Error codes:**
-
-
-| HTTP | `error_code`           | Meaning                    |
-| ---- | ---------------------- | -------------------------- |
-| 401  | -                      | Not authenticated          |
-| 403  | -                      | Account pending / rejected |
-| 429  | -                      | Daily chat limit (20/day)  |
-| 503  | `config`               | Missing API keys           |
-| 503  | `all_providers_failed` | Gemini + Groq exhausted    |
-| 500  | `unknown`              | Unexpected server error    |
-
+Payload: `{ "message": "...", "history": [...] }`.  
+Response: `{ "answer": "...", "sources": [...], "provider": "gemini", "model": "gemini-3.6-flash", "remaining": 16 }`.
 
 ---
 
 ## UI components
 
-
-| Component           | File                                     | Role                                                |
-| ------------------- | ---------------------------------------- | --------------------------------------------------- |
-| `ChatInterface`     | `components/chat/ChatInterface.tsx`      | Message state, calls `/api/chat`, suggested prompts |
-| `ChatMessage`       | `components/chat/ChatMessage.tsx`        | Renders user/assistant bubbles, provider badge      |
-| `ChatLoadingBubble` | `components/chat/ChatLoadingBubble.tsx`  | embed → search → generate steps                     |
-| `ChatErrorPanel`    | `components/chat/ChatErrorPanel.tsx`     | Structured errors, retry button                     |
-| `SourceCitation`    | `components/chat/SourceCitation.tsx`     | Collapsible sources with similarity bar             |
-| `SearchBar`         | `components/ui/SearchBar.tsx`            | Debounced input, navigates to `/search?q=`          |
-| `SearchResults`     | `components/search/SearchResults.tsx`    | Fetches `/api/search`, renders cards                |
-| `SearchResultCard`  | `components/search/SearchResultCard.tsx` | Rank, topic, similarity %, retrieval method badge   |
-
+| Component | File | Role |
+|---|---|---|
+| `ChatInterface` | `components/chat/ChatInterface.tsx` | Message state, suggested prompts, call dispatch |
+| `ChatMessage` | `components/chat/ChatMessage.tsx` | Message bubbles & provider badges |
+| `ChatLoadingBubble` | `components/chat/ChatLoadingBubble.tsx` | Animated step progression |
+| `ChatErrorPanel` | `components/chat/ChatErrorPanel.tsx` | Structured error display with retry button |
+| `SourceCitation` | `components/chat/SourceCitation.tsx` | Collapsible source cards with similarity bars |
+| `SearchBar` | `components/ui/SearchBar.tsx` | Debounced query input |
+| `SearchResults` | `components/search/SearchResults.tsx` | Search result list container |
+| `SearchResultCard` | `components/search/SearchResultCard.tsx` | Individual result card with match metrics |
 
 ---
 
 ## Rate limiting & auth
 
-### Auth
-
-All RAG endpoints use `requireActiveUser()`:
-
-- User must be signed in (`supabase.auth.getUser()`)
-- `profiles.status` must be `"active"` (not pending/rejected)
-
-Middleware also blocks `/api/*` for pending users with JSON 403.
-
-### Chat rate limit
-
-**Table:** `chat_usage` (`user_id`, `usage_date`, `query_count`)  
-**Limit:** 20 POST requests per user per UTC day  
-**File:** `dashboard/src/lib/chat/rate-limit.ts`
-
-Search has **no** rate limit (only chat generation is capped  -  LLM cost control).
+- **Authentication:** `requireActiveUser()` validates session and requires `profiles.status = 'active'`.
+- **Chat Limit:** 20 POST requests per user per UTC day tracked in the `chat_usage` table.
 
 ---
 
 ## Environment variables
 
-### Required for RAG chat (production)
-
-
-| Variable                               | Purpose                            |
-| -------------------------------------- | ---------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Database + auth                    |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Client session                     |
-| `SUPABASE_SECRET_KEY`                  | Chat usage tracking (admin client) |
-| `GEMINI_API_KEYS`                      | Answer generation                  |
-| `HF_TOKEN`                             | Query embeddings on Vercel         |
-
-
-### Optional
-
-
-| Variable                 | Default                                  | Purpose                        |
-| ------------------------ | ---------------------------------------- | ------------------------------ |
-| `GROQ_API_KEYS`          | -                                        | LLM fallback                   |
-| `GEMINI_MODEL`           | `gemini-3.6-flash`                       | Primary model                  |
-| `GEMINI_FALLBACK_MODELS` | `gemini-2.0-flash,gemini-3.5-flash-lite` | Model fallbacks                |
-| `GROQ_MODEL`             | `openai/gpt-oss-120b`                    | Groq model                     |
-| `SKIM_EMBEDDING_MODE`    | auto                                     | `hf` on Vercel, `local` in dev |
-
-
-### Vercel-specific
-
-- `vercel.json` sets `maxDuration: 60` for API routes
-- First chat message may take 10–30s (cold start + HF model load)
-- Hobby plan may timeout at 10s in some regions  -  upgrade if needed
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase endpoint |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Client Supabase key |
+| `SUPABASE_SECRET_KEY` | Service role key for quota tracking |
+| `GEMINI_API_KEYS` | Comma-separated Gemini API keys |
+| `HF_TOKEN` | Hugging Face token for serverless query embeddings |
+| `GROQ_API_KEYS` | Optional Groq API keys for fallback |
+| `GEMINI_MODEL` | Primary model (`gemini-3.6-flash`) |
+| `GEMINI_FALLBACK_MODELS` | Fallback models (`gemini-2.0-flash,gemini-3.5-flash-lite`) |
 
 ---
 
 ## Source file map
 
 ```
-Skim RAG codebase
-│
+Skim RAG Codebase
 ├── sql/
-│   ├── schema.sql              articles.embedding, HNSW, search_similar_articles
+│   ├── schema.sql              articles.embedding, HNSW index
 │   ├── 004_search_fts.sql      search_vector tsvector + GIN index
-│   └── 005_hybrid_search.sql   vector, fts, hybrid RPCs
-│
+│   ├── 005_hybrid_search.sql   vector, fts, hybrid RPCs (double precision)
+│   └── 007_preferences_insert_policy.sql  Preferences RLS insert policy
 ├── pipeline/
-│   └── embed.py                Writes articles.embedding (MiniLM, daily)
-│
+│   └── embed.py                Batch MiniLM embedding on ingest
 └── dashboard/src/
     ├── app/api/
     │   ├── chat/route.ts       GET quota, POST RAG Q&A
     │   └── search/route.ts     GET hybrid/keyword search
-    │
     ├── lib/
-    │   ├── retrieval.ts        hybridRetrieve() orchestrator + fallbacks
-    │   ├── retrieval/
-    │   │   ├── query.ts        buildRetrievalQueries()
-    │   │   └── rrf.ts          reciprocalRankFusion(), boostByImportance()
-    │   ├── search.ts           keyword-only search (mode=keyword)
+    │   ├── retrieval.ts        hybridRetrieve() orchestrator
+    │   ├── retrieval/query.ts  Conversational query builder
+    │   ├── retrieval/rrf.ts    RRF fusion & importance booster
+    │   ├── search.ts           Keyword-only search fallback
     │   └── chat/
-    │       ├── embeddings.ts   embedQuery()  -  local / HF
-    │       ├── prompt.ts       buildChatPrompt(), system instruction
-    │       ├── llm-client.ts   generateChatAnswer()  -  Gemini/Groq
-    │       ├── errors.ts       ChatLlmError, provider error parsing
-    │       └── rate-limit.ts   20/day quota
-    │
+    │       ├── embeddings.ts   embedQuery() (MiniLM local / HF API)
+    │       ├── prompt.ts       buildChatPrompt() & system instructions
+    │       ├── llm-client.ts   generateChatAnswer() failover cascade
+    │       ├── errors.ts       ChatLlmError parsing
+    │       └── rate-limit.ts   Daily chat quota enforcement
     └── components/
         ├── chat/               ChatInterface, SourceCitation, ...
         └── search/             SearchResults, SearchResultCard
@@ -709,71 +407,35 @@ Skim RAG codebase
 
 ## Troubleshooting
 
-
-| Symptom                          | Likely cause                             | Fix                                            |
-| -------------------------------- | ---------------------------------------- | ---------------------------------------------- |
-| `Hybrid RPC unavailable` in logs | `005` not applied or type mismatch       | Re-run `sql/005_hybrid_search.sql`             |
-| Chat returns 500 on Vercel       | Missing `HF_TOKEN` or transformers crash | Set `HF_TOKEN`; redeploy embedding fix         |
-| Chat returns 503 `config`        | No `GEMINI_API_KEYS`                     | Add keys in Vercel env                         |
-| Irrelevant vector results        | Wrong embedding model / dimension        | Ensure MiniLM 384-dim only                     |
-| Search works, chat doesn't       | LLM keys missing                         | Add `GEMINI_API_KEYS` / `GROQ_API_KEYS`        |
-| Slow first query                 | HF cold start + model load               | Normal; subsequent queries faster              |
-| 0 results for valid topic        | Corpus gap or threshold too high         | Check `articles` count; try keyword mode       |
-| `429` on chat                    | Daily limit hit                          | Wait until UTC midnight or raise limit in code |
-
-
-### Verify hybrid RPC in Supabase SQL editor
-
-```sql
--- Replace with a real 384-dim vector from a known article, or test FTS only:
-SELECT id, title, fts_rank
-FROM search_articles_fts('OpenAI', 5);
-
-SELECT count(*) FROM articles WHERE embedding IS NOT NULL;
-```
-
-### Local debug
-
-```bash
-cd dashboard
-npm run dev
-# Search: http://localhost:3000/search?q=AI
-# Chat:   http://localhost:3000/chat
-```
-
-Check server logs for `Query embedding failed` (falls back to FTS) or `Hybrid RPC unavailable` (in-process RRF).
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Hybrid RPC unavailable` in logs | `005` migration missing | Apply `sql/005_hybrid_search.sql` in Supabase |
+| Chat 500 on Vercel | Missing `HF_TOKEN` | Add `HF_TOKEN` in Vercel Project Settings |
+| Chat 503 `config` | Missing `GEMINI_API_KEYS` | Add Gemini keys in Vercel Project Settings |
+| 429 Quota Exceeded | Daily 20 queries limit hit | Resets at 00:00 UTC |
 
 ---
 
 ## Design decisions
 
-
-| Decision          | Choice                     | Rationale                                               |
-| ----------------- | -------------------------- | ------------------------------------------------------- |
-| Embedding model   | all-MiniLM-L6-v2 (384-dim) | Free, local in pipeline, good quality for short text    |
-| Vector index      | HNSW                       | Works on small corpora; ivfflat failed at ~100 articles |
-| Fusion method     | RRF (k=60)                 | No score normalization needed; proven hybrid retrieval  |
-| Weights           | 0.55 vector / 0.45 FTS     | Slight semantic bias; FTS catches exact names           |
-| Indexed text      | title + summary only       | Matches pipeline embed input; no full-page scrape       |
-| SQL vs TS RRF     | SQL primary, TS fallback   | Fast path in Postgres; graceful degradation             |
-| LLM               | Gemini + Groq fallback     | Same resilience pattern as pipeline                     |
-| Chat limit        | 20/day/user                | Controls free-tier LLM cost                             |
-| Vercel embeddings | HF Inference API           | Serverless cannot reliably run onnx MiniLM              |
-| Citations         | Numbered sources in prompt | Grounds answers; UI maps numbers to URLs                |
-
+| Decision | Choice | Rationale |
+|---|---|---|
+| Vector Storage | pgvector in PostgreSQL | Single database for relational data, full-text, and vectors |
+| Embedding Model | `all-MiniLM-L6-v2` (384-dim) | Fast, free, robust on short technical text |
+| Vector Index | HNSW | High recall on small-to-medium corpora without clustering degradation |
+| Fusion Strategy | RRF ($k=60$) + Importance Boost | Combines semantic nuances and exact keywords effectively |
+| Vercel Embeddings | Hugging Face Inference API | Serverless runtime cannot reliably execute ONNX C++ bindings |
 
 ---
 
 ## SQL migration checklist
 
-Apply in Supabase SQL Editor **in order**:
+Apply in Supabase SQL Editor in order:
 
-- [ ] `sql/schema.sql`  -  `embedding vector(384)`, HNSW index
-- [ ] `sql/004_search_fts.sql`  -  `search_vector` column
-- [ ] `sql/005_hybrid_search.sql`  -  hybrid RPCs (**required for best performance**)
-
-Without `005`, RAG still works via TypeScript fallbacks but is slower and logs warnings.
-
----
-
-*Last updated: 2026-08-31*
+- [ ] `sql/schema.sql`
+- [ ] `sql/002_users_auth_preferences.sql`
+- [ ] `sql/003_fix_profiles_rls.sql`
+- [ ] `sql/004_search_fts.sql`
+- [ ] `sql/005_hybrid_search.sql`
+- [ ] `sql/006_dashboard_theme.sql`
+- [ ] `sql/007_preferences_insert_policy.sql`

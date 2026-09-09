@@ -6,7 +6,8 @@ Technical overview of the Skim platform: components, data flows, database design
 
 | Document | Scope |
 |----------|--------|
-| [README.md](../README.md) | Overview, setup, deployment |
+| [docs/README.md](./README.md) | Central documentation directory index |
+| [README.md](../README.md) | Project overview, quick start, deployment |
 | [docs/rag.md](./rag.md) | Hybrid retrieval, embeddings, chat generation |
 | [docs/dashboard.md](./dashboard.md) | Next.js app structure, stores, API routes |
 | [docs/vercel-deploy.md](./vercel-deploy.md) | Production dashboard deployment |
@@ -28,6 +29,7 @@ Technical overview of the Skim platform: components, data flows, database design
 10. [Deployment topology](#deployment-topology)
 11. [Observability and reliability](#observability-and-reliability)
 12. [Decision log](#decision-log)
+13. [Repository layout](#repository-layout)
 
 ---
 
@@ -35,8 +37,8 @@ Technical overview of the Skim platform: components, data flows, database design
 
 Skim is a **batch pipeline + web application** that share a single Postgres database:
 
-- **Pipeline** (Python, GitHub Actions cron) ingests news, embeds articles, runs multi-pass LLM reasoning, composes HTML digests, and sends email.
-- **Dashboard** (Next.js on Vercel) lets approved users browse digests, search the corpus, and ask cited questions via RAG chat.
+- **Pipeline** (Python 3.11, GitHub Actions cron) ingests news, embeds articles, runs multi-pass LLM reasoning, composes HTML digests, and sends email.
+- **Dashboard** (Next.js 16 on Vercel) lets approved users browse digests, search the corpus, and ask cited questions via RAG chat.
 
 There is no always-on application server for ingestion. The dashboard is the only continuously available user-facing service.
 
@@ -78,7 +80,7 @@ flowchart TB
   Vercel --> Groq
   Vercel --> HF
 
-  Users([Users]) --> Vercel
+  Users([Approved Users]) --> Vercel
   Users --> MT
 ```
 
@@ -96,6 +98,7 @@ flowchart TB
 | **Orchestrator** (`pipeline/main.py`) | GHA | Idempotent daily run; degradation paths; `pipeline_runs` logging |
 | **Dashboard UI** (`dashboard/src/app/`, `components/`) | Vercel | SSR pages + client interactivity |
 | **API routes** (`dashboard/src/app/api/`) | Vercel | Digests, search, chat, preferences, admin |
+| **Routing Gate** (`dashboard/src/proxy.ts` / `middleware.ts`) | Vercel Edge | Session validation, status gating (`/pending`), admin protection |
 | **Database** | Supabase | Articles, vectors, FTS, users, preferences, usage quotas |
 | **Auth** | Supabase | Google OAuth, email OTP, JWT sessions |
 
@@ -154,7 +157,7 @@ LLM calls use **Gemini** with multi-key rotation and **Groq** as last-resort fal
 
 - `digests.digest_date` uniqueness prevents duplicate sends for the same day.
 - `digest_already_sent()` short-circuits re-runs.
-- Article inserts use URL-based deduplication.
+- Article inserts use URL-based deduplication (`ON CONFLICT (url) DO NOTHING`).
 
 ---
 
@@ -168,7 +171,7 @@ flowchart LR
   end
 
   subgraph edge [Vercel]
-    MW[middleware.ts]
+    Gate["Routing Gate (proxy.ts)"]
     RSC[Server Components]
     API[API Route Handlers]
   end
@@ -179,8 +182,8 @@ flowchart LR
     AuthZ[requireActiveUser]
   end
 
-  Pages --> MW
-  MW --> RSC
+  Pages --> Gate
+  Gate --> RSC
   RSC --> Supabase[(Supabase)]
   Pages --> Stores
   Stores --> API
@@ -275,9 +278,9 @@ Apply in order from `sql/`:
 | `002_users_auth_preferences.sql` | Profiles, preferences, RLS, auth trigger |
 | `003_fix_profiles_rls.sql` | Admin RLS helper (`is_active_admin`) |
 | `004_search_fts.sql` | `search_vector` column + GIN index |
-| `005_hybrid_search.sql` | Hybrid vector + FTS + RRF RPCs |
+| `005_hybrid_search.sql` | Hybrid vector + FTS + RRF RPCs (`double precision`) |
 | `006_dashboard_theme.sql` | `dashboard_theme` preference column |
-| `007_preferences_insert_policy.sql` | RLS INSERT for preferences upsert |
+| `007_preferences_insert_policy.sql` | RLS INSERT policy for preferences upsert |
 
 ### Row-level security
 
@@ -296,7 +299,7 @@ stateDiagram-v2
   Signup --> Pending: profile.status = pending
   Pending --> Active: admin approves
   Pending --> Rejected: admin rejects
-  Active --> Dashboard: middleware allows app routes
+  Active --> Dashboard: routing gate allows app routes
   Signup --> Active: superuser email match
 ```
 
@@ -304,7 +307,7 @@ stateDiagram-v2
 |-----------|----------------|
 | Identity | Supabase Auth (Google OAuth, email OTP) |
 | Profile sync | `auth/complete` route + `profiles` upsert |
-| Gate | `middleware.ts`  -  session + `profiles.status` |
+| Gate | `proxy.ts` / `middleware.ts`  -  session + `profiles.status` |
 | Admin | `role IN (superuser, admin)` + active status |
 | API guard | `requireActiveUser()` on all `/api/*` routes |
 | Approval cap | 10 active members (excluding superuser) |
@@ -317,11 +320,12 @@ Signup notifications go to the admin via Mailtrap; approved users receive a welc
 
 Skim uses **hybrid retrieval** for search and chat:
 
-1. Embed the query (`all-MiniLM-L6-v2`; Hugging Face API on Vercel serverless).
+1. Embed the query (`all-MiniLM-L6-v2`; Hugging Face API on Vercel serverless, local `@xenova/transformers` in dev).
 2. **Vector search** (pgvector cosine similarity via RPC).
 3. **Full-text search** (`search_vector` + `websearch_to_tsquery`).
-4. **Reciprocal Rank Fusion** (k=60) to merge ranked lists.
-5. **Chat only**  -  build prompt with top articles → Gemini (key rotation, fallbacks) → Groq.
+4. **Reciprocal Rank Fusion** (k=60, vector weight 0.55 / FTS weight 0.45) to merge ranked lists.
+5. **Importance Reranking**  -  post-fusion boost: `rrf * (1 + importance_score / 25)`.
+6. **Chat only**  -  build prompt with top articles → Gemini (key rotation, fallbacks) → Groq.
 
 | Feature | Retrieval | Generation |
 |---------|-----------|------------|
@@ -354,7 +358,7 @@ Full implementation: [rag.md](./rag.md).
 | Python pipeline | GitHub Actions | Cron `digest.yml` + manual dispatch |
 | Dashboard | Vercel (`dashboard/`) | Git push to `main` |
 | Database + Auth | Supabase | Managed |
-| CI tests | GitHub Actions `test.yml` | Push / PR |
+| CI tests | GitHub Actions `test.yml` | Push / PR (312+ unit tests: 161 pytest + 151 Vitest) |
 
 **Secrets**
 
@@ -392,7 +396,7 @@ Pipeline does **not** run on Vercel. Dashboard does **not** run the ingestion cr
 | Query embeddings on Vercel | Hugging Face Inference API | `@xenova/transformers` unreliable in serverless |
 | Auth model | Supabase + admin approval | Quota control; RLS tied to `profiles.status` |
 | Email | Mailtrap API | Sandbox for dev; verified domain for production |
-| Search fusion | RRF (k=60) | Strong hybrid baseline without training |
+| Search fusion | RRF (k=60) + importance boost | Strong hybrid baseline without fine-tuning |
 
 ---
 
@@ -400,9 +404,9 @@ Pipeline does **not** run on Vercel. Dashboard does **not** run the ingestion cr
 
 ```
 Skim/
-├── pipeline/          # Python batch pipeline
-├── dashboard/         # Next.js application
-├── sql/               # Database migrations
-├── docs/              # Architecture and feature guides
+├── pipeline/          # Python batch pipeline (ingest, embed, agent, compose, email)
+├── dashboard/         # Next.js 16 application (App Router, Zustand, Tailwind CSS v4)
+├── sql/               # Database migrations (schema.sql through 007)
+├── docs/              # Architecture, RAG, Dashboard, Auth & Deployment guides
 └── .github/workflows/ # digest.yml (cron), test.yml (CI)
 ```

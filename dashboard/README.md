@@ -22,7 +22,7 @@ Deploy guide: [`docs/vercel-deploy.md`](../docs/vercel-deploy.md)
 - Google OAuth credentials configured in Supabase
 - Email OTP enabled in Supabase (6-digit code)
 
-**SQL order:** `schema.sql` → `002` → `003` → `004_search_fts.sql` → `005_hybrid_search.sql` → `006_dashboard_theme.sql`
+**SQL order:** `schema.sql` → `002` → `003` → `004_search_fts.sql` → `005_hybrid_search.sql` → `006_dashboard_theme.sql` → `007_preferences_insert_policy.sql`
 
 > **Important:** Re-run `sql/005_hybrid_search.sql` if you see `Hybrid RPC unavailable` in logs. The latest version uses `double precision` return types.
 
@@ -184,7 +184,7 @@ See [`docs/vercel-deploy.md`](../docs/vercel-deploy.md).
 
 ```bash
 cd dashboard
-npm test          # 86 tests, run once
+npm test          # 151 tests across 44 test files
 npm run test:watch
 npm run build     # production build
 ```
@@ -195,6 +195,7 @@ Coverage: components, Zustand stores, hybrid retrieval, multi-provider LLM clien
 
 | Document | Contents |
 |----------|----------|
+| [`docs/README.md`](../docs/README.md) | **Documentation index**  -  guide directory and overview |
 | [`docs/dashboard.md`](../docs/dashboard.md) | **Dashboard architecture**  -  App Router, Zustand, call chains |
 | [`progress.md`](../progress.md) | Complete serial progress (all phases) |
 | [`docs/rag.md`](../docs/rag.md) | **RAG architecture**  -  retrieval, DB search, chat flow |

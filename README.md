@@ -366,6 +366,7 @@ Skim/
 
 | Document | Description |
 |----------|-------------|
+| [`docs/README.md`](docs/README.md) | Documentation index and architecture overview |
 | [`docs/architecture.md`](docs/architecture.md) | System architecture, data model, auth, deployment |
 | [`docs/rag.md`](docs/rag.md) | Hybrid retrieval, embeddings, chat flow |
 | [`docs/dashboard.md`](docs/dashboard.md) | Next.js structure, stores, component call chains |
