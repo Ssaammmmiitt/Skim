@@ -109,6 +109,7 @@ class TestConcurrentInsightGeneration:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _always_succeed
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -130,6 +131,7 @@ class TestConcurrentInsightGeneration:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _response_for_article
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -156,6 +158,7 @@ class TestConcurrentInsightGeneration:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _alternate_fail
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -173,6 +176,7 @@ class TestConcurrentInsightGeneration:
             raise LLMProviderError("All providers down")
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _always_fail
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -198,6 +202,7 @@ class TestConcurrentInsightGeneration:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _sometimes_empty
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -235,6 +240,7 @@ class TestConcurrentInsightGeneration:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _sometimes_invalid
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -260,6 +266,7 @@ class TestConcurrentInsightGeneration:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _sometimes_crash
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -276,6 +283,7 @@ class TestConcurrentInsightGeneration:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _always_succeed
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -288,6 +296,7 @@ class TestConcurrentInsightGeneration:
         """Even with concurrency=3, 1 article only spawns 1 worker."""
         articles = _make_articles(1)
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.return_value = _insight_response(articles[0]["id"])
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -319,6 +328,7 @@ class TestConcurrentGroqFallback:
             return _groq_insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _exhaust_then_groq
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -336,6 +346,7 @@ class TestConcurrentGroqFallback:
             return _groq_insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _all_groq
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -657,6 +668,7 @@ class TestConcurrentErrorHandling:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _sometimes_timeout
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -681,6 +693,7 @@ class TestConcurrentErrorHandling:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _sometimes_disconnect
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -705,6 +718,7 @@ class TestConcurrentErrorHandling:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _alternate_provider
 
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
@@ -721,6 +735,7 @@ class TestConcurrentErrorHandling:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _always_succeed
 
         call_count = 0
@@ -755,6 +770,7 @@ class TestConcurrencyLogging:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _succeed
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
 
@@ -779,6 +795,7 @@ class TestConcurrencyLogging:
             return _insight_response(1)
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _one_fails
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
 
@@ -795,6 +812,7 @@ class TestConcurrencyLogging:
             raise LLMProviderError("All down")
 
         mock_llm = MagicMock()
+        mock_llm._model_router.using_fallback = False
         mock_llm.chat_with_tools.side_effect = _always_fail
         agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
 

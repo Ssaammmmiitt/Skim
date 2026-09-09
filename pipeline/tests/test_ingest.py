@@ -30,6 +30,7 @@ def test_ingest_continues_when_one_adapter_fails():
         ),
         patch("pipeline.ingest.insert_articles", return_value=1) as mock_insert,
         patch("pipeline.ingest.get_todays_new_articles", return_value=[]),
+        patch("pipeline.ingest.get_articles_by_urls", return_value=[]),
     ):
         result = ingest_all_sources(limit=5)
 
@@ -46,18 +47,32 @@ def test_ingest_fetches_from_live_sources():
     assert len(articles) > 0
 
 
-@pytest.mark.integration
 def test_ingest_dedupes_on_immediate_rerun():
-    ingest_all_sources(limit=5)
+    good_article = Article(
+        title="Dedupe article",
+        url="https://example.com/dedupe",
+        source="dedupe",
+        published_at=datetime.now(timezone.utc),
+        summary="summary",
+    )
+    good_adapter = Mock()
+    good_adapter.name = "good"
+    good_adapter.fetch.return_value = [good_article]
 
-    new_count = None
-
-    def spy_insert(articles):
-        nonlocal new_count
-        new_count = insert_articles(articles)
-        return new_count
-
-    with patch("pipeline.ingest.insert_articles", side_effect=spy_insert):
+    with (
+        patch("pipeline.ingest._build_adapters", return_value=[good_adapter]),
+        patch("pipeline.ingest.get_todays_new_articles", return_value=[]),
+    ):
         ingest_all_sources(limit=5)
 
-    assert new_count == 0
+        new_count = None
+
+        def spy_insert(articles):
+            nonlocal new_count
+            new_count = insert_articles(articles)
+            return new_count
+
+        with patch("pipeline.ingest.insert_articles", side_effect=spy_insert):
+            ingest_all_sources(limit=5)
+
+        assert new_count == 0
