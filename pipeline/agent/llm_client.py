@@ -30,17 +30,18 @@ def _load_fallback_models() -> list[str]:
     single = os.environ.get("GEMINI_FALLBACK_MODEL", "").strip()
     if single:
         return [single]
-    return ["gemini-3.5-flash-lite", "gemini-2.5-flash"]
+    return ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
 
 
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
 GEMINI_FALLBACK_MODELS = _load_fallback_models()
 GEMINI_FALLBACK_MODEL = GEMINI_FALLBACK_MODELS[0]
 GROQ_MODEL = "openai/gpt-oss-120b"
+GROQ_MODEL_SELECTION = "openai/gpt-oss-120b"
 
-GEMINI_FALLBACK_STATUS_CODES = {400, 403, 404, 429, 500, 502, 503, 504}
+GEMINI_FALLBACK_STATUS_CODES = {400, 401, 403, 404, 429, 500, 502, 503, 504}
 GEMINI_RETRYABLE_STATUS_CODES = {500, 502, 503, 504}
-GEMINI_KEY_ROTATION_STATUS_CODES = {400, 403, 404, 429}
+GEMINI_KEY_ROTATION_STATUS_CODES = {400, 401, 403, 404, 429}
 HIGH_DEMAND_STATUS_CODES = {503, 504}
 GEMINI_MAX_RETRIES = 3
 GEMINI_RETRY_BACKOFF_SECONDS = 2
@@ -257,16 +258,18 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None = None,
+        *,
+        groq_model_override: str | None = None,
     ) -> dict[str, Any]:
         if self._pool is not None and self._pool.all_exhausted:
-            return self._groq_chat(messages, tools, tool_choice)
+            return self._groq_chat(messages, tools, tool_choice, model=groq_model_override)
 
         if self._injected_gemini is not None:
             return self._gemini_with_retries(
-                self._injected_gemini, messages, tools, tool_choice
+                self._injected_gemini, messages, tools, tool_choice, groq_model_override=groq_model_override
             )
 
-        return self._gemini_with_pool(messages, tools, tool_choice)
+        return self._gemini_with_pool(messages, tools, tool_choice, groq_model_override=groq_model_override)
 
     def _gemini_with_retries(
         self,
@@ -274,6 +277,8 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None,
+        *,
+        groq_model_override: str | None = None,
     ) -> dict[str, Any]:
         """Retry loop for a single Gemini client (injected or from pool slot)."""
         last_error: genai_errors.APIError | Exception | None = None
@@ -349,7 +354,7 @@ class LLMClient:
 
         if last_error is not None and self._should_fallback(last_error):
             logger.warning("Gemini failed (%s), falling back to Groq", last_error)
-            return self._groq_chat(messages, tools, tool_choice)
+            return self._groq_chat(messages, tools, tool_choice, model=groq_model_override)
         if last_error:
             raise last_error
         raise LLMProviderError("Gemini failed without a response")
@@ -359,6 +364,8 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None,
+        *,
+        groq_model_override: str | None = None,
     ) -> dict[str, Any]:
         assert self._pool is not None
         last_error: Exception | None = None
@@ -496,7 +503,7 @@ class LLMClient:
                     "All Gemini keys exhausted (%s), using Groq for remaining calls",
                     last_error,
                 )
-                return self._groq_chat(messages, tools, tool_choice)
+                return self._groq_chat(messages, tools, tool_choice, model=groq_model_override)
             raise last_error
         raise LLMProviderError("Gemini failed without a response")
 
@@ -598,13 +605,16 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None,
+        *,
+        model: str | None = None,
     ) -> dict[str, Any]:
         last_error: Exception | None = None
+        active_model = model or GROQ_MODEL
 
         while True:
             try:
                 response = self._get_groq().chat.completions.create(
-                    model=GROQ_MODEL,
+                    model=active_model,
                     messages=self._normalize_messages_for_groq(messages),
                     tools=tools,
                     tool_choice=tool_choice or "auto",

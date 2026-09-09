@@ -11,8 +11,14 @@ LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 SUMMARY_MAX_CHARS = 1000
 
 RSS_SOURCES = [
-    # feeds.feedburner.com/TechCrunch was hijacked by a spam blog (techncruncher.blogspot.com)
-    # as of ~2026-08-29. Use the direct TechCrunch RSS instead.
+    {"url": "https://github.blog/feed/", "name": "github_blog"},
+    {"url": "https://simonwillison.net/atom/entries/", "name": "simon_willison"},
+    {"url": "https://feed.infoq.com/", "name": "infoq"},
+    {"url": "https://www.bleepingcomputer.com/feed/", "name": "bleeping_computer"},
+    {"url": "https://www.theregister.com/headlines.atom", "name": "the_register"},
+    {"url": "https://www.phoronix.com/phoronix-rss.php", "name": "phoronix"},
+    {"url": "https://huggingface.co/blog/feed.xml", "name": "hugging_face"},
+    {"url": "https://blog.cloudflare.com/rss/", "name": "cloudflare_blog"},
     {"url": "https://techcrunch.com/feed/", "name": "techcrunch"},
     {"url": "https://feeds.arstechnica.com/arstechnica/index", "name": "arstechnica"},
     {"url": "https://www.theverge.com/rss/index.xml", "name": "theverge"},

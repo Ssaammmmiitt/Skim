@@ -14,14 +14,25 @@ logger = logging.getLogger(__name__)
 FALLBACK_RATIONALE = (
     "Simplified digest  -  full agent reasoning was unavailable for this run."
 )
+FALLBACK_MIN_IMPORTANCE = 4.0
+
 
 
 def simplified_digest_articles(
     articles: list[dict[str, Any]], limit: int = DEFAULT_DIGEST_SIZE
 ) -> list[dict[str, Any]]:
     """Pick newest articles with titles/summaries only (no insights)."""
+    quality = [
+        a for a in articles 
+        if a.get("importance_score") is None or float(a.get("importance_score", 0)) >= FALLBACK_MIN_IMPORTANCE
+    ]
+    if not quality:
+        quality = sorted(articles, key=lambda x: x.get("importance_score") or 0, reverse=True)
+    else:
+        quality = sorted(quality, key=lambda x: x.get("importance_score") or 0, reverse=True)
+
     simplified: list[dict[str, Any]] = []
-    for article in articles[:limit]:
+    for article in quality[:limit]:
         simplified.append(
             {
                 **article,

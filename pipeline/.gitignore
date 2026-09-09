@@ -54,3 +54,6 @@ models/
 
 # OS
 .DS_Store
+
+# Local Testing Output
+output/

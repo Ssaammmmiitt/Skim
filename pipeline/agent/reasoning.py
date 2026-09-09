@@ -3,7 +3,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Iterator
 
-from pipeline.agent.llm_client import LLMClient, LLMProviderError
+from pipeline.agent.llm_client import LLMClient, LLMProviderError, GROQ_MODEL_SELECTION
 from pipeline.agent.prompts import (
     build_classification_messages,
     build_insight_messages,
@@ -35,6 +35,9 @@ MIN_DIGEST_STORIES = 7
 MAX_DIGEST_STORIES = 10
 # Ensure enough insight candidates for a full digest on light ingestion days.
 MIN_INSIGHT_CANDIDATES = DEFAULT_DIGEST_SIZE + 2
+
+SELECTION_MIN_IMPORTANCE = 5.0
+SELECTION_MAX_POOL = 30
 
 # Gemini free tier: 20 requests/day per project. With 5 keys that's 100 Gemini
 # calls + unlimited Groq fallback.  Budget: ~50 classify (10 batches of 5)
@@ -267,6 +270,10 @@ class ArticleAgent:
         if not articles:
             return []
 
+        if self.llm._model_router.using_fallback:
+            logger.info("Using Groq fallback; reducing insight concurrency to 1 to stay within TPM limit")
+            concurrency = 1
+
         if concurrency <= 1:
             return self._generate_insights_sequential(articles)
 
@@ -320,12 +327,14 @@ class ArticleAgent:
     ) -> list[dict[str, Any]]:
         """Fallback sequential path (used when concurrency=1 or in tests)."""
         insights: list[dict[str, Any]] = []
+        delay = 5.0 if self.llm._model_router.using_fallback else self.batch_delay_seconds
+        
         for index, article in enumerate(articles):
             result = self._generate_single_insight(article)
             if result is not None:
                 insights.append(result)
-            if index < len(articles) - 1 and self.batch_delay_seconds:
-                time.sleep(self.batch_delay_seconds)
+            if index < len(articles) - 1 and delay:
+                time.sleep(delay)
         return insights
 
     def generate_insights_for_top_articles(
@@ -408,8 +417,12 @@ class ArticleAgent:
         if not all_classified:
             return {"articles": [], "selected_article_ids": [], "rationale": ""}
 
-        target_count = min(max(1, n), len(all_classified))
-        messages = build_selection_messages(all_classified)
+        candidates = [a for a in all_classified if (a.get("importance_score") or 0) >= SELECTION_MIN_IMPORTANCE]
+        if len(candidates) < n:
+            candidates = sorted(all_classified, key=lambda x: x.get("importance_score") or 0, reverse=True)[:SELECTION_MAX_POOL]
+
+        target_count = min(max(1, n), len(candidates))
+        messages = build_selection_messages(candidates)
         messages[-1]["content"] = (
             f"Select the top {target_count} stories for today's digest.\n\n"
             f"{messages[-1]['content']}"
@@ -422,6 +435,7 @@ class ArticleAgent:
                 "type": "function",
                 "function": {"name": "select_top_stories"},
             },
+            groq_model_override=GROQ_MODEL_SELECTION,
         )
         if not response["tool_calls"]:
             raise ValueError("No story selection returned from LLM")
