@@ -43,23 +43,23 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 
 | Capability | Details |
 |------------|---------|
-| **Ingestion** | Hacker News + TechCrunch, Ars Technica, The Verge, MIT Tech Review |
+| **Ingestion** | Hacker News, TechCrunch, Ars Technica, The Verge, MIT Tech Review, Dev.to, Lobste.rs |
 | **Deduplication** | URL normalization, `ON CONFLICT DO NOTHING` |
 | **Embeddings** | `all-MiniLM-L6-v2` (384-dim) over title + summary, stored in pgvector |
 | **Agent reasoning** | 3-pass LLM: classify → insight → story selection (function calling) |
 | **Email digests** | Jinja2 HTML (classic / cyan / minimal), per-user theme and topic filters |
 | **Reliability** | Retry with backoff, graceful degradation, failure alerts, health checks |
-| **Scheduler** | GitHub Actions cron at 00:15 UTC daily |
+| **Scheduler** | GitHub Actions cron at 00:15 UTC daily, with on-demand personal digest workflow |
 
 ### Dashboard (web app)
 
 | Capability | Details |
 |------------|---------|
-| **Auth** | Google OAuth + email OTP; invite-by-approval workflow |
+| **Auth** | Google OAuth, email OTP, and password auth; invite-by-approval workflow |
 | **Digest feed** | Today's stories with agent insights and topic badges |
 | **Archive** | Browse past digests by date |
 | **Hybrid search** | Semantic (pgvector) + full-text (Postgres FTS) fused with RRF |
-| **RAG chat** | Cited answers over the corpus; Gemini with Groq fallback (20 queries/day) |
+| **RAG chat** | Cited answers over the corpus; Gemini with Groq multi-model fallback (20 queries/day) |
 | **Settings** | Email theme/format, dashboard light/dark/system, live preview |
 | **Admin** | Approve/reject signups, view pipeline & classification analytics |
 | **UX** | Per-route loading skeletons, error alerts with retry, empty states |
@@ -366,6 +366,7 @@ Skim/
 
 | Document | Description |
 |----------|-------------|
+| [`dashboard/PROJECT_EXPLAINED.md`](dashboard/PROJECT_EXPLAINED.md) | Comprehensive project guide and architecture explanation |
 | [`docs/README.md`](docs/README.md) | Documentation index and architecture overview |
 | [`docs/architecture.md`](docs/architecture.md) | System architecture, data model, auth, deployment |
 | [`docs/rag.md`](docs/rag.md) | Hybrid retrieval, embeddings, chat flow |
