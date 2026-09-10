@@ -44,6 +44,7 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 | Capability | Details |
 |------------|---------|
 | **Ingestion** | Hacker News, TechCrunch, Ars Technica, The Verge, MIT Tech Review, Dev.to, Lobste.rs |
+| **Extraction** | Concurrent web scraping (Trafilatura / BeautifulSoup) for full article content |
 | **Deduplication** | URL normalization, `ON CONFLICT DO NOTHING` |
 | **Embeddings** | `all-MiniLM-L6-v2` (384-dim) over title + summary, stored in pgvector |
 | **Agent reasoning** | 3-pass LLM: classify → insight → story selection (function calling) |
