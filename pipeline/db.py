@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import time
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -40,6 +40,19 @@ DB_CONNECT_MAX_RETRIES = 3
 DB_CONNECT_BACKOFF_SECONDS = 2
 
 logger = logging.getLogger(__name__)
+
+
+def get_run_date(tz_str: str | None = None) -> date:
+    if tz_str is None:
+        tz_str = os.environ.get("TZ", "UTC")
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo(tz_str)
+    except Exception:
+        from datetime import timezone
+        tz = timezone.utc
+    from datetime import datetime
+    return datetime.now(tz).date()
 
 
 def get_connection() -> PgConnection:
@@ -115,7 +128,14 @@ def insert_articles(articles: list[Article]) -> int:
     return inserted
 
 
-def get_todays_new_articles() -> list[dict[str, Any]]:
+def get_todays_new_articles(
+    run_date: date | None = None, tz_str: str | None = None
+) -> list[dict[str, Any]]:
+    if tz_str is None:
+        tz_str = os.environ.get("TZ", "UTC")
+    if run_date is None:
+        run_date = get_run_date(tz_str)
+
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -123,9 +143,10 @@ def get_todays_new_articles() -> list[dict[str, Any]]:
                 """
                 SELECT id, title, url, source, published_at, summary, raw_text
                 FROM articles
-                WHERE created_at::date = CURRENT_DATE
+                WHERE (created_at AT TIME ZONE %s)::date = %s
                 ORDER BY created_at DESC
-                """
+                """,
+                (tz_str, run_date),
             )
             columns = [desc[0] for desc in cur.description]
             return [dict(zip(columns, row)) for row in cur.fetchall()]
@@ -215,6 +236,8 @@ def update_article_insight(article_id: int, insight: str, key_takeaway: str) -> 
 
 def get_todays_classified_articles(
     lookback_days: int = 1,
+    run_date: date | None = None,
+    tz_str: str | None = None,
 ) -> list[dict[str, Any]]:
     """Return classified articles from the last *lookback_days* days.
 
@@ -226,6 +249,13 @@ def get_todays_classified_articles(
     Already-digested articles are excluded so we don't re-send the same
     stories the next day.
     """
+    if tz_str is None:
+        tz_str = os.environ.get("TZ", "UTC")
+    if run_date is None:
+        run_date = get_run_date(tz_str)
+
+    start_date = run_date - timedelta(days=lookback_days - 1)
+
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -234,13 +264,13 @@ def get_todays_classified_articles(
                 SELECT id, title, url, source, published_at, summary, topic, importance_score,
                        insight, key_takeaway
                 FROM articles
-                WHERE created_at >= CURRENT_DATE - (%s - 1) * INTERVAL '1 day'
+                WHERE (created_at AT TIME ZONE %s)::date >= %s
                   AND topic IS NOT NULL
                   AND importance_score IS NOT NULL
                   AND digest_date IS NULL
                 ORDER BY importance_score DESC, created_at DESC
                 """,
-                (lookback_days,),
+                (tz_str, start_date),
             )
             columns = [desc[0] for desc in cur.description]
             return [dict(zip(columns, row)) for row in cur.fetchall()]
@@ -475,11 +505,12 @@ def count_total_articles() -> int:
 
 def count_articles_created_on(day: date) -> int:
     conn = get_connection()
+    tz_str = os.environ.get("TZ", "UTC")
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT COUNT(*) FROM articles WHERE created_at::date = %s",
-                (day,),
+                "SELECT COUNT(*) FROM articles WHERE (created_at AT TIME ZONE %s)::date = %s",
+                (tz_str, day),
             )
             return cur.fetchone()[0]
     finally:

@@ -12,6 +12,7 @@ from pipeline.config import configure_logging
 from pipeline.db import (
     digest_already_sent,
     get_digest_subscribers,
+    get_run_date,
     mark_articles_digest_date,
     record_digest_sent,
     record_pipeline_complete,
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 def run_pipeline(personal_mode: bool = False, personal_email: str | None = None) -> None:
     start = time.time()
-    run_date = date.today()
+    run_date = get_run_date()
     run_id: int | None = None
 
     if not personal_mode and digest_already_sent(run_date):

@@ -11,6 +11,7 @@ jobs:
     timeout-minutes: 360
 
     env:
+      TZ: ${{ vars.TZ || 'UTC' }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
