@@ -133,7 +133,7 @@ Instead, they communicate through the **Database (Supabase)**:
 
 ## 3. Backend (Pipeline)
 
-The backend is a standalone **Python CLI application** orchestrated by GitHub Actions on a daily cron schedule.
+The backend is a standalone **Python CLI application** orchestrated by GitHub Actions on a daily cron schedule, featuring fully timezone-aware execution and database queries.
 
 ### Pipeline Workflow (Service Flow Diagram)
 

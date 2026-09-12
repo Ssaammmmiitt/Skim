@@ -50,7 +50,7 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 | **Agent reasoning** | 3-pass LLM: classify → insight → story selection (function calling) |
 | **Email digests** | Jinja2 HTML (classic / cyan / minimal), per-user theme and topic filters |
 | **Reliability** | Retry with backoff, graceful degradation, failure alerts, health checks |
-| **Scheduler** | GitHub Actions cron at 00:15 UTC daily, with on-demand personal digest workflow |
+| **Scheduler** | GitHub Actions cron at 00:15 UTC daily, timezone-aware execution, and on-demand personal digest workflow |
 
 ### Dashboard (web app)
 
@@ -236,7 +236,7 @@ Copy from `pipeline/env.example`.
 | `DIGEST_RECIPIENT` | Yes | Fallback recipient if no subscribers |
 | `SKIM_SUPERUSER_EMAIL` | Yes | Auto-approved admin email |
 
-Optional: `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS`, `LOG_LEVEL`, `MAILTRAP_SANDBOX`.
+Optional: `TZ`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS`, `LOG_LEVEL`, `MAILTRAP_SANDBOX`.
 
 ### Dashboard (`dashboard/.env.local`)
 
