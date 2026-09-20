@@ -61,7 +61,7 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 | **Archive** | Browse past digests by date |
 | **Hybrid search** | Semantic (pgvector) + full-text (Postgres FTS) fused with RRF |
 | **RAG chat** | Cited answers over the corpus; Gemini with Groq multi-model fallback (20 queries/day) |
-| **Settings** | Email theme/format, dashboard light/dark/system, live preview |
+| **Settings** | Email theme/format, dashboard light/dark theme, live preview |
 | **Admin** | Approve/reject signups, view pipeline & classification analytics |
 | **UX** | Per-route loading skeletons, error alerts with retry, empty states |
 
@@ -351,7 +351,6 @@ Skim/
 │
 ├── sql/                      # Supabase migrations
 ├── docs/                     # Architecture and feature guides
-│   ├── project-explained.md  # Full walkthrough + interview Q&A
 │   ├── architecture.md       # System architecture
 │   ├── rag.md                # RAG deep dive
 │   ├── dashboard.md          # Dashboard architecture
@@ -366,9 +365,6 @@ Skim/
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [`docs/project-explained.md`](docs/project-explained.md) | Full project walkthrough + 50 interview Q&As |
 | [`docs/README.md`](docs/README.md) | Documentation index |
 | [`docs/architecture.md`](docs/architecture.md) | System architecture, data model, auth, deployment |
 | [`docs/rag.md`](docs/rag.md) | Hybrid retrieval, embeddings, chat flow |
@@ -376,7 +372,7 @@ Skim/
 | [`docs/vercel-deploy.md`](docs/vercel-deploy.md) | Vercel setup, env vars, smoke tests |
 | [`docs/phase6_auth_admin_preferences.md`](docs/phase6_auth_admin_preferences.md) | Auth flows, Supabase config, approval workflow |
 | [`dashboard/README.md`](dashboard/README.md) | Dashboard setup, pages, API |
-| [`dashboard/Design.md`](dashboard/Design.md) | UI design system (cyan theme) |
+| [`dashboard/Design.md`](dashboard/Design.md) | UI design system & typography spec |
 
 ---
 

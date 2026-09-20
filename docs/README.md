@@ -8,7 +8,6 @@ Index for Skim docs: automated Python daily pipeline + Next.js dashboard with hy
 
 | Document | Scope | Audience |
 |---|---|---|
-| [**Project Explained**](./project-explained.md) | End-to-end walkthrough, **100 interview prompts** (50 Skim-deep + 50 general), talking points | Interviews, onboarding |
 | [**Architecture Overview**](./architecture.md) | System design, data flows, schema, RLS, decision log | Engineers & architects |
 | [**Dashboard Guide**](./dashboard.md) | Next.js App Router, Zustand, API routes, styling | Frontend / full-stack |
 | [**RAG & AI Chat**](./rag.md) | Hybrid retrieval (pgvector + FTS + RRF), LLM failover | AI / backend |
@@ -66,7 +65,6 @@ flowchart TB
 ```
 docs/
 ├── README.md                           # This index
-├── project-explained.md                # Walkthrough + interview Q&A
 ├── architecture.md                     # System architecture & decision log
 ├── dashboard.md                        # Dashboard architecture
 ├── rag.md                              # Hybrid RAG & chat
@@ -81,7 +79,7 @@ docs/
 
 ## Quick Navigation by Task
 
-- **Interview prep / full story?** Start with [`project-explained.md`](./project-explained.md).
+- **System architecture & data model?** [`architecture.md`](./architecture.md).
 - **Local setup?** Root [`README.md`](../README.md) and [`dashboard/README.md`](../dashboard/README.md).
 - **Auth & Google OAuth?** [`phase6_auth_admin_preferences.md`](./phase6_auth_admin_preferences.md) and [`branding/README.md`](./branding/README.md).
 - **Deploy?** [`vercel-deploy.md`](./vercel-deploy.md).

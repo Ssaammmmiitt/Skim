@@ -141,33 +141,33 @@ Sign up (Google or email OTP)
 
 Unauthenticated requests return `401`. Pending users receive `403` on all API routes.
 
-## Design (Task 6.10)
+## Design & Aesthetic Architecture
 
-Styling uses **Tailwind CSS v4** with Skim **cyan** design tokens and shadcn/ui primitives.
+Styling follows the **Editorial Wire & Monospace-as-Brand** design system with Tailwind CSS v4, custom semantic CSS variables, and Lucide vector iconography.
 
 | Concern | Implementation |
 |---|---|
-| **Tokens** | `src/styles/globals.css`  -  CSS variables only (`--skim-cyan-core`, surfaces, text) |
-| **Components** | `src/lib/tailwind-ui.ts`  -  shared class strings (`btnPrimary`, `card`, `navLink`, etc.) |
-| **Config** | `tailwind.config.mjs`  -  content paths; theme extensions in CSS `@theme` |
-| **Typography** | [Inter](https://fonts.google.com/specimen/Inter) (UI) |
-| **Themes** | Light / dark / system via `html.light` / `html.dark`; default **dark** |
-| **Theme toggle** | Navbar + user menu + mobile drawer |
-| **Primary color** | Cyan `#06b6d4`  -  buttons, links, active nav, topic accents |
-| **Breakpoints** | Mobile `<768px` · Tablet `md` (768px) · Desktop `lg` (1024px)+ |
+| **Tokens** | `src/styles/globals.css`, `src/lib/tokens.ts` — Semantic tokens (`--skim-canvas`, `--skim-surface`, `--skim-hairline`, `--skim-wire`) |
+| **Components** | `src/lib/tailwind-ui.ts` — Shared tactile classes (`btnPrimary`, `card`, `pill`, `badge`, etc.) |
+| **Typography** | **Space Mono** (Display / Headlines / Monogram) + **JetBrains Mono** (Body / UI / Code) |
+| **Themes** | **Dark** (default warm off-black `#141210`) & **Light** (warm architectural off-white `#f4f1ea`) |
+| **Theme toggle** | Fast binary toggle between Dark and Light mode across navigation and preferences |
+| **Accent color** | Wire service red-orange `#d4552b` — intentional markers, breaking indicators, and live badges |
+| **Branding** | Custom geometric SVG dual wire scan ribbon monogram (`SkimLogo.tsx`, `icon.svg`) |
+| **Breakpoints** | Mobile `<640px` · Tablet `640px–1024px` · Desktop `1024px+` |
 
 ### Layout notes
 
-- **Chat page:** full viewport height with `min-h-0` flex chain  -  messages scroll, input stays pinned
-- **Nav:** three-tier responsive (mobile drawer, tablet strip, desktop centered links)
-- **Footer:** hidden on `/chat` to maximize vertical space
+- **Chat page:** full viewport height with bounded flex chain (`h-dvh max-h-dvh overflow-hidden`) and iOS momentum scrolling
+- **Nav:** unified responsive navigation (mobile `TopBar` + `BottomTabBar`, tablet compact strip, desktop fixed `SideRail`)
+- **Login screen:** balanced 12-column responsive layout with elevated sticky auth card and real technical summaries
 
 ### Responsive test checklist
 
 1. Open each page at **375px**, **768px**, and **1440px**.
-2. Confirm nav collapses to hamburger on mobile.
-3. Toggle **light / dark / system**  -  no flash, colors update.
-4. Chat: send a message  -  no horizontal/vertical overflow on mobile.
+2. Confirm nav transitions smoothly across mobile bottom bar, tablet strip, and desktop side rail.
+3. Toggle **light / dark** — zero layout shift or flash, instant theme switch.
+4. Chat: send messages — fluid scrolling on mobile touch screens without viewport locking.
 
 Full design spec: [`Design.md`](./Design.md). Theme preference stored in `user_digest_preferences.dashboard_theme`.
 
@@ -184,7 +184,7 @@ See [`docs/vercel-deploy.md`](../docs/vercel-deploy.md).
 
 ```bash
 cd dashboard
-npm test          # 151 tests across 44 test files
+npm test          # 152 tests across 44 test files
 npm run test:watch
 npm run build     # production build
 ```
@@ -195,8 +195,7 @@ Coverage: components, Zustand stores, hybrid retrieval, multi-provider LLM clien
 
 | Document | Contents |
 |----------|----------|
-| [`docs/project-explained.md`](../docs/project-explained.md) | Full project walkthrough + interview Q&A |
 | [`docs/README.md`](../docs/README.md) | Documentation index |
 | [`docs/dashboard.md`](../docs/dashboard.md) | Dashboard architecture — App Router, Zustand, call chains |
 | [`docs/rag.md`](../docs/rag.md) | RAG architecture — retrieval, DB search, chat flow |
-| [`Design.md`](./Design.md) | Skim cyan design system spec |
+| [`Design.md`](./Design.md) | Design system and typography specification |
