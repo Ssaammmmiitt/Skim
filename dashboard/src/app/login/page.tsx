@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/tailwind-ui";
+import { BrandMark } from "@/components/layout/BrandMark";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 
@@ -366,17 +367,8 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col">
 
           {/* Wordmark */}
-          <div className="flex items-center gap-3">
-            <span
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-hairline bg-surface font-display font-bold text-sm text-foreground shadow-sm"
-              aria-hidden
-            >
-              S
-              <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-wire" />
-            </span>
-            <span className="font-display font-bold text-2xl tracking-tight text-foreground">
-              Skim
-            </span>
+          <div className="flex items-center">
+            <BrandMark size="lg" />
           </div>
 
           {/* Live ticker */}

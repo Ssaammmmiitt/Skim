@@ -6,6 +6,7 @@ import { Search, Sparkles } from "lucide-react";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { UserMenu, type NavProfile } from "@/components/layout/UserMenu";
+import { BrandMark } from "@/components/layout/BrandMark";
 import { cn } from "@/lib/cn";
 
 type TopBarProps = {
@@ -34,6 +35,11 @@ export function TopBar({ profile, scrolled = false }: TopBarProps) {
         </div>
       ) : (
         <>
+          {/* Mobile brand mark (< lg) */}
+          <Link href="/" className="lg:hidden flex items-center shrink-0 mr-1" aria-label="Skim Home">
+            <BrandMark size="sm" />
+          </Link>
+
           {/* Search bar — desktop */}
           <div className="flex-1 max-w-sm hidden md:block">
             <SearchBar variant="nav" />
