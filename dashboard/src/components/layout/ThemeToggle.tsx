@@ -1,16 +1,12 @@
 "use client";
 
+import { Moon, Sun } from "lucide-react";
 import type { DashboardTheme } from "@/lib/auth/types";
 import { DASHBOARD_THEMES } from "@/lib/dashboard-theme";
 import { useThemeStore } from "@/store/theme-store";
 import { cn } from "@/lib/cn";
 
 const THEME_ORDER: DashboardTheme[] = ["dark", "light"];
-
-const THEME_ICONS: Record<DashboardTheme, string> = {
-  dark: "☾",
-  light: "☀",
-};
 
 type ThemeToggleProps = {
   variant?: "menu" | "inline";
@@ -28,25 +24,28 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
           Appearance
         </p>
         <div className="flex gap-1.5" role="group" aria-label="Dashboard theme">
-          {THEME_ORDER.map((option) => (
-            <button
-              key={option}
-              type="button"
-              disabled={saving}
-              onClick={() => void setTheme(option)}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-1 rounded-xl border px-2 py-1.5 text-xs font-normal transition",
-                theme === option
-                  ? "border-foreground bg-surface-raised text-foreground"
-                  : "border-border text-secondary hover:border-foreground/40 hover:text-foreground"
-              )}
-              aria-pressed={theme === option}
-              title={DASHBOARD_THEMES[option].description}
-            >
-              <span className="text-sm leading-none">{THEME_ICONS[option]}</span>
-              <span>{DASHBOARD_THEMES[option].label}</span>
-            </button>
-          ))}
+          {THEME_ORDER.map((option) => {
+            const Icon = option === "dark" ? Moon : Sun;
+            return (
+              <button
+                key={option}
+                type="button"
+                disabled={saving}
+                onClick={() => void setTheme(option)}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-1.5 rounded-xl border px-2 py-1.5 text-xs font-normal transition",
+                  theme === option
+                    ? "border-foreground bg-surface-raised text-foreground"
+                    : "border-border text-secondary hover:border-foreground/40 hover:text-foreground"
+                )}
+                aria-pressed={theme === option}
+                title={DASHBOARD_THEMES[option].description}
+              >
+                <Icon size={14} className="shrink-0" />
+                <span>{DASHBOARD_THEMES[option].label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -54,28 +53,34 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
 
   return (
     <div
-      className="inline-flex rounded-full border border-border bg-surface p-0.5"
+      className="inline-flex items-center rounded-full border border-hairline bg-surface p-0.5 shadow-sm"
       role="group"
       aria-label="Dashboard theme"
     >
-      {THEME_ORDER.map((option) => (
-        <button
-          key={option}
-          type="button"
-          disabled={saving}
-          onClick={() => void setTheme(option)}
-          className={cn(
-            "rounded-full px-2.5 py-1 text-xs font-normal transition",
-            theme === option
-              ? "border border-foreground bg-surface-raised text-foreground"
-              : "text-secondary hover:text-foreground"
-          )}
-          aria-pressed={theme === option}
-          title={DASHBOARD_THEMES[option].label}
-        >
-          {THEME_ICONS[option]}
-        </button>
-      ))}
+      {THEME_ORDER.map((option) => {
+        const Icon = option === "dark" ? Moon : Sun;
+        const active = theme === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            disabled={saving}
+            onClick={() => void setTheme(option)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-mono font-medium transition-all duration-150",
+              active
+                ? "border border-hairline bg-surface-raised text-foreground shadow-xs"
+                : "text-muted hover:text-foreground"
+            )}
+            aria-pressed={active}
+            title={DASHBOARD_THEMES[option].label}
+          >
+            <Icon size={13} className="shrink-0" />
+            <span className="hidden sm:inline capitalize">{option}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
+

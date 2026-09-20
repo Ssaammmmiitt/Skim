@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/tailwind-ui";
 import { BrandMark } from "@/components/layout/BrandMark";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 
@@ -340,7 +341,7 @@ export default function LoginPage() {
   /* ─── Render ─── */
 
   return (
-    <div className="relative min-h-dvh flex flex-col justify-center bg-canvas px-4 py-8 sm:px-8 sm:py-12 lg:px-12 lg:py-16 xl:px-16">
+    <div className="relative min-h-dvh flex flex-col bg-canvas px-4 pt-4 pb-12 sm:px-8 sm:pt-6 sm:pb-16 lg:px-12 lg:pt-6 lg:pb-20 xl:px-16">
       {/* Ambient background glow & hairline mesh */}
       <div
         aria-hidden="true"
@@ -361,35 +362,39 @@ export default function LoginPage() {
       />
 
       <div className="relative z-10 mx-auto w-full max-w-7xl">
-        <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-12 xl:gap-16">
+        {/* Masthead Header with Brand & Theme Switcher */}
+        <header className="flex items-center justify-between pb-4 mb-5 border-b border-hairline/50 sm:mb-6 lg:mb-7">
+          <BrandMark size="lg" />
+          <div className="flex items-center gap-2.5">
+            <span className="hidden sm:inline font-mono text-[11px] uppercase tracking-wider text-muted">Appearance</span>
+            <ThemeToggle />
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14">
 
           {/* ── LEFT COLUMN: Hero content & Preview wire cards ── */}
           <div className="flex flex-col lg:col-span-7 xl:col-span-7">
-            {/* Wordmark */}
-            <div className="flex items-center">
-              <BrandMark size="lg" />
-            </div>
-
             {/* Live ticker */}
-            <div className="mt-8">
+            <div>
               <LiveTicker />
             </div>
 
             {/* Hero headline */}
-            <h1 className="mt-6 font-display font-bold tracking-tight text-3xl leading-[1.15] text-foreground sm:text-4xl lg:text-[2.75rem]">
+            <h1 className="mt-4 font-display font-bold tracking-tight text-3xl leading-[1.15] text-foreground sm:text-4xl lg:text-[2.65rem]">
               Signal over noise.
               <br />
               The daily wire for software engineers.
             </h1>
 
-            <p className="mt-4 max-w-xl font-sans text-sm leading-relaxed text-secondary sm:text-base">
+            <p className="mt-3 max-w-xl font-sans text-sm leading-relaxed text-secondary sm:text-base">
               Skim continuously indexes raw dispatches across Hacker News, RFC releases,
               systems research papers, and engineering blogs every night. Stories are evaluated on technical depth,
               distilled into actionable takeaways, and delivered straight to your dashboard.
             </p>
 
             {/* Topic pills */}
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {TOPIC_PILLS.map((topic) => (
                 <span
                   key={topic}
@@ -401,7 +406,7 @@ export default function LoginPage() {
             </div>
 
             {/* Feature callouts (clean SVG icons without emojis) */}
-            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {FEATURES.map((f) => {
                 const Icon = f.icon;
                 return (
