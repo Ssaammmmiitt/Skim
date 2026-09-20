@@ -50,7 +50,7 @@ Skim ingests Hacker News and major tech RSS feeds daily, embeds articles for sem
 | **Agent reasoning** | 3-pass LLM: classify → insight → story selection (function calling) |
 | **Email digests** | Jinja2 HTML (classic / cyan / minimal), per-user theme and topic filters |
 | **Reliability** | Retry with backoff, graceful degradation, failure alerts, health checks |
-| **Scheduler** | GitHub Actions cron at 00:15 UTC daily, timezone-aware execution, and on-demand personal digest workflow |
+| **Scheduler** | GitHub Actions cron at 22:15 UTC daily, plus on-demand personal digest workflow |
 
 ### Dashboard (web app)
 
@@ -351,7 +351,8 @@ Skim/
 │
 ├── sql/                      # Supabase migrations
 ├── docs/                     # Architecture and feature guides
-│   ├── architecture.md       # System architecture (start here)
+│   ├── project-explained.md  # Full walkthrough + interview Q&A
+│   ├── architecture.md       # System architecture
 │   ├── rag.md                # RAG deep dive
 │   ├── dashboard.md          # Dashboard architecture
 │   └── screenshots/          # README screenshots
@@ -367,8 +368,8 @@ Skim/
 
 | Document | Description |
 |----------|-------------|
-| [`dashboard/PROJECT_EXPLAINED.md`](dashboard/PROJECT_EXPLAINED.md) | Comprehensive project guide and architecture explanation |
-| [`docs/README.md`](docs/README.md) | Documentation index and architecture overview |
+| [`docs/project-explained.md`](docs/project-explained.md) | Full project walkthrough + 50 interview Q&As |
+| [`docs/README.md`](docs/README.md) | Documentation index |
 | [`docs/architecture.md`](docs/architecture.md) | System architecture, data model, auth, deployment |
 | [`docs/rag.md`](docs/rag.md) | Hybrid retrieval, embeddings, chat flow |
 | [`docs/dashboard.md`](docs/dashboard.md) | Next.js structure, stores, component call chains |

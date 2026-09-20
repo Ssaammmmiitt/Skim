@@ -7,6 +7,7 @@ Technical overview of the Skim platform: components, data flows, database design
 | Document | Scope |
 |----------|--------|
 | [docs/README.md](./README.md) | Central documentation directory index |
+| [project-explained.md](./project-explained.md) | Full walkthrough + interview Q&A |
 | [README.md](../README.md) | Project overview, quick start, deployment |
 | [docs/rag.md](./rag.md) | Hybrid retrieval, embeddings, chat generation |
 | [docs/dashboard.md](./dashboard.md) | Next.js app structure, stores, API routes |
@@ -106,7 +107,7 @@ flowchart TB
 
 ## Daily pipeline
 
-Scheduled at **00:15 UTC** via `.github/workflows/digest.yml`.
+Scheduled at **22:15 UTC** via `.github/workflows/digest.yml` (`cron: "15 22 * * *"`).
 
 ```mermaid
 sequenceDiagram

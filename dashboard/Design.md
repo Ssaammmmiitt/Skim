@@ -275,4 +275,4 @@ Focus:        #1eaedb
 | `tailwind.config.mjs` | Tailwind v4 config |
 | `src/app/layout.tsx` | Inter font, theme boot script |
 
-**Related:** [`README.md`](./README.md) · [`docs/vercel-deploy.md`](../docs/vercel-deploy.md) · [`progress.md`](../progress.md)
+**Related:** [`README.md`](./README.md) · [`docs/vercel-deploy.md`](../docs/vercel-deploy.md) · [`docs/project-explained.md`](../docs/project-explained.md)
