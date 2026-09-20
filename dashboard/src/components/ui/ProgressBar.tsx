@@ -26,8 +26,8 @@ export function ProgressBar({
     <div className={cn("w-full", className)}>
       {showLabel ? (
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-xs font-medium text-secondary">{label}</span>
-          <span className="text-xs font-semibold tabular-nums text-cyan-bright">
+          <span className="font-mono text-xs text-secondary">{label}</span>
+          <span className="font-mono text-xs font-semibold tabular-nums text-wire">
             {clamped.toFixed(0)}%
           </span>
         </div>
@@ -41,10 +41,9 @@ export function ProgressBar({
         aria-label={label}
       >
         <div
-          className="h-full rounded-full transition-all duration-700 ease-out"
+          className="h-full rounded-full bg-wire transition-all duration-700 ease-out"
           style={{
             width: `${clamped}%`,
-            background: "linear-gradient(90deg, var(--skim-cyan-core), var(--skim-cyan-bright))",
           }}
         />
       </div>

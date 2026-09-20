@@ -23,13 +23,13 @@ describe("theme-store", () => {
       getItem: vi.fn(),
     });
 
-    await useThemeStore.getState().setTheme("system");
+    await useThemeStore.getState().setTheme("dark");
 
-    expect(useThemeStore.getState().theme).toBe("system");
+    expect(useThemeStore.getState().theme).toBe("dark");
     expect(fetchMock).toHaveBeenCalledWith("/api/settings/preferences", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dashboard_theme: "system" }),
+      body: JSON.stringify({ dashboard_theme: "dark" }),
     });
   });
 });

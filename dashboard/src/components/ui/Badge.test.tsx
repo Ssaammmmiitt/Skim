@@ -11,13 +11,14 @@ describe("Badge", () => {
   it("applies cyan variant class", () => {
     render(<Badge variant="cyan">Cyan</Badge>);
     const el = screen.getByText("Cyan");
-    expect(el.className).toMatch(/cyan/);
+    expect(el.className).toContain("bg-on-canvas-soft");
+    expect(el.className).toContain("rounded-full");
   });
 
   it("applies warning variant", () => {
     render(<Badge variant="warning">Warn</Badge>);
     const el = screen.getByText("Warn");
-    expect(el.className).toContain("fbbf24");
+    expect(el.className).toContain("text-warning");
   });
 
   it("applies error variant", () => {

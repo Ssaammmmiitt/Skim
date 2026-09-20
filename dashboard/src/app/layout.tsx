@@ -1,32 +1,47 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Space_Mono, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   display: "swap",
-  weight: ["300", "400", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "Skim  -  Daily Tech Digest",
+  title: "Skim — Daily Tech Digest",
   description: "Agentic tech news digest dashboard",
 };
 
-const themeInitScript = `(function(){try{var t=localStorage.getItem('skim-dashboard-theme')||'dark';var r=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.dataset.theme=r;}catch(e){document.documentElement.classList.add('dark');}})();`;
+const themeInitScript = `(function(){try{var t=localStorage.getItem('skim-dashboard-theme')||'dark';var r=t==='light'?'light':'dark';document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.dataset.theme=r;}catch(e){document.documentElement.classList.add('dark');}})();`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${inter.variable} h-full dark`}
+      className={`${spaceMono.variable} ${jetbrainsMono.variable} h-full dark`}
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
       </head>
       <body className="flex min-h-dvh flex-col">
         <AppShell>{children}</AppShell>

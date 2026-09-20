@@ -1,45 +1,61 @@
 @import "tailwindcss";
 @config "../../tailwind.config.mjs";
 
-/* Skim cyan theme tokens  -  light/dark via html.light / html.dark */
+/* Editorial Wire Design System Tokens */
 :root,
 html.dark {
-  --skim-canvas: #0f1419;
-  --skim-foreground: #f0f9ff;
-  --skim-surface: #1a2332;
-  --skim-surface-raised: #243044;
-  --skim-image-frame: #2d3a4f;
-  --skim-cyan-bright: #22d3ee;
-  --skim-cyan-core: #06b6d4;
-  --skim-cyan-deep: #0891b2;
-  --skim-cyan-glow: #67e8f9;
-  --skim-cyan-muted: #164e63;
-  --skim-secondary: #94a3b8;
-  --skim-muted: #64748b;
-  --skim-subtle: #cbd5e1;
-  --skim-error: #f87171;
-  --skim-error-surface: #450a0a;
-  --skim-warning: #fbbf24;
-  --skim-success: #34d399;
+  --skim-canvas: #141210;
+  --skim-foreground: #ede8de;
+  --skim-surface: #1c1917;
+  --skim-surface-raised: #292524;
+  --skim-canvas-soft: #24201d;
+  --skim-canvas-strong: #0c0b0a;
+  --skim-canvas-deepest: #0c0b0a;
+  --skim-on-canvas: #ede8de;
+  --skim-on-canvas-soft: #44403c;
+  --skim-hairline: #38332f;
+  --skim-hairline-soft: #292524;
+  --skim-shadow-tint: #141210;
+  --skim-shadow-glow: #292524;
+  --skim-on-pill: #ede8de;
+  --skim-on-pill-inverted: #141210;
+  --skim-border-on-dark: #38332f;
+  --skim-secondary: #a8a29e;
+  --skim-muted: #78716c;
+  --skim-subtle: #ede8de;
+  --skim-wire: #d4552b;
+  --skim-accent: #d4552b;
+  --skim-error: #ef4444;
+  --skim-error-surface: #2b1414;
+  --skim-warning: #f59e0b;
+  --skim-success: #10b981;
   color-scheme: dark;
 }
 
 html.light {
-  --skim-canvas: #f1f5f9;
-  --skim-foreground: #0f172a;
+  --skim-canvas: #f7f4ee;
+  --skim-foreground: #141210;
   --skim-surface: #ffffff;
-  --skim-surface-raised: #e2e8f0;
-  --skim-image-frame: #cbd5e1;
-  --skim-cyan-bright: #0891b2;
-  --skim-cyan-core: #06b6d4;
-  --skim-cyan-deep: #0e7490;
-  --skim-cyan-glow: #155e75;
-  --skim-cyan-muted: #cffafe;
-  --skim-secondary: #475569;
-  --skim-muted: #64748b;
-  --skim-subtle: #334155;
+  --skim-surface-raised: #ede8de;
+  --skim-canvas-soft: #ede8de;
+  --skim-canvas-strong: #ffffff;
+  --skim-canvas-deepest: #f7f4ee;
+  --skim-on-canvas: #141210;
+  --skim-on-canvas-soft: #d6cfbf;
+  --skim-hairline: #d6cfbf;
+  --skim-hairline-soft: #e7e2d7;
+  --skim-shadow-tint: #e7e2d7;
+  --skim-shadow-glow: #ffffff;
+  --skim-on-pill: #ffffff;
+  --skim-on-pill-inverted: #141210;
+  --skim-border-on-dark: #d6cfbf;
+  --skim-secondary: #57534e;
+  --skim-muted: #78716c;
+  --skim-subtle: #141210;
+  --skim-wire: #d4552b;
+  --skim-accent: #d4552b;
   --skim-error: #dc2626;
-  --skim-error-surface: #fee2e2;
+  --skim-error-surface: #fef2f2;
   --skim-warning: #d97706;
   --skim-success: #059669;
   color-scheme: light;
@@ -52,17 +68,17 @@ html.light {
   --foreground: var(--skim-foreground);
   --card: var(--skim-surface);
   --card-foreground: var(--skim-foreground);
-  --primary: var(--skim-cyan-core);
-  --primary-foreground: #000000;
+  --primary: var(--skim-on-canvas-soft);
+  --primary-foreground: var(--skim-on-pill);
   --secondary: var(--skim-surface-raised);
   --muted: var(--skim-surface-raised);
   --muted-foreground: var(--skim-muted);
-  --accent: var(--skim-cyan-muted);
+  --accent: var(--skim-wire);
   --destructive: var(--skim-error);
   --border: var(--skim-surface-raised);
-  --input: var(--skim-surface-raised);
-  --ring: var(--skim-cyan-core);
-  --radius: 0.75rem;
+  --input: var(--skim-hairline-soft);
+  --ring: var(--skim-wire);
+  --radius: 1rem;
 }
 
 @theme {
@@ -72,7 +88,11 @@ html.light {
   --breakpoint-xl: 80rem;
   --breakpoint-2xl: 90rem;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-mono), "Space Mono", monospace;
+  --font-heading: var(--font-space-mono), "Space Mono", monospace;
+  --font-serif: var(--font-space-mono), "Space Mono", monospace;
+  --font-sans: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -86,51 +106,41 @@ html.light {
   --color-canvas: var(--skim-canvas);
   --color-surface: var(--skim-surface);
   --color-surface-raised: var(--skim-surface-raised);
-  --color-cyan-bright: var(--skim-cyan-bright);
-  --color-cyan-core: var(--skim-cyan-core);
-  --color-cyan-deep: var(--skim-cyan-deep);
-  --color-cyan-glow: var(--skim-cyan-glow);
-  --color-cyan-muted: var(--skim-cyan-muted);
+  --color-canvas-soft: var(--skim-canvas-soft);
+  --color-canvas-strong: var(--skim-canvas-strong);
+  --color-canvas-deepest: var(--skim-canvas-deepest);
+  --color-on-canvas: var(--skim-on-canvas);
+  --color-on-canvas-soft: var(--skim-on-canvas-soft);
+  --color-hairline: var(--skim-hairline);
+  --color-hairline-soft: var(--skim-hairline-soft);
   --color-secondary: var(--skim-secondary);
   --color-muted: var(--skim-muted);
   --color-subtle: var(--skim-subtle);
+  --color-wire: var(--skim-wire);
+  --color-accent: var(--skim-accent);
   --color-error: var(--skim-error);
   --color-error-surface: var(--skim-error-surface);
 
-  --color-topic-ai: #164e63;
-  --color-topic-ai-text: #67e8f9;
-  --color-topic-web: #134e4a;
-  --color-topic-web-text: #5eead4;
-  --color-topic-cloud: #1e3a5f;
-  --color-topic-cloud-text: #7dd3fc;
-  --color-topic-security: #450a0a;
-  --color-topic-security-text: #fca5a5;
-  --color-topic-startups: #422006;
-  --color-topic-startups-text: #fcd34d;
-  --color-topic-code: #1e293b;
-  --color-topic-code-text: #94a3b8;
-  --color-topic-science: #312e81;
-  --color-topic-science-text: #c4b5fd;
+  /* Topic styling — clean editorial with warm tones */
+  --color-topic-ai: var(--skim-surface-raised);
+  --color-topic-ai-text: var(--skim-foreground);
+  --color-topic-web: var(--skim-surface-raised);
+  --color-topic-web-text: var(--skim-foreground);
+  --color-topic-cloud: var(--skim-surface-raised);
+  --color-topic-cloud-text: var(--skim-foreground);
+  --color-topic-security: var(--skim-surface-raised);
+  --color-topic-security-text: var(--skim-foreground);
+  --color-topic-startups: var(--skim-surface-raised);
+  --color-topic-startups-text: var(--skim-foreground);
+  --color-topic-code: var(--skim-surface-raised);
+  --color-topic-code-text: var(--skim-foreground);
+  --color-topic-science: var(--skim-surface-raised);
+  --color-topic-science-text: var(--skim-foreground);
 
-  --radius-card: 1.25rem;
+  --radius-card: 1rem;
+  --radius-tile: 1rem;
+  --radius-input: 0.5rem;
   --radius-pill: 9999px;
-}
-
-html.light {
-  --color-topic-ai: #cffafe;
-  --color-topic-ai-text: #0e7490;
-  --color-topic-web: #ccfbf1;
-  --color-topic-web-text: #0f766e;
-  --color-topic-cloud: #e0f2fe;
-  --color-topic-cloud-text: #0369a1;
-  --color-topic-security: #fee2e2;
-  --color-topic-security-text: #b91c1c;
-  --color-topic-startups: #fef3c7;
-  --color-topic-startups-text: #b45309;
-  --color-topic-code: #f1f5f9;
-  --color-topic-code-text: #475569;
-  --color-topic-science: #ede9fe;
-  --color-topic-science-text: #6d28d9;
 }
 
 @layer base {
@@ -144,7 +154,15 @@ html.light {
   }
 
   body {
-    @apply min-h-dvh bg-canvas font-sans text-foreground antialiased;
+    @apply min-h-dvh bg-canvas font-sans font-normal text-foreground antialiased;
+  }
+
+  /* Monospace-as-Brand: Space Mono display headlines */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-space-mono), "Space Mono", monospace;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    @apply text-on-canvas;
   }
 }
 
@@ -160,7 +178,7 @@ html.light {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--skim-cyan-core), var(--skim-cyan-bright));
+  background: var(--skim-wire);
   transform-origin: left;
   transform: scaleX(0);
   z-index: 9999;
@@ -237,7 +255,7 @@ html.light {
 /* ─── Dashed border pulse for empty states ─────────────────────────────── */
 @keyframes border-pulse {
   0%, 100% { border-color: var(--skim-surface-raised); }
-  50%       { border-color: var(--skim-cyan-muted); }
+  50%       { border-color: var(--skim-hairline); }
 }
 
 .animate-border-pulse {

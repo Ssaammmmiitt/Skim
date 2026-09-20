@@ -3,6 +3,7 @@ import { countPendingApprovals } from "@/lib/admin-pending";
 import type { DashboardTheme, Profile } from "@/lib/auth/types";
 import { isAdmin } from "@/lib/auth/types";
 import { normalizeDashboardTheme } from "@/lib/dashboard-theme";
+import { getBookmarkedIds } from "@/lib/bookmarks";
 import { AppShellClient } from "./AppShellClient";
 import type { NavProfile } from "./UserMenu";
 
@@ -19,6 +20,7 @@ export async function AppShell({ children }: AppShellProps) {
   let profile: NavProfile | null = null;
   let dashboardTheme: DashboardTheme = "dark";
   let pendingApprovalCount = 0;
+  let bookmarkedIds: number[] = [];
 
   if (user) {
     const [profileResult, prefsResult] = await Promise.all([
@@ -46,6 +48,8 @@ export async function AppShell({ children }: AppShellProps) {
     if (profile && isAdmin(profile as Profile)) {
       pendingApprovalCount = await countPendingApprovals();
     }
+    
+    bookmarkedIds = Array.from(await getBookmarkedIds(supabase, user.id));
   }
 
   return (
@@ -53,6 +57,7 @@ export async function AppShell({ children }: AppShellProps) {
       profile={profile}
       dashboardTheme={dashboardTheme}
       pendingApprovalCount={pendingApprovalCount}
+      bookmarkedIds={bookmarkedIds}
     >
       {children}
     </AppShellClient>

@@ -19,7 +19,7 @@ export function LoadingSpinner({
       aria-live="polite"
     >
       <span
-        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-surface-raised border-t-cyan-bright"
+        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-surface-raised border-t-wire"
         aria-hidden
       />
       {label}

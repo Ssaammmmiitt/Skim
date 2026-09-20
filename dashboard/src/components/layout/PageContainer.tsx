@@ -15,12 +15,12 @@ const SIZE_CLASS: Record<PageSize, string> = {
   sm: "max-w-2xl",
   md: "max-w-4xl",
   lg: "max-w-6xl",
-  xl: "max-w-7xl",
+  xl: "max-w-[1440px]",
 };
 
 export function PageContainer({
   children,
-  size = "lg",
+  size = "xl",
   fill = false,
   className,
 }: PageContainerProps) {
@@ -29,8 +29,8 @@ export function PageContainer({
       className={cn(
         "mx-auto w-full",
         fill
-          ? "flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-6 lg:py-6"
-          : "px-4 py-8 sm:px-6 sm:py-10 md:px-8 2xl:px-12",
+          ? "flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-6 md:px-12 lg:px-20 xl:px-24"
+          : "px-4 py-8 sm:px-6 sm:py-10 md:px-12 md:py-12 lg:px-20 lg:py-14 xl:px-24",
         SIZE_CLASS[size],
         className
       )}

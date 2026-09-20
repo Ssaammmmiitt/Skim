@@ -41,6 +41,13 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const api = isApiRoute(path);
 
+  // Authenticated user visiting /login → send them home
+  if (user && path === "/login") {
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = "/";
+    return NextResponse.redirect(homeUrl);
+  }
+
   if (PUBLIC_PATHS.some((p) => path.startsWith(p))) {
     return response;
   }
@@ -88,6 +95,31 @@ export async function proxy(request: NextRequest) {
     const homeUrl = request.nextUrl.clone();
     homeUrl.pathname = "/";
     return NextResponse.redirect(homeUrl);
+  }
+
+  // Onboarding guard for active users
+  if (profile.status === "active") {
+    const { data: prefs } = await supabase
+      .from("user_digest_preferences")
+      .select("onboarding_completed")
+      .eq("user_id", user.id)
+      .maybeSingle();
+      
+    const isCompleted = prefs?.onboarding_completed ?? false;
+    const isOnboardingPath = path === "/onboarding" || path.startsWith("/api/onboarding");
+    
+    if (!isCompleted && !isOnboardingPath) {
+      if (api) return apiJsonError(403, "Onboarding required");
+      const onboardingUrl = request.nextUrl.clone();
+      onboardingUrl.pathname = "/onboarding";
+      return NextResponse.redirect(onboardingUrl);
+    }
+    
+    if (isCompleted && path === "/onboarding") {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = "/";
+      return NextResponse.redirect(homeUrl);
+    }
   }
 
   return response;

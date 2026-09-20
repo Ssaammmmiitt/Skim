@@ -30,7 +30,7 @@ export function DashboardThemeSelector({
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid max-w-lg gap-4 sm:grid-cols-2">
       {(Object.keys(DASHBOARD_THEMES) as DashboardTheme[]).map((key) => {
         const meta = DASHBOARD_THEMES[key];
         const selected = current === key;
@@ -40,24 +40,21 @@ export function DashboardThemeSelector({
             type="button"
             onClick={() => select(key)}
             className={cn(
-              ui.card,
-              "p-4 text-left transition",
+              "rounded-2xl border p-5 text-left transition",
               selected
-                ? "border-cyan-core ring-1 ring-cyan-core"
-                : "hover:border-cyan-deep"
+                ? "border-foreground bg-surface-raised"
+                : "border-border bg-surface hover:border-foreground/30 hover:bg-surface-raised/50"
             )}
           >
             <div
               className={cn(
-                "mb-3 h-16 rounded-lg border border-surface-raised",
-                key === "light" && "bg-[#f1f5f9]",
-                key === "dark" && "bg-[#0f1419]",
-                key === "system" &&
-                  "bg-gradient-to-r from-[#f1f5f9] via-[#64748b] to-[#0f1419]"
+                "mb-4 h-16 rounded-xl border border-border",
+                key === "light" && "bg-[#f7f4ee]",
+                key === "dark" && "bg-[#141210]"
               )}
             />
-            <p className="font-bold text-foreground">{meta.label}</p>
-            <p className="mt-1 text-sm text-secondary">{meta.description}</p>
+            <p className="font-display font-bold text-base text-foreground">{meta.label}</p>
+            <p className="mt-1 text-xs font-normal text-secondary">{meta.description}</p>
           </button>
         );
       })}

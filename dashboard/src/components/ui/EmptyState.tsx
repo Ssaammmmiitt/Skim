@@ -25,12 +25,12 @@ export function EmptyState({
       )}
     >
       {icon ? (
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-cyan-muted text-cyan-bright">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-border-on-dark/30 bg-surface text-on-canvas">
           {icon}
         </div>
       ) : null}
       <p className={ui.eyebrow}>{eyebrow}</p>
-      <h2 className="mt-3 text-xl font-bold text-foreground sm:text-2xl">
+      <h2 className="mt-3 font-display font-bold tracking-tight text-xl text-on-canvas sm:text-2xl">
         {title}
       </h2>
       <p className={cn("mx-auto mt-3 max-w-md", ui.body)}>{description}</p>

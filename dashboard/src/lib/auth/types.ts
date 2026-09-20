@@ -14,7 +14,7 @@ export type Profile = {
 
 export type DigestTheme = "cyan" | "classic" | "minimal";
 export type DigestFormat = "full" | "brief" | "headlines";
-export type DashboardTheme = "light" | "dark" | "system";
+export type DashboardTheme = "light" | "dark";
 
 export type DigestPreferences = {
   user_id: string;

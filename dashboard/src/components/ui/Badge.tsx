@@ -33,8 +33,8 @@ export function StatusBadge({ variant, label, pulse }: StatusBadgeProps) {
     <span className={STATUS_STYLES[variant]}>
       {showPulse ? (
         <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-bright opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-bright" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wire opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-wire" />
         </span>
       ) : null}
       {label ?? STATUS_LABELS[variant]}
@@ -59,13 +59,13 @@ type TopicBadgeProps = {
 };
 
 const TOPIC_CLASS: Record<string, string> = {
-  ai: "bg-topic-ai text-topic-ai-text",
-  web: "bg-topic-web text-topic-web-text",
-  cloud: "bg-topic-cloud text-topic-cloud-text",
-  security: "bg-topic-security text-topic-security-text",
-  startups: "bg-topic-startups text-topic-startups-text",
-  code: "bg-topic-code text-topic-code-text",
-  science: "bg-topic-science text-topic-science-text",
+  ai: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  web: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  cloud: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  security: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  startups: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  code: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  science: "border border-border-on-dark/30 bg-surface text-on-canvas",
 };
 
 export function TopicBadge2({ topic, className }: TopicBadgeProps) {
@@ -74,7 +74,7 @@ export function TopicBadge2({ topic, className }: TopicBadgeProps) {
     <span
       className={cn(
         ui.badgeTopic,
-        TOPIC_CLASS[key] ?? "bg-surface-raised text-secondary",
+        TOPIC_CLASS[key] ?? "border border-border-on-dark/20 bg-surface text-on-canvas",
         className
       )}
     >
@@ -112,10 +112,10 @@ type BadgeProps = {
 };
 
 const BADGE_VARIANT: Record<string, string> = {
-  default: "bg-surface-raised text-secondary",
-  cyan: "bg-cyan-muted text-cyan-glow",
-  warning: "bg-[#422006] text-[#fbbf24]",
-  error: "bg-error-surface text-error",
+  default: "border border-hairline-soft/40 bg-surface text-secondary",
+  cyan: "border border-border-on-dark bg-on-canvas-soft text-on-pill",
+  warning: "border border-warning/40 bg-surface text-warning",
+  error: "border border-error bg-error-surface text-error",
 };
 
 export function Badge({ children, variant = "default", className }: BadgeProps) {

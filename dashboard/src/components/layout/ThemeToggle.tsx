@@ -5,12 +5,11 @@ import { DASHBOARD_THEMES } from "@/lib/dashboard-theme";
 import { useThemeStore } from "@/store/theme-store";
 import { cn } from "@/lib/cn";
 
-const THEME_ORDER: DashboardTheme[] = ["light", "dark", "system"];
+const THEME_ORDER: DashboardTheme[] = ["dark", "light"];
 
 const THEME_ICONS: Record<DashboardTheme, string> = {
-  light: "☀",
   dark: "☾",
-  system: "◐",
+  light: "☀",
 };
 
 type ThemeToggleProps = {
@@ -24,11 +23,11 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
 
   if (variant === "menu") {
     return (
-      <div className="border-b border-surface-raised px-4 py-3">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+      <div className="border-b border-border px-4 py-3">
+        <p className="mb-2 text-xs font-normal text-muted">
           Appearance
         </p>
-        <div className="flex gap-1" role="group" aria-label="Dashboard theme">
+        <div className="flex gap-1.5" role="group" aria-label="Dashboard theme">
           {THEME_ORDER.map((option) => (
             <button
               key={option}
@@ -36,10 +35,10 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
               disabled={saving}
               onClick={() => void setTheme(option)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-1.5 text-[10px] transition",
+                "flex flex-1 flex-col items-center gap-1 rounded-xl border px-2 py-1.5 text-xs font-normal transition",
                 theme === option
-                  ? "border-cyan-core bg-cyan-muted text-cyan-glow"
-                  : "border-surface-raised text-muted hover:border-cyan-core"
+                  ? "border-foreground bg-surface-raised text-foreground"
+                  : "border-border text-secondary hover:border-foreground/40 hover:text-foreground"
               )}
               aria-pressed={theme === option}
               title={DASHBOARD_THEMES[option].description}
@@ -55,7 +54,7 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
 
   return (
     <div
-      className="inline-flex rounded-full border border-surface-raised bg-canvas p-0.5"
+      className="inline-flex rounded-full border border-border bg-surface p-0.5"
       role="group"
       aria-label="Dashboard theme"
     >
@@ -66,10 +65,10 @@ export function ThemeToggle({ variant = "inline" }: ThemeToggleProps) {
           disabled={saving}
           onClick={() => void setTheme(option)}
           className={cn(
-            "rounded-full px-2.5 py-1 text-xs transition",
+            "rounded-full px-2.5 py-1 text-xs font-normal transition",
             theme === option
-              ? "bg-cyan-muted text-cyan-glow"
-              : "text-muted hover:text-secondary"
+              ? "border border-foreground bg-surface-raised text-foreground"
+              : "text-secondary hover:text-foreground"
           )}
           aria-pressed={theme === option}
           title={DASHBOARD_THEMES[option].label}

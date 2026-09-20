@@ -9,28 +9,16 @@ type ThemeProviderProps = {
   initialTheme?: DashboardTheme;
 };
 
-/** Hydrates the Zustand theme store and syncs system preference changes. */
+/** Hydrates the Zustand theme store with initial theme. */
 export function ThemeProvider({
   children,
   initialTheme = "dark",
 }: ThemeProviderProps) {
   const hydrate = useThemeStore((state) => state.hydrate);
-  const applyTheme = useThemeStore((state) => state.applyTheme);
-  const theme = useThemeStore((state) => state.theme);
 
   useEffect(() => {
     hydrate(initialTheme);
   }, [hydrate, initialTheme]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (theme !== "system") return;
-
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyTheme("system");
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, [theme, applyTheme]);
 
   return children;
 }

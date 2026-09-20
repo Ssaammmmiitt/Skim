@@ -12,10 +12,13 @@ describe("Button", () => {
     );
 
     expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(
-      "bg-cyan-core"
+      "bg-on-canvas-soft"
+    );
+    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(
+      "rounded-full"
     );
     expect(screen.getByRole("button", { name: "Secondary" })).toHaveClass(
-      "border-surface-raised"
+      "rounded-full"
     );
   });
 });

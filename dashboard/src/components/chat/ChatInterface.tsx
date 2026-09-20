@@ -71,26 +71,26 @@ export function ChatInterface() {
       <div
         className={cn(
           ui.card,
-          "flex min-h-0 flex-1 flex-col overflow-hidden"
+          "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl"
         )}
       >
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3 sm:p-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
           {messages.length === 0 ? (
-            <div className="py-6 text-center sm:py-8">
+            <div className="py-8 text-center sm:py-12">
               <p className={ui.body}>
                 Try asking about recent tech news in the Skim corpus.
               </p>
-              <p className="mt-2 text-xs text-muted">
+              <p className="mt-2 text-xs font-normal text-muted">
                 Hybrid vector + full-text retrieval · Gemini with fallbacks
               </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {SUGGESTED_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
                     type="button"
                     onClick={() => void sendMessage(prompt)}
                     disabled={loading || remaining === 0}
-                    className="max-w-full rounded-full border border-surface-raised bg-canvas px-3 py-2 text-left text-xs text-secondary transition hover:border-cyan-core hover:text-cyan-bright disabled:opacity-50 sm:text-center"
+                    className="max-w-full rounded-full border border-border bg-surface-raised px-4 py-2 text-left text-xs font-normal text-secondary transition hover:border-foreground/40 hover:text-foreground disabled:opacity-50 sm:text-center"
                   >
                     {prompt}
                   </button>
@@ -116,7 +116,7 @@ export function ChatInterface() {
 
         <form
           onSubmit={handleSubmit}
-          className="shrink-0 border-t border-surface-raised bg-surface/50 p-3 sm:p-4"
+          className="shrink-0 border-t border-border bg-surface/60 p-4"
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
             <textarea
@@ -136,7 +136,7 @@ export function ChatInterface() {
               {loading ? "…" : "Send"}
             </button>
           </div>
-          <p className="mt-2 text-[11px] text-muted">
+          <p className="mt-2 text-xs font-normal text-muted">
             Enter to send · Shift+Enter for newline
           </p>
         </form>

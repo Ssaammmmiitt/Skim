@@ -10,7 +10,7 @@ describe("preferences API validation", () => {
         max_stories: 10,
         topic_filters: ["ai_ml"],
         email_enabled: false,
-        dashboard_theme: "system",
+        dashboard_theme: "dark",
       })
     ).toEqual({
       theme: "classic",
@@ -18,7 +18,7 @@ describe("preferences API validation", () => {
       max_stories: 10,
       topic_filters: ["ai_ml"],
       email_enabled: false,
-      dashboard_theme: "system",
+      dashboard_theme: "dark",
     });
   });
 

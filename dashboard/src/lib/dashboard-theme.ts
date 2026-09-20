@@ -6,35 +6,26 @@ export const DASHBOARD_THEMES: Record<
   DashboardTheme,
   { label: string; description: string }
 > = {
-  light: {
-    label: "Light",
-    description: "Soft slate canvas with cyan accents",
-  },
   dark: {
     label: "Dark",
-    description: "Deep navy surfaces with cyan highlights  -  default",
+    description: "Deep dark canvas — default",
   },
-  system: {
-    label: "System",
-    description: "Match your device light/dark setting",
+  light: {
+    label: "Light",
+    description: "Clean light canvas",
   },
 };
 
 export const THEME_STORAGE_KEY = "skim-dashboard-theme";
 
 export function normalizeDashboardTheme(value: unknown): DashboardTheme {
-  if (value === "light" || value === "dark" || value === "system") {
+  if (value === "light" || value === "dark") {
     return value;
   }
   return "dark";
 }
 
 export function resolveDashboardTheme(theme: DashboardTheme): "light" | "dark" {
-  if (theme === "system" && typeof window !== "undefined") {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-  }
   return theme === "light" ? "light" : "dark";
 }
 

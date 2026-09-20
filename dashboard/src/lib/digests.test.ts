@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { fetchDigest, fetchDigestDates, todayUtc } from "@/lib/digests";
+import {
+  fetchDigest,
+  fetchDigestDates,
+  fetchLatestDigest,
+  todayUtc,
+} from "@/lib/digests";
 import { sampleArticle, sampleArticle2 } from "@/test/fixtures";
 import { createMockSupabase, createQueryBuilder } from "@/test/mock-supabase";
 
@@ -67,5 +72,30 @@ describe("digests lib", () => {
     await expect(fetchDigest(supabase, "2026-08-30")).rejects.toThrow(
       "db down"
     );
+  });
+
+  it("fetchLatestDigest fetches the most recent digest available", async () => {
+    const supabase = createMockSupabase({
+      digests: () =>
+        createQueryBuilder({
+          data: {
+            digest_date: "2026-08-30",
+            sent_at: "2026-08-30T00:00:00Z",
+            article_ids: [1],
+            story_count: 1,
+            subject: "Skim",
+          },
+          error: null,
+        }),
+      articles: () =>
+        createQueryBuilder({
+          data: [sampleArticle],
+          error: null,
+        }),
+    });
+
+    const result = await fetchLatestDigest(supabase);
+    expect(result.date).toBe("2026-08-30");
+    expect(result.articles).toHaveLength(1);
   });
 });

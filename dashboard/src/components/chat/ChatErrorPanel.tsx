@@ -32,30 +32,30 @@ export function ChatErrorPanel({ error, onRetry, className }: ChatErrorPanelProp
   return (
     <div
       className={cn(
-        "rounded-card border border-error/40 bg-error-surface px-4 py-3",
+        "rounded-2xl border border-border bg-surface px-5 py-4",
         className
       )}
       role="alert"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-error">
+          <p className="text-xs font-normal text-muted">
             {codeLabel}
           </p>
-          <p className="mt-1 text-sm text-foreground">{error.error}</p>
+          <p className="mt-1 text-sm font-normal text-foreground">{error.error}</p>
 
           {error.retry_after_seconds != null && error.retry_after_seconds > 0 ? (
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs font-normal text-muted">
               Suggested wait: ~{error.retry_after_seconds}s before retrying
             </p>
           ) : null}
 
           {error.tried_providers && error.tried_providers.length > 0 ? (
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs text-muted hover:text-secondary">
+              <summary className="cursor-pointer text-xs font-normal text-muted hover:text-secondary">
                 Providers tried ({error.tried_providers.length})
               </summary>
-              <ul className="mt-1 space-y-0.5 text-[11px] text-muted">
+              <ul className="mt-1 space-y-0.5 text-xs font-normal text-muted">
                 {error.tried_providers.map((item) => (
                   <li key={item}>• {formatProvider(item)}</li>
                 ))}
@@ -78,7 +78,7 @@ export function ChatErrorPanel({ error, onRetry, className }: ChatErrorPanelProp
           <button
             type="button"
             onClick={onRetry}
-            className="shrink-0 rounded-pill border border-error/30 bg-canvas px-3 py-1.5 text-xs font-medium text-error hover:bg-error-surface"
+            className="shrink-0 rounded-full border border-foreground bg-slate-rest px-4 py-1.5 text-xs font-normal text-foreground hover:bg-foreground hover:text-canvas"
           >
             Retry
           </button>

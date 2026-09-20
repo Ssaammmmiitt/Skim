@@ -193,7 +193,7 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
             {/* Mobile search icon */}
             <Link
               href="/search"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-surface-raised text-secondary transition hover:border-cyan-core hover:text-cyan-bright md:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-surface-raised text-secondary transition hover:border-hairline hover:text-foreground md:hidden"
               aria-label="Search articles"
               id="nav-search-btn"
             >
@@ -209,10 +209,10 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                 <Link
                   href="/admin/stats"
                   className={cn(
-                    "hidden rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide sm:inline-flex sm:items-center",
+                    "hidden rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wide sm:inline-flex sm:items-center transition",
                     pathname.startsWith("/admin/stats")
-                      ? "border-cyan-core bg-cyan-muted text-cyan-glow"
-                      : "border-surface-raised text-cyan-bright hover:border-cyan-core"
+                      ? "border-border-on-dark bg-surface-raised text-foreground"
+                      : "border-surface-raised text-secondary hover:border-border-on-dark hover:text-foreground"
                   )}
                 >
                   Analytics
@@ -220,10 +220,10 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                 <Link
                   href="/admin"
                   className={cn(
-                    "hidden rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide sm:inline-flex sm:items-center",
+                    "hidden rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wide sm:inline-flex sm:items-center transition",
                     pathname === "/admin"
-                      ? "border-cyan-core bg-cyan-muted text-cyan-glow"
-                      : "border-surface-raised text-cyan-bright hover:border-cyan-core"
+                      ? "border-border-on-dark bg-surface-raised text-foreground"
+                      : "border-surface-raised text-secondary hover:border-border-on-dark hover:text-foreground"
                   )}
                 >
                   Admin
@@ -238,7 +238,7 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
             <button
               ref={toggleRef}
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-cyan-core hover:text-cyan-bright lg:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-hairline hover:text-foreground lg:hidden"
               onClick={() => setMobileNavOpen(!mobileOpen)}
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-drawer"
@@ -299,7 +299,7 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
               <BrandMark />
               <button
                 type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-cyan-core hover:text-cyan-bright"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-surface-raised text-secondary hover:border-hairline hover:text-foreground"
                 onClick={closeMobile}
                 aria-label="Close menu"
               >
@@ -320,15 +320,15 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                     className={cn(
                       "rounded-xl px-3 py-3 transition-colors",
                       isNavActive(pathname, item.href)
-                        ? "bg-cyan-muted text-cyan-glow"
-                        : "text-secondary hover:bg-surface-raised hover:text-foreground"
+                        ? "border border-hairline bg-surface-raised text-foreground font-medium"
+                        : "text-secondary hover:bg-surface-raised/50 hover:text-foreground"
                     )}
                     aria-current={
                       isNavActive(pathname, item.href) ? "page" : undefined
                     }
                     onClick={closeMobile}
                   >
-                    <span className="block text-sm font-semibold">
+                    <span className="block text-sm">
                       {item.label}
                     </span>
                     <span className="mt-0.5 block text-xs text-muted">
@@ -343,15 +343,15 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                       className={cn(
                         "rounded-xl px-3 py-3 transition-colors",
                         pathname.startsWith("/admin/stats")
-                          ? "bg-cyan-muted text-cyan-glow"
-                          : "text-secondary hover:bg-surface-raised hover:text-foreground"
+                          ? "border border-hairline bg-surface-raised text-foreground font-medium"
+                          : "text-secondary hover:bg-surface-raised/50 hover:text-foreground"
                       )}
                       aria-current={
                         pathname.startsWith("/admin/stats") ? "page" : undefined
                       }
                       onClick={closeMobile}
                     >
-                      <span className="flex items-center text-sm font-semibold">
+                      <span className="flex items-center text-sm">
                         Analytics
                       </span>
                       <span className="mt-0.5 block text-xs text-muted">
@@ -363,15 +363,15 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                       className={cn(
                         "rounded-xl px-3 py-3 transition-colors",
                         pathname === "/admin"
-                          ? "bg-cyan-muted text-cyan-glow"
-                          : "text-secondary hover:bg-surface-raised hover:text-foreground"
+                          ? "border border-hairline bg-surface-raised text-foreground font-medium"
+                          : "text-secondary hover:bg-surface-raised/50 hover:text-foreground"
                       )}
                       aria-current={
                         pathname === "/admin" ? "page" : undefined
                       }
                       onClick={closeMobile}
                     >
-                      <span className="flex items-center text-sm font-semibold">
+                      <span className="flex items-center text-sm">
                         Admin
                         {pendingBadge}
                       </span>

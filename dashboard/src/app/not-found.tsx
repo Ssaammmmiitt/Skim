@@ -12,9 +12,9 @@ export default function NotFound() {
   return (
     <PageContainer>
       <div className="mx-auto max-w-lg py-8 text-center sm:py-16">
-        {/* Large cyan 404 */}
+        {/* Large 404 */}
         <p
-          className="select-none text-8xl font-black leading-none tracking-tight text-cyan-core opacity-20 sm:text-9xl"
+          className="select-none text-8xl font-normal leading-none tracking-normal text-foreground opacity-15 sm:text-9xl"
           aria-hidden="true"
         >
           404
@@ -22,10 +22,10 @@ export default function NotFound() {
 
         {/* Content */}
         <p className={`${ui.eyebrow} mt-4`}>Not found</p>
-        <h1 className="mt-3 text-2xl font-bold text-foreground sm:text-3xl">
+        <h1 className="mt-3 text-3xl font-normal text-foreground sm:text-4xl">
           This page doesn&apos;t exist
         </h1>
-        <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-secondary">
+        <p className="mx-auto mt-3 max-w-sm text-sm font-normal leading-relaxed text-secondary">
           The URL you followed doesn&apos;t match any page in Skim. Check the
           address or navigate back to today&apos;s briefing.
         </p>
@@ -41,7 +41,7 @@ export default function NotFound() {
         </div>
 
         {/* Helpful nav */}
-        <div className="mt-10 border-t border-surface-raised pt-8">
+        <div className="mt-10 border-t border-border pt-8">
           <p className={`${ui.meta} mb-4`}>You might be looking for</p>
           <nav
             className="flex flex-wrap justify-center gap-3"

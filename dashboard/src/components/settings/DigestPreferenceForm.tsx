@@ -119,8 +119,8 @@ export function DigestPreferenceForm({ initial }: Props) {
           </div>
         </section>
 
-        <section className={cn(ui.card, "overflow-hidden")}>
-          <div className={cn("border-b border-surface-raised px-4 py-2", ui.meta)}>
+        <section className={cn(ui.card, "overflow-hidden rounded-2xl")}>
+          <div className={cn("border-b border-border px-5 py-3 text-xs font-normal text-muted")}>
             Live email preview
           </div>
           <iframe
@@ -142,7 +142,7 @@ export function DigestPreferenceForm({ initial }: Props) {
             onChange={(e) =>
               updateDraft({ max_stories: Number(e.target.value) })
             }
-            className="mt-3 w-full accent-primary"
+            className="mt-3 w-full accent-foreground"
           />
         </section>
 
@@ -152,17 +152,17 @@ export function DigestPreferenceForm({ initial }: Props) {
             Leave empty to receive all topics. The pipeline filters stories
             before sending.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             {TOPIC_OPTIONS.map((topic) => (
               <button
                 key={topic.id}
                 type="button"
                 onClick={() => toggleTopic(topic.id)}
                 className={cn(
-                  "rounded-pill px-3 py-1.5 text-xs font-bold transition",
+                  "rounded-full px-3.5 py-1.5 text-xs font-normal transition",
                   draft.topic_filters.includes(topic.id)
-                    ? "bg-cyan-core text-black"
-                    : "border border-surface-raised bg-canvas text-secondary hover:border-cyan-core"
+                    ? "border border-foreground bg-foreground text-canvas"
+                    : "border border-border bg-surface-raised text-secondary hover:border-foreground/40 hover:text-foreground"
                 )}
               >
                 {topic.label}
@@ -176,7 +176,7 @@ export function DigestPreferenceForm({ initial }: Props) {
             type="checkbox"
             checked={draft.email_enabled}
             onChange={(e) => updateDraft({ email_enabled: e.target.checked })}
-            className="accent-primary"
+            className="h-4 w-4 rounded accent-foreground"
           />
           <span className={ui.body}>Receive daily digest emails</span>
         </label>
@@ -186,7 +186,7 @@ export function DigestPreferenceForm({ initial }: Props) {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-4 md:px-8">
           <p
             className={cn(
-              "text-center text-sm sm:text-left",
+              "text-center text-sm font-normal sm:text-left",
               status ? ui.successText : "text-muted"
             )}
           >

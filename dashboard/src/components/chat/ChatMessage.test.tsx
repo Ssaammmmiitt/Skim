@@ -12,7 +12,7 @@ describe("ChatMessage", () => {
 
   it("renders assistant message with Skim label and sources", () => {
     render(<ChatMessage message={assistantMessage} />);
-    expect(screen.getByText("Skim")).toBeInTheDocument();
+    expect(screen.getByText("Skim Wire")).toBeInTheDocument();
     expect(screen.getByText(assistantMessage.content)).toBeInTheDocument();
     expect(screen.getByText("Sources (1)")).toBeInTheDocument();
     expect(

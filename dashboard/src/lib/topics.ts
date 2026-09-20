@@ -5,17 +5,17 @@ const TOPIC_LABELS = Object.fromEntries(
 ) as Record<string, string>;
 
 const TOPIC_CLASSES: Record<string, string> = {
-  ai_ml: "bg-topic-ai text-topic-ai-text",
-  web_dev: "bg-topic-web text-topic-web-text",
-  cloud_infra: "bg-topic-cloud text-topic-cloud-text",
-  cybersecurity: "bg-topic-security text-topic-security-text",
-  startups: "bg-topic-startups text-topic-startups-text",
-  programming: "bg-topic-code text-topic-code-text",
-  science: "bg-topic-science text-topic-science-text",
-  other: "bg-surface-raised text-secondary",
+  ai_ml: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  web_dev: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  cloud_infra: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  cybersecurity: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  startups: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  programming: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  science: "border border-border-on-dark/30 bg-surface text-on-canvas",
+  other: "border border-hairline-soft/40 bg-surface text-muted",
 };
 
-const DEFAULT_TOPIC_CLASS = "bg-surface-raised text-secondary";
+const DEFAULT_TOPIC_CLASS = "border border-border-on-dark/30 bg-surface text-on-canvas";
 
 export function topicLabel(topic: string | null): string {
   if (!topic) return "Other";

@@ -20,18 +20,18 @@ export function DigestFormatPreview({
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full rounded-card border p-4 text-left transition",
+        "w-full rounded-2xl border p-5 text-left transition",
         selected
-          ? "border-cyan-core bg-cyan-muted"
-          : "border-surface-raised bg-surface hover:border-cyan-deep"
+          ? "border-foreground bg-surface-raised"
+          : "border-border bg-surface hover:border-foreground/30 hover:bg-surface-raised/50"
       )}
     >
-      <p className="font-medium capitalize text-foreground">{format}</p>
-      <p className="mt-1 text-sm text-secondary">{DIGEST_FORMATS[format]}</p>
-      <ul className="mt-3 space-y-1">
+      <p className="text-base font-normal capitalize text-foreground">{format}</p>
+      <p className="mt-1 text-xs font-normal text-secondary">{DIGEST_FORMATS[format]}</p>
+      <ul className="mt-4 space-y-1.5">
         {includes.map((item) => (
-          <li key={item} className="flex items-center gap-2 text-xs text-secondary">
-            <span className="text-cyan-bright">✓</span>
+          <li key={item} className="flex items-center gap-2 text-xs font-normal text-secondary">
+            <span className="text-foreground">✓</span>
             {item}
           </li>
         ))}

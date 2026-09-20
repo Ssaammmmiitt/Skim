@@ -29,22 +29,22 @@ export function ChatLoadingBubble({ sessionKey }: ChatLoadingBubbleProps) {
 
   return (
     <div className="flex justify-start" role="status" aria-live="polite">
-      <div className={cn(ui.card, "max-w-md px-4 py-3")}>
+      <div className={cn(ui.card, "max-w-md rounded-2xl px-5 py-4")}>
         <div className="flex items-start gap-3">
           <span
-            className="mt-0.5 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-surface-raised border-t-cyan-bright"
+            className="mt-0.5 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-border border-t-foreground"
             aria-hidden
           />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">{active.label}…</p>
-            <p className="mt-0.5 text-xs text-muted">{active.detail}</p>
-            <div className="mt-3 flex gap-1">
+            <p className="text-sm font-normal text-foreground">{active.label}…</p>
+            <p className="mt-0.5 text-xs font-normal text-muted">{active.detail}</p>
+            <div className="mt-3 flex gap-1.5">
               {STEPS.map((item, index) => (
                 <span
                   key={item.label}
                   className={cn(
-                    "h-1 flex-1 rounded-pill transition-colors",
-                    index <= step ? "bg-cyan-bright" : "bg-surface-raised"
+                    "h-1 flex-1 rounded-full transition-colors",
+                    index <= step ? "bg-foreground" : "bg-surface-raised"
                   )}
                 />
               ))}

@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { DigestCard } from "@/components/digest/DigestCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { motion } from "framer-motion";
 import * as ui from "@/lib/tailwind-ui";
 import type { DigestResponse } from "@/lib/types";
 
@@ -58,65 +61,46 @@ export function DigestFeed({ digest, isToday = false }: DigestFeedProps) {
 
   return (
     <div>
-      {/* Feed header */}
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className={ui.eyebrow}>{digest.subject ?? "Daily briefing"}</p>
-          <h1 className={`${ui.heading} mt-2`}>
+          <h1 className="mt-2 font-display font-bold tracking-tight text-2xl leading-tight text-on-canvas sm:text-3xl lg:text-[34px]">
             {formatDigestDate(digest.date)}
           </h1>
         </div>
         <div className="text-right">
-          <p className={ui.meta}>{digest.story_count} stories</p>
+          <p className="font-mono text-xs text-muted">{digest.story_count} stories</p>
           {sentLabel ? (
-            <p className="mt-1 text-xs text-muted">Sent {sentLabel}</p>
+            <p className="mt-1 font-mono text-xs text-muted">Sent {sentLabel}</p>
           ) : null}
         </div>
       </div>
 
-      {/* StoryStream timeline — desktop shows dashed rail, mobile stacks */}
-      <div className="relative">
-        {/* Dashed vertical rail — hidden on mobile */}
-        <div
-          className="absolute inset-y-0 left-[7.5rem] hidden w-px border-l border-dashed border-cyan-deep md:block"
-          aria-hidden="true"
-        />
-
-        <div className="flex flex-col gap-5">
-          {digest.articles.map((article, index) => (
-            <div key={article.id} className="group animate-on-scroll">
-              {/* Layout: timestamp | rail dot | card */}
-              <div className="flex items-start gap-0 md:gap-4">
-                {/* Timestamp column (md+) */}
-                <div className="hidden w-28 shrink-0 pt-5 text-right md:block">
-                  <span className={ui.timelineTimestamp}>
-                    {article.published_at
-                      ? new Date(article.published_at).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })
-                      : `#${index + 1}`}
-                  </span>
-                </div>
-
-                {/* Rail dot (md+) */}
-                <div className="relative hidden shrink-0 items-start pt-5 md:flex">
-                  <div
-                    className="h-2 w-2 rounded-full border-2 border-cyan-core bg-canvas ring-4 ring-canvas"
-                    aria-hidden="true"
-                  />
-                </div>
-
-                {/* Card */}
-                <div className="min-w-0 flex-1">
-                  <DigestCard article={article} rank={index + 1} />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <motion.div 
+        className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.05 }
+          }
+        }}
+        initial="hidden"
+        animate="show"
+      >
+        {digest.articles.map((article, index) => (
+          <motion.div
+            key={article.id}
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+            }}
+            className="flex h-full"
+          >
+            <DigestCard article={article} rank={index + 1} />
+          </motion.div>
+        ))}
+      </motion.div>
     </div>
   );
 }

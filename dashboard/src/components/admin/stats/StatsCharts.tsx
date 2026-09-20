@@ -38,9 +38,7 @@ type StatsData = {
 };
 
 const THEME_COLORS = {
-  cyan: "var(--skim-cyan-core)",
-  muted: "var(--skim-cyan-muted)",
-  bright: "var(--skim-cyan-bright)",
+  wire: "var(--skim-wire)",
   background: "var(--skim-surface)",
   foreground: "var(--skim-foreground)",
   secondary: "var(--skim-secondary)",
@@ -48,16 +46,16 @@ const THEME_COLORS = {
 };
 
 const CHART_PALETTE = [
-  "#06b6d4", // Cyan
-  "#0ea5e9", // Sky
-  "#3b82f6", // Blue
-  "#14b8a6", // Teal
-  "#8b5cf6", // Violet
-  "#6366f1", // Indigo
-  "#0284c7", // Dark Sky
-  "#0d9488", // Dark Teal
-  "#22d3ee", // Bright Cyan
-  "#38bdf8", // Bright Sky
+  "#d4552b", // Wire Red-Orange
+  "#ea580c", // Terracotta
+  "#d97706", // Amber
+  "#ca8a04", // Gold
+  "#78716c", // Stone Muted
+  "#a8a29e", // Stone Secondary
+  "#57534e", // Charcoal
+  "#854d0e", // Warm Ochre
+  "#b45309", // Warm Rust
+  "#c2410c", // Deep Terracotta
 ];
 
 export function StatsCharts() {
@@ -106,7 +104,7 @@ export function StatsCharts() {
     <div className="mt-8 flex flex-col gap-8 pb-16">
       {/* Volume Chart */}
       <div className={cn(ui.card, "p-5 sm:p-8")}>
-        <h3 className="mb-6 text-lg font-bold">Pipeline Volume (Last 14 Days)</h3>
+        <h3 className="mb-6 text-xl font-normal text-foreground">Pipeline Volume (Last 14 Days)</h3>
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data.pipeline}>
@@ -126,7 +124,7 @@ export function StatsCharts() {
               />
               <YAxis stroke={THEME_COLORS.secondary} fontSize={12} tickMargin={10} />
               <Tooltip 
-                contentStyle={{ backgroundColor: THEME_COLORS.background, borderColor: THEME_COLORS.grid, color: THEME_COLORS.foreground, borderRadius: '12px' }} 
+                contentStyle={{ backgroundColor: THEME_COLORS.background, borderColor: THEME_COLORS.grid, color: THEME_COLORS.foreground, borderRadius: '16px' }} 
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />
               <Area 
@@ -152,7 +150,7 @@ export function StatsCharts() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Topic Distribution */}
         <div className={cn(ui.card, "p-5 sm:p-8")}>
-          <h3 className="mb-6 text-lg font-bold">Topic Distribution (Last 1000)</h3>
+          <h3 className="mb-6 text-xl font-normal text-foreground">Topic Distribution (Last 1000)</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -170,7 +168,7 @@ export function StatsCharts() {
                   ))}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ backgroundColor: THEME_COLORS.background, borderColor: THEME_COLORS.grid, color: THEME_COLORS.foreground, borderRadius: '12px' }} 
+                  contentStyle={{ backgroundColor: THEME_COLORS.background, borderColor: THEME_COLORS.grid, color: THEME_COLORS.foreground, borderRadius: '16px' }} 
                 />
                 <Legend />
               </PieChart>
@@ -180,7 +178,7 @@ export function StatsCharts() {
 
         {/* Score Distribution */}
         <div className={cn(ui.card, "p-5 sm:p-8")}>
-          <h3 className="mb-6 text-lg font-bold">AI Importance Score Distribution</h3>
+          <h3 className="mb-6 text-xl font-normal text-foreground">AI Importance Score Distribution</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.scores}>
@@ -189,7 +187,7 @@ export function StatsCharts() {
                 <YAxis stroke={THEME_COLORS.secondary} fontSize={12} tickMargin={10} />
                 <Tooltip 
                   cursor={{ fill: THEME_COLORS.grid, opacity: 0.4 }}
-                  contentStyle={{ backgroundColor: THEME_COLORS.background, borderColor: THEME_COLORS.grid, color: THEME_COLORS.foreground, borderRadius: '12px' }} 
+                  contentStyle={{ backgroundColor: THEME_COLORS.background, borderColor: THEME_COLORS.grid, color: THEME_COLORS.foreground, borderRadius: '16px' }} 
                 />
                 <Bar dataKey="count" name="Articles" fill={CHART_PALETTE[1]} radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -200,7 +198,7 @@ export function StatsCharts() {
 
       {/* Sources Chart */}
       <div className={cn(ui.card, "p-5 sm:p-8")}>
-        <h3 className="mb-6 text-lg font-bold">Top Sources (Last 1000)</h3>
+        <h3 className="mb-6 text-xl font-normal text-foreground">Top Sources (Last 1000)</h3>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.sources.slice(0, 15)} layout="vertical" margin={{ left: 40 }}>

@@ -83,8 +83,8 @@ function IconInfo() {
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 
 const VARIANT_STYLES: Record<ToastVariant, string> = {
-  success: "border-cyan-deep bg-cyan-muted/80 text-cyan-glow",
-  error: "border-error-surface bg-error-surface/60 text-error",
+  success: "border-success/40 bg-surface text-success",
+  error: "border-error/40 bg-error-surface text-error",
   info: "border-surface-raised bg-surface text-foreground",
 };
 

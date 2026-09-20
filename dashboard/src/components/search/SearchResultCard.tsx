@@ -26,34 +26,34 @@ export function SearchResultCard({ article, rank }: SearchResultCardProps) {
     article.similarity != null ? Math.round(article.similarity * 100) : null;
 
   return (
-    <article className={cn(ui.cardInteractive, "p-4 sm:p-5")}>
+    <article className={cn(ui.cardInteractive, "p-5 sm:p-6")}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] font-bold text-muted">#{rank}</span>
+        <span className="font-mono text-xs text-muted">#{rank < 10 ? `0${rank}` : rank}</span>
         <TopicBadge topic={article.topic} />
         <span className={ui.meta}>{formatSource(article.source)}</span>
         {article.retrieval_method ? (
-          <span className="rounded-full border border-surface-raised px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-glow">
+          <span className="rounded-full border border-border bg-surface-raised px-2.5 py-0.5 font-mono text-[11px] text-secondary">
             {article.retrieval_method}
           </span>
         ) : null}
         {pct != null ? (
-          <span className="text-[10px] text-muted">{pct}% match</span>
+          <span className="font-mono text-xs text-muted">{pct}% match</span>
         ) : null}
       </div>
 
-      <h2 className="mt-3 text-lg font-bold leading-snug text-foreground sm:text-xl">
+      <h2 className="mt-3 font-display font-bold tracking-tight text-lg leading-snug text-foreground sm:text-xl">
         <Link
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-cyan-glow hover:underline"
+          className="hover:underline"
         >
           {article.title}
         </Link>
       </h2>
 
       {article.key_takeaway ? (
-        <p className="mt-2 text-sm font-medium text-subtle">
+        <p className="mt-2 text-sm font-normal text-secondary">
           {article.key_takeaway}
         </p>
       ) : null}
@@ -64,7 +64,7 @@ export function SearchResultCard({ article, rank }: SearchResultCardProps) {
         <p className={cn(ui.body, "mt-2")}>{article.summary}</p>
       ) : null}
 
-      <div className="mt-4 flex items-center justify-between gap-4">
+      <div className="mt-5 flex items-center justify-between gap-4">
         <Link
           href={article.url}
           target="_blank"

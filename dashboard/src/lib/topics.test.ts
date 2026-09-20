@@ -16,8 +16,8 @@ describe("topics", () => {
   });
 
   it("uses per-topic badge classes", () => {
-    expect(topicClass("ai_ml")).toBe("bg-topic-ai text-topic-ai-text");
-    expect(topicClass("web_dev")).toBe("bg-topic-web text-topic-web-text");
-    expect(topicClass(null)).toBe("bg-surface-raised text-secondary");
+    expect(topicClass("ai_ml")).toBe("border border-border-on-dark/30 bg-surface text-on-canvas");
+    expect(topicClass("web_dev")).toBe("border border-border-on-dark/30 bg-surface text-on-canvas");
+    expect(topicClass(null)).toBe("border border-hairline-soft/40 bg-surface text-muted");
   });
 });

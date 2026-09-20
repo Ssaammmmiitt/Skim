@@ -12,14 +12,14 @@ function renderMarkdown(text: string) {
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={i} className="font-semibold text-subtle">
+        <strong key={i} className="font-semibold text-on-canvas">
           {part.slice(2, -2)}
         </strong>
       );
     }
     if (/^\[\d[\d,\s]*\]$/.test(part)) {
       return (
-        <span key={i} className="text-[10px] font-medium text-cyan-bright">
+        <span key={i} className="font-mono text-[11px] font-semibold text-wire">
           {part}
         </span>
       );
@@ -35,24 +35,24 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[85%] rounded-card px-4 py-3",
+          "max-w-[85%] rounded-2xl px-5 py-4",
           isUser
-            ? "bg-cyan-core text-black"
-            : cn(ui.card, "text-foreground")
+            ? "border border-border-on-dark bg-on-canvas-soft text-on-pill"
+            : "border border-border bg-surface text-foreground"
         )}
       >
         {!isUser ? (
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className={cn(ui.meta, "text-cyan-bright")}>Skim</p>
+            <p className="font-display font-bold text-xs text-foreground">Skim Wire</p>
             {message.provider ? (
-              <span className="rounded-pill border border-surface-raised bg-canvas px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
+              <span className="rounded-full border border-border bg-surface-raised px-2.5 py-0.5 font-mono text-xs text-secondary">
                 {message.provider}
                 {message.model ? ` · ${message.model}` : ""}
               </span>
             ) : null}
           </div>
         ) : null}
-        <div className="whitespace-pre-wrap text-sm leading-relaxed">
+        <div className="whitespace-pre-wrap text-sm font-normal leading-relaxed text-foreground">
           {isUser ? message.content : renderMarkdown(message.content)}
         </div>
         {!isUser && message.sources ? (

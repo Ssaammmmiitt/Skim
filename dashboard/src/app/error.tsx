@@ -48,11 +48,11 @@ export default function Error({ error, reset }: ErrorProps) {
         </div>
 
         {/* Heading */}
-        <p className={`${ui.eyebrow} text-error`}>Something went wrong</p>
-        <h1 className="mt-3 text-2xl font-bold text-foreground sm:text-3xl">
+        <p className={`${ui.eyebrow} text-secondary`}>Something went wrong</p>
+        <h1 className="mt-3 text-3xl font-normal text-foreground sm:text-4xl">
           We hit an unexpected error
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-secondary">
+        <p className="mt-3 text-sm font-normal leading-relaxed text-secondary">
           {error.message || "An unknown error occurred while loading this page."}
         </p>
 
@@ -60,7 +60,7 @@ export default function Error({ error, reset }: ErrorProps) {
         {error.digest ? (
           <p className="mt-3 font-mono text-xs text-muted">
             Error ID:{" "}
-            <code className="rounded bg-surface-raised px-1.5 py-0.5 text-[11px] text-secondary">
+            <code className="rounded-lg bg-surface-raised px-1.5 py-0.5 text-[11px] text-secondary">
               {error.digest}
             </code>
           </p>
@@ -77,13 +77,13 @@ export default function Error({ error, reset }: ErrorProps) {
         </div>
 
         {/* Report link */}
-        <p className="mt-6 text-xs text-muted">
+        <p className="mt-6 text-xs font-normal text-muted">
           If this keeps happening,{" "}
           <a
             href={`mailto:support@skim.example?subject=Error+Report&body=${encodeURIComponent(
               `Error: ${error.message}\nDigest: ${error.digest ?? "n/a"}`
             )}`}
-            className="text-cyan-bright hover:text-cyan-glow hover:underline"
+            className="text-foreground hover:underline"
           >
             report this issue
           </a>

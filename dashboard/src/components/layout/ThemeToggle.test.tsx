@@ -28,6 +28,7 @@ describe("ThemeToggle", () => {
   it("renders menu variant with labels", () => {
     render(<ThemeToggle variant="menu" />);
     expect(screen.getByText("Appearance")).toBeInTheDocument();
-    expect(screen.getByText("System")).toBeInTheDocument();
+    expect(screen.getByText("Dark")).toBeInTheDocument();
+    expect(screen.getByText("Light")).toBeInTheDocument();
   });
 });

@@ -82,3 +82,20 @@ export async function fetchDigest(
     story_count: digest.story_count,
   };
 }
+
+export async function fetchLatestDigest(
+  supabase: SupabaseClient
+): Promise<DigestResponse> {
+  const { data: latestDigest, error } = await supabase
+    .from("digests")
+    .select("digest_date")
+    .order("digest_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !latestDigest?.digest_date) {
+    return fetchDigest(supabase, todayUtc());
+  }
+
+  return fetchDigest(supabase, latestDigest.digest_date as string);
+}
