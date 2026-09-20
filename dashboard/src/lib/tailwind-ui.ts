@@ -36,16 +36,16 @@ export const textarea =
   "min-h-[48px] w-full resize-none rounded-lg border border-hairline-soft bg-transparent px-4 py-3 text-sm font-normal text-on-canvas outline-none placeholder:text-muted focus:border-hairline focus:ring-1 focus:ring-wire disabled:opacity-40";
 
 export const btnPrimary =
-  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-border-on-dark bg-on-canvas-soft px-5 py-2.5 text-sm font-medium text-on-pill transition-all duration-200 hover:bg-on-canvas hover:text-on-pill-inverted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-wire disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-foreground bg-foreground px-5 py-2.5 text-sm font-medium text-canvas transition-all duration-200 hover:bg-foreground/85 hover:border-foreground/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wire disabled:cursor-not-allowed disabled:opacity-40";
 
 export const btnSecondary =
-  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-border-on-dark bg-transparent px-5 py-2.5 text-sm font-medium text-on-canvas transition-all duration-200 hover:bg-on-canvas/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-wire disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-hairline bg-surface px-5 py-2.5 text-sm font-medium text-foreground transition-all duration-200 hover:border-foreground/40 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wire disabled:cursor-not-allowed disabled:opacity-40";
 
 export const btnGhost =
-  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-hairline-soft bg-transparent px-5 py-2.5 text-sm font-normal text-on-canvas transition-all duration-200 hover:border-hairline hover:bg-on-canvas/10 focus-visible:outline-none";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-transparent bg-transparent px-5 py-2.5 text-sm font-normal text-foreground transition-all duration-200 hover:border-hairline hover:bg-surface-raised/70 focus-visible:outline-none";
 
 export const btnDanger =
-  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-error px-5 py-2.5 text-sm font-medium text-error transition hover:bg-error-surface";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-error/40 bg-error-surface px-5 py-2.5 text-sm font-medium text-error transition-all duration-200 hover:border-error hover:bg-error/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error";
 
 export const pill =
   "inline-block rounded-full border border-hairline-soft/60 px-3 py-1 text-xs font-normal text-on-canvas";
@@ -96,7 +96,7 @@ export const badgeWire =
   "inline-flex items-center gap-1.5 rounded-full border border-wire/30 bg-wire/10 px-3 py-1 text-xs font-mono font-medium text-wire";
 
 export const badgeCount =
-  "ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-on-canvas-soft px-1 text-[10px] font-mono font-medium text-on-pill";
+  "ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-mono font-medium text-canvas";
 
 /* ─── Section divider ────────────────────────────────────────────────────── */
 export const sectionDivider =

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { shouldShowNav } from "@/lib/nav";
+import { cn } from "@/lib/cn";
 import { AdminPendingBanner } from "@/components/layout/AdminPendingBanner";
 import { ScrollProgress } from "@/components/layout/ScrollProgress";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -59,7 +60,7 @@ export function AppShellClient({
          *   Tablet (md–lg): TopBar only (AppNav tablet strip removed)
          *   Mobile (<md):  TopBar + BottomTabBar pinned bottom
          */
-        <div className="flex min-h-dvh">
+        <div className={cn("flex min-h-dvh", isChat && "h-dvh max-h-dvh overflow-hidden")}>
           {/* ── Left rail ── */}
           <SideRail
             profile={profile}
@@ -67,7 +68,7 @@ export function AppShellClient({
           />
 
           {/* ── Right content column ── */}
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className={cn("flex min-w-0 flex-1 flex-col", isChat && "h-dvh max-h-dvh overflow-hidden")}>
             <TopBar
               profile={profile}
               pendingApprovalCount={pendingApprovalCount}
@@ -77,11 +78,12 @@ export function AppShellClient({
             <AdminPendingBanner count={pendingApprovalCount} />
 
             <main
-              className={[
+              className={cn(
                 "flex min-h-0 flex-1 flex-col bg-canvas",
-                /* Bottom padding so content isn't hidden behind the mobile tab bar */
-                "pb-[calc(env(safe-area-inset-bottom,0px)+4rem)] lg:pb-0",
-              ].join(" ")}
+                isChat
+                  ? "overflow-hidden pb-[calc(env(safe-area-inset-bottom,0px)+4.25rem)] lg:pb-0"
+                  : "pb-[calc(env(safe-area-inset-bottom,0px)+4rem)] lg:pb-0"
+              )}
             >
               {children}
             </main>

@@ -92,8 +92,8 @@ export function DatePicker({
               onClick={() => onChange(date)}
               className={
                 date === value
-                  ? "rounded-full border border-border-on-dark bg-on-canvas-soft px-3.5 py-1 font-mono text-xs font-medium text-on-pill"
-                  : "rounded-full border border-border bg-surface-raised px-3.5 py-1 font-mono text-xs font-normal text-secondary hover:border-border-on-dark hover:text-foreground"
+                  ? "rounded-full border border-foreground bg-foreground px-3.5 py-1 font-mono text-xs font-medium text-canvas shadow-sm"
+                  : "rounded-full border border-hairline bg-surface px-3.5 py-1 font-mono text-xs font-normal text-secondary hover:border-foreground/40 hover:bg-surface-raised hover:text-foreground"
               }
             >
               {date}

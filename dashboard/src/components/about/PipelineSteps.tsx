@@ -39,7 +39,7 @@ export function PipelineSteps() {
             <div className="relative mb-5 flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-border bg-surface shadow-sm">
               <Icon size={28} className="text-foreground" />
               {/* Step number badge */}
-              <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-foreground bg-slate-rest text-xs font-normal text-foreground shadow-sm">
+              <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-hairline bg-foreground text-xs font-mono font-medium text-canvas shadow-sm">
                 {i + 1}
               </div>
             </div>

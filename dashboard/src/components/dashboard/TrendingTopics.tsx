@@ -34,10 +34,10 @@ export function TrendingTopics({ topics }: TrendingTopicsProps) {
             <Link
               key={t.id}
               href={`/topics/${TOPIC_SLUGS[t.id]}`}
-              className="group flex items-center gap-2 rounded-full border border-border-on-dark/30 bg-surface/80 px-3.5 py-1.5 text-xs font-normal text-on-canvas transition-all duration-200 hover:border-hairline hover:bg-surface"
+              className="group flex items-center gap-2 rounded-full border border-hairline bg-surface px-3.5 py-1.5 text-xs font-normal text-foreground transition-all duration-200 hover:border-foreground/40 hover:bg-surface-raised"
             >
               <span>{t.label}</span>
-              <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full border border-border-on-dark/20 bg-on-canvas-soft px-1 text-[10px] font-normal text-on-pill">
+              <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full border border-hairline bg-surface-raised px-1 text-[10px] font-mono font-medium text-foreground">
                 {count}
               </span>
             </Link>

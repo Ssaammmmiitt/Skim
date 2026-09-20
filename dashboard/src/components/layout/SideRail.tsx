@@ -97,7 +97,7 @@ export function SideRail({ profile, pendingApprovalCount = 0 }: SideRailProps) {
                 )}
               >
                 <span>Admin</span>
-                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-on-canvas-soft px-1 text-[10px] font-normal text-on-pill">
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-mono font-medium text-canvas">
                   {pendingApprovalCount > 9 ? "9+" : pendingApprovalCount}
                 </span>
               </Link>
@@ -121,8 +121,8 @@ export function SideRail({ profile, pendingApprovalCount = 0 }: SideRailProps) {
       {/* User info at bottom */}
       {profile ? (
         <div className="shrink-0 border-t border-surface-raised p-4">
-          <div className="flex items-center gap-3 rounded-full border border-surface-raised bg-surface/50 px-3 py-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border-on-dark/40 bg-surface text-xs font-normal text-on-canvas">
+          <div className="flex items-center gap-3 rounded-full border border-hairline bg-surface/50 px-3 py-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-raised text-xs font-mono font-medium text-foreground">
               {(profile.display_name ?? profile.email ?? "?")[0].toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">

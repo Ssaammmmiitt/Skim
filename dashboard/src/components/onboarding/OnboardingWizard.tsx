@@ -7,6 +7,7 @@ import { Step2Format } from "./Step2Format";
 import { Step3Theme } from "./Step3Theme";
 import type { DashboardTheme, DigestFormat } from "@/lib/auth/types";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 import { ArrowRight, Loader2 } from "lucide-react";
 
 export function OnboardingWizard() {
@@ -83,7 +84,7 @@ export function OnboardingWizard() {
           type="button"
           onClick={() => (step === 3 ? handleFinish() : setStep(step + 1))}
           disabled={!canProceed || saving}
-          className="inline-flex items-center gap-2 rounded-full border border-foreground bg-slate-rest px-6 py-2.5 text-sm font-normal text-foreground transition hover:bg-foreground hover:text-canvas disabled:opacity-50"
+          className={cn(ui.btnPrimary, "gap-2 px-6")}
         >
           {saving ? (
             <Loader2 size={18} className="animate-spin" />

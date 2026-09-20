@@ -2,6 +2,8 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PipelineSteps } from "@/components/about/PipelineSteps";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 export const metadata = { title: "How it Works | Skim" };
 
@@ -12,10 +14,10 @@ export default function AboutPage() {
         {/* Subtle grid background */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-40"
+          className="pointer-events-none absolute inset-0 opacity-20"
           style={{
             backgroundImage:
-              "radial-gradient(circle, rgba(6,182,212,0.2) 1px, transparent 1px)",
+              "radial-gradient(circle, var(--skim-hairline) 1px, transparent 1px)",
             backgroundSize: "24px 24px",
           }}
         />
@@ -65,7 +67,7 @@ export default function AboutPage() {
           <div className="mt-16 flex justify-center">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-full border border-foreground bg-slate-rest px-6 py-3 text-sm font-normal text-foreground transition hover:bg-foreground hover:text-canvas"
+              className={cn(ui.btnPrimary, "gap-2 px-6 py-3")}
             >
               Go to Dashboard
               <ArrowRight size={16} />

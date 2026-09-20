@@ -49,7 +49,7 @@ export function DashboardThemeSelector({
             <div
               className={cn(
                 "mb-4 h-16 rounded-xl border border-border",
-                key === "light" && "bg-[#f7f4ee]",
+                key === "light" && "bg-[#f4f1ea]",
                 key === "dark" && "bg-[#141210]"
               )}
             />

@@ -8,11 +8,11 @@ export const DASHBOARD_THEMES: Record<
 > = {
   dark: {
     label: "Dark",
-    description: "Deep dark canvas — default",
+    description: "Deep warm charcoal wire canvas — default",
   },
   light: {
     label: "Light",
-    description: "Clean light canvas",
+    description: "Warm off-white architectural canvas",
   },
 };
 

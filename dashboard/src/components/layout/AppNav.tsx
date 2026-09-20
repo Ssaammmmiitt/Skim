@@ -211,8 +211,8 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                   className={cn(
                     "hidden rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wide sm:inline-flex sm:items-center transition",
                     pathname.startsWith("/admin/stats")
-                      ? "border-border-on-dark bg-surface-raised text-foreground"
-                      : "border-surface-raised text-secondary hover:border-border-on-dark hover:text-foreground"
+                      ? "border-hairline bg-surface-raised text-foreground font-medium"
+                      : "border-surface-raised text-secondary hover:border-hairline hover:text-foreground"
                   )}
                 >
                   Analytics
@@ -222,8 +222,8 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                   className={cn(
                     "hidden rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wide sm:inline-flex sm:items-center transition",
                     pathname === "/admin"
-                      ? "border-border-on-dark bg-surface-raised text-foreground"
-                      : "border-surface-raised text-secondary hover:border-border-on-dark hover:text-foreground"
+                      ? "border-hairline bg-surface-raised text-foreground font-medium"
+                      : "border-surface-raised text-secondary hover:border-hairline hover:text-foreground"
                   )}
                 >
                   Admin

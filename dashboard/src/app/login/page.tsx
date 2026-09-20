@@ -33,77 +33,77 @@ function readUrlErrorMessage(): string {
 const PREVIEW_STORIES = [
   {
     rank: 1,
-    topic: "AI / ML",
-    topicClass: "bg-topic-ai text-topic-ai-text",
-    source: "TechCrunch",
+    topic: "Systems",
+    topicClass: "bg-topic-code text-topic-code-text",
+    source: "LWN.net",
     time: "2h ago",
-    title: "OpenAI ships a new o3-mini reasoning model with 40% cost reduction",
-    takeaway: "Cheaper agent workflows unlock a new tier of production viability.",
-    score: 9.4,
+    title: "Linux 6.14 merges memory tiering improvements for pooled CXL devices",
+    takeaway: "Kernel page migration between local DRAM and pooled CXL memory now executes without thread lock contention.",
+    score: 9.6,
   },
   {
     rank: 2,
-    topic: "Cloud",
+    topic: "Databases",
     topicClass: "bg-topic-cloud text-topic-cloud-text",
-    source: "Ars Technica",
+    source: "Hacker News",
     time: "4h ago",
-    title: "AWS announces per-second billing for all Lambda invocations",
-    takeaway: "Significant savings for burst workloads with sub-100ms functions.",
-    score: 8.1,
+    title: "PostgreSQL 17 query optimizer gains adaptive join execution",
+    takeaway: "Query plans dynamically pivot between hash and merge joins when cardinality estimates deviate at runtime.",
+    score: 9.3,
   },
   {
     rank: 3,
     topic: "Security",
     topicClass: "bg-topic-security text-topic-security-text",
-    source: "The Verge",
+    source: "Ars Technica",
     time: "6h ago",
-    title: "Critical zero-day found in widely used open-source SSH library",
-    takeaway: "Patch immediately — affects any embedded system running libssh2.",
-    score: 9.7,
+    title: "Critical memory corruption vulnerability identified in libssh2 handshake",
+    takeaway: "Remote code execution vector mitigated in v1.11.1; audit all embedded telemetry and gateway instances.",
+    score: 9.8,
   },
   {
     rank: 4,
-    topic: "Startups",
-    topicClass: "bg-topic-startups text-topic-startups-text",
-    source: "MIT Tech Review",
+    topic: "Infra",
+    topicClass: "bg-topic-web text-topic-web-text",
+    source: "AWS Architecture",
     time: "8h ago",
-    title: "Andreessen Horowitz leads $120M Series B in AI infra startup",
-    takeaway: "Infrastructure bets are back — this round signals a pivot from apps.",
-    score: 7.6,
+    title: "AWS transitions Lambda cold-start mitigation to lightweight Firecracker snapshots",
+    takeaway: "MicroVM resume latency drops below 15ms across high-concurrency serverless orchestrations.",
+    score: 8.9,
   },
 ];
 
 const FEATURES = [
   {
     icon: "⚡",
-    label: "Daily at 00:15 UTC",
-    desc: "Agentic pipeline runs every night",
+    label: "00:15 UTC Dispatch",
+    desc: "Nightly automated indexing across primary engineering sources",
   },
   {
     icon: "🔍",
-    label: "Hybrid RAG search",
-    desc: "Vector + full-text across the entire corpus",
+    label: "Hybrid Retrieval",
+    desc: "Dense vector embeddings + Reciprocal Rank Fusion search",
   },
   {
     icon: "💬",
-    label: "Ask your feed",
-    desc: "Chat with your digest using Gemini + Groq",
+    label: "Corpus Query",
+    desc: "Grounded Q&A with direct source citation provenance",
   },
   {
     icon: "📧",
-    label: "Email digest",
-    desc: "Curated briefing delivered to your inbox",
+    label: "Direct Delivery",
+    desc: "Structured technical briefings delivered to your inbox",
   },
 ];
 
 const TOPIC_PILLS = [
+  { label: "Systems", cls: "bg-topic-code text-topic-code-text" },
+  { label: "Databases", cls: "bg-topic-cloud text-topic-cloud-text" },
   { label: "AI / ML", cls: "bg-topic-ai text-topic-ai-text" },
-  { label: "Web Dev", cls: "bg-topic-web text-topic-web-text" },
-  { label: "Cloud", cls: "bg-topic-cloud text-topic-cloud-text" },
   { label: "Security", cls: "bg-topic-security text-topic-security-text" },
-  { label: "Startups", cls: "bg-topic-startups text-topic-startups-text" },
-  { label: "Programming", cls: "bg-topic-code text-topic-code-text" },
-  { label: "Science", cls: "bg-topic-science text-topic-science-text" },
+  { label: "Infra", cls: "bg-topic-web text-topic-web-text" },
+  { label: "Compilers", cls: "bg-topic-code text-topic-code-text" },
+  { label: "Networking", cls: "bg-topic-science text-topic-science-text" },
 ];
 
 /* ─── Sub-components ─────────────────────────────────────────────────────── */
@@ -386,15 +386,15 @@ export default function LoginPage() {
 
           {/* Hero headline */}
           <h1 className="mt-6 font-display font-bold tracking-tight text-3xl leading-[1.15] text-foreground sm:text-4xl lg:text-[2.75rem]">
-            Your daily tech briefing,
+            Signal over noise.
             <br />
-            curated by AI.
+            The daily wire for software engineers.
           </h1>
 
           <p className="mt-4 max-w-md font-sans text-sm leading-relaxed text-secondary sm:text-base">
-            Skim ingests stories from HN, TechCrunch, Ars, The Verge and MIT
-            Tech Review every night, ranks them by importance, and delivers a
-            clean digest to your inbox — with a RAG chat assistant built in.
+            Skim tracks raw dispatches across Hacker News, RFC drafts, systems papers,
+            and engineering blogs every night. Stories are evaluated on technical depth,
+            distilled into actionable takeaways, and delivered straight to your dashboard.
           </p>
 
           {/* Topic pills */}
@@ -452,14 +452,14 @@ export default function LoginPage() {
 
           {/* Panel header */}
           <div className="mb-8">
-            <p className={ui.eyebrow}>Get started</p>
+            <p className={ui.eyebrow}>Terminal Access</p>
             <h2 className="mt-2 font-display font-bold tracking-tight text-2xl text-foreground">
-              {mode === "signup" ? "Create your account" : "Welcome back"}
+              {mode === "signup" ? "Request subscriber access" : "Sign in to Skim"}
             </h2>
             <p className="mt-2 font-sans text-sm leading-relaxed text-secondary">
               {mode === "signup"
-                ? "Register with email or Google. New accounts require admin approval."
-                : "Sign in with Google, password, or a login code."}
+                ? "Register with email or Google. New accounts undergo editorial review."
+                : "Authenticate with your Google credentials, password, or direct code."}
             </p>
           </div>
 
@@ -558,7 +558,7 @@ export default function LoginPage() {
                 📬
               </div>
               <p className="mt-4 text-sm font-normal italic leading-relaxed text-secondary">
-                &quot;The quality of curation is completely unmatched. I don&apos;t know how I stayed informed before Skim. It&apos;s the first thing I read every morning.&quot;
+                &quot;Skim cuts through promotional churn to give our systems team the exact architectural updates and vulnerability disclosures we need before standup.&quot;
               </p>
               <button
                 type="button"
@@ -632,10 +632,10 @@ export default function LoginPage() {
                   ? "Please wait…"
                   : method === "password"
                   ? mode === "signup"
-                    ? "Create account"
+                    ? "Request access"
                     : "Sign in"
                   : mode === "signup"
-                  ? "Send registration code"
+                  ? "Send access code"
                   : "Send login code"}
               </button>
 
@@ -671,9 +671,9 @@ export default function LoginPage() {
 
           {/* Footer note */}
           <p className="mt-8 text-center text-xs font-normal leading-relaxed text-muted">
-            Skim is a curated, invite-approved digest platform.
+            Skim is a curated engineering intelligence wire.
             <br />
-            New accounts await admin review before access is granted.
+            Subscriber accounts undergo editorial verification.
           </p>
         </div>
       </div>

@@ -58,7 +58,7 @@ export function UserMenu({ profile }: UserMenuProps) {
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border-on-dark/30 bg-on-canvas-soft text-xs font-normal text-on-pill">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-surface-raised text-xs font-mono font-medium text-foreground">
             {initials(profile)}
           </span>
         )}
@@ -69,7 +69,7 @@ export function UserMenu({ profile }: UserMenuProps) {
 
       {open ? (
         <div
-          className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-surface-raised bg-surface py-2 shadow-xl shadow-black/40"
+          className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-hairline bg-surface py-2 shadow-xl shadow-black/20"
           role="menu"
         >
           <div className="border-b border-surface-raised px-4 py-2">

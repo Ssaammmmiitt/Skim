@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import type { DigestArticle } from "@/lib/types";
 import { TOPIC_OPTIONS } from "@/lib/digest-preferences";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 type FeaturedStoryProps = {
   article: DigestArticle | null;
@@ -32,7 +33,7 @@ export function FeaturedStory({ article }: FeaturedStoryProps) {
             <span className="h-1.5 w-1.5 rounded-full bg-wire animate-pulse" aria-hidden />
             FEATURED WIRE
           </span>
-          <span className="rounded-full border border-border-on-dark bg-surface-raised px-3 py-0.5 text-xs font-mono text-on-canvas">
+          <span className="rounded-full border border-hairline bg-surface-raised px-3 py-0.5 text-xs font-mono text-foreground">
             {topicLabel}
           </span>
           <span className="font-mono text-xs text-muted">
@@ -40,7 +41,7 @@ export function FeaturedStory({ article }: FeaturedStoryProps) {
           </span>
         </div>
 
-        <h2 className="mt-5 font-display font-bold tracking-tight text-2xl leading-tight text-on-canvas sm:text-3xl lg:text-[32px]">
+        <h2 className="mt-5 font-display font-bold tracking-tight text-2xl leading-tight text-foreground sm:text-3xl lg:text-[32px]">
           {article.title}
         </h2>
 
@@ -55,7 +56,7 @@ export function FeaturedStory({ article }: FeaturedStoryProps) {
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border-on-dark bg-on-canvas-soft px-5 py-2.5 text-sm font-medium text-on-pill transition-all duration-200 hover:bg-on-canvas hover:text-on-pill-inverted"
+            className={cn(ui.btnPrimary, "gap-2")}
           >
             Read story on {article.source}
             <ArrowRight size={15} />

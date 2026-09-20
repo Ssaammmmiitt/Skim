@@ -36,8 +36,8 @@ export function BookmarkButton({ articleId }: BookmarkButtonProps) {
       className={cn(
         "group flex h-8 w-8 items-center justify-center rounded-full border transition-all duration-200 active:scale-95",
         isBookmarked
-          ? "border-border-on-dark bg-on-canvas-soft text-on-pill"
-          : "border-surface-raised bg-surface text-secondary hover:border-hairline hover:text-on-canvas"
+          ? "border-foreground bg-foreground text-canvas"
+          : "border-hairline bg-surface text-secondary hover:border-foreground/40 hover:bg-surface-raised hover:text-foreground"
       )}
       aria-label={isBookmarked ? "Remove bookmark" : "Save bookmark"}
     >

@@ -50,9 +50,9 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
-        className="mb-4 shrink-0 sm:mb-6"
+        className="mb-3 shrink-0 sm:mb-6"
         eyebrow="RAG Chat"
         title="Ask Skim"
         description="Hybrid search over the article corpus, then multi-provider AI."
@@ -74,7 +74,10 @@ export function ChatInterface() {
           "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl"
         )}
       >
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
+        <div
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3.5 sm:p-6 touch-pan-y"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {messages.length === 0 ? (
             <div className="py-8 text-center sm:py-12">
               <p className={ui.body}>

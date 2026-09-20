@@ -12,7 +12,7 @@ describe("Button", () => {
     );
 
     expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(
-      "bg-on-canvas-soft"
+      "bg-foreground"
     );
     expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(
       "rounded-full"

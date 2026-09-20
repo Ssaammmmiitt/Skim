@@ -2,6 +2,7 @@
 
 import type { ChatApiError } from "@/lib/types";
 import { cn } from "@/lib/cn";
+import * as ui from "@/lib/tailwind-ui";
 
 type ChatErrorPanelProps = {
   error: ChatApiError;
@@ -78,7 +79,7 @@ export function ChatErrorPanel({ error, onRetry, className }: ChatErrorPanelProp
           <button
             type="button"
             onClick={onRetry}
-            className="shrink-0 rounded-full border border-foreground bg-slate-rest px-4 py-1.5 text-xs font-normal text-foreground hover:bg-foreground hover:text-canvas"
+            className={cn(ui.btnPrimary, "min-h-0 px-4 py-1.5 text-xs")}
           >
             Retry
           </button>

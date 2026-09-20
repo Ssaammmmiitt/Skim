@@ -66,7 +66,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
             <button
               type="submit"
               disabled={saving}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-foreground bg-slate-rest text-foreground transition hover:bg-foreground hover:text-canvas disabled:opacity-50"
+              className={cn(ui.btnPrimary, "h-10 w-10 min-h-0 p-0")}
             >
               <Check size={18} />
             </button>

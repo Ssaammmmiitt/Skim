@@ -37,9 +37,9 @@ export function QuickJumpGrid() {
           <Link
             key={j.href}
             href={j.href}
-            className="group flex flex-col items-start gap-3 rounded-2xl border border-surface-raised bg-surface p-5 transition-all duration-200 hover:border-hairline/60 hover:shadow-[0_0_12px_rgba(44,52,63,0.5)]"
+            className="group flex flex-col items-start gap-3 rounded-2xl border border-surface-raised bg-surface p-5 transition-all duration-200 hover:border-hairline hover:shadow-md"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border-on-dark/20 bg-surface/80 text-on-canvas">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline/60 bg-surface-raised/60 text-foreground">
               <Icon size={18} strokeWidth={1.5} className="transition-transform group-hover:scale-105" aria-hidden />
             </div>
             <div>

@@ -29,7 +29,7 @@ export function PageContainer({
       className={cn(
         "mx-auto w-full",
         fill
-          ? "flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-6 md:px-12 lg:px-20 xl:px-24"
+          ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden px-3.5 py-3 sm:px-6 sm:py-4 md:px-12 md:py-6 lg:px-20 lg:py-8 xl:px-24"
           : "px-4 py-8 sm:px-6 sm:py-10 md:px-12 md:py-12 lg:px-20 lg:py-14 xl:px-24",
         SIZE_CLASS[size],
         className
