@@ -28,7 +28,7 @@ describe("AppNav", () => {
 
     const archiveLinks = screen.getAllByRole("link", { name: "Archive" });
     expect(
-      screen.getByRole("link", { name: "Archive" }).classList.contains("bg-surface")
+      archiveLinks[0].classList.contains("bg-surface")
     ).toBe(true);
     expect(screen.getAllByRole("link", { name: /Admin/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("2 pending approvals")[0]).toHaveTextContent("2");
