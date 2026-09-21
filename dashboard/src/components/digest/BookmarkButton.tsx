@@ -11,6 +11,7 @@ type BookmarkButtonProps = {
 
 export function BookmarkButton({ articleId }: BookmarkButtonProps) {
   const bookmarkedIds = useBookmarkStore((state) => state.bookmarkedIds);
+  const initialized = useBookmarkStore((state) => state.initialized);
   const toggle = useBookmarkStore((state) => state.toggle);
 
   const isBookmarked = bookmarkedIds.has(articleId);
@@ -27,6 +28,19 @@ export function BookmarkButton({ articleId }: BookmarkButtonProps) {
     } else if (!activeNow && isBookmarked) {
        toast.info("Removed from bookmarks");
     }
+  }
+
+  // Show a neutral loading state before bookmarks are hydrated for this user
+  // to prevent incorrect filled/empty bookmark icon on first render
+  if (!initialized) {
+    return (
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-surface opacity-40"
+        aria-label="Loading bookmark state"
+      >
+        <Bookmark size={14} className="text-secondary" />
+      </div>
+    );
   }
 
   return (

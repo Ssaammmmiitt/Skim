@@ -547,7 +547,9 @@ def get_digest_subscribers() -> list[dict[str, Any]]:
                        COALESCE(p.theme, 'cyan') AS theme,
                        COALESCE(p.format, 'full') AS format,
                        COALESCE(p.max_stories, 8) AS max_stories,
-                       p.topic_filters
+                       p.topic_filters,
+                       COALESCE(p.font_style, 'sans') AS font_style,
+                       COALESCE(p.summary_style, 'prose') AS summary_style
                 FROM digest_subscribers ds
                 JOIN profiles pr ON pr.id = ds.user_id
                 LEFT JOIN user_digest_preferences p ON p.user_id = ds.user_id
@@ -582,6 +584,9 @@ def get_digest_subscribers() -> list[dict[str, Any]]:
                 "format": row[2],
                 "max_stories": row[3],
                 "topic_filters": list(row[4]) if row[4] else None,
+                "font_style": row[5],
+                "summary_style": row[6],
             }
         )
     return subscribers
+

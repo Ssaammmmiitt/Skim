@@ -43,3 +43,4 @@ htmlcov/
 # Local development plan (not for GitHub)
 docs/DEVELOPMENT_PLAN.md
 docs/report.md
+docs/database_and_security.md

@@ -180,6 +180,24 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                   {item.label}
                 </Link>
               ))}
+              {showAdmin ? (
+                <>
+                  <Link
+                    href="/admin"
+                    className={linkClass("/admin")}
+                    aria-current={isNavActive(pathname, "/admin") ? "page" : undefined}
+                  >
+                    Admin {pendingBadge}
+                  </Link>
+                  <Link
+                    href="/admin/stats"
+                    className={linkClass("/admin/stats")}
+                    aria-current={isNavActive(pathname, "/admin/stats") ? "page" : undefined}
+                  >
+                    Analytics
+                  </Link>
+                </>
+              ) : null}
             </div>
           </nav>
 
@@ -203,34 +221,6 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
             <div className="hidden sm:block">
               <ThemeToggle />
             </div>
-
-            {showAdmin ? (
-              <>
-                <Link
-                  href="/admin/stats"
-                  className={cn(
-                    "hidden rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wide sm:inline-flex sm:items-center transition",
-                    pathname.startsWith("/admin/stats")
-                      ? "border-hairline bg-surface-raised text-foreground font-medium"
-                      : "border-surface-raised text-secondary hover:border-hairline hover:text-foreground"
-                  )}
-                >
-                  Analytics
-                </Link>
-                <Link
-                  href="/admin"
-                  className={cn(
-                    "hidden rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wide sm:inline-flex sm:items-center transition",
-                    pathname === "/admin"
-                      ? "border-hairline bg-surface-raised text-foreground font-medium"
-                      : "border-surface-raised text-secondary hover:border-hairline hover:text-foreground"
-                  )}
-                >
-                  Admin
-                  {pendingBadge}
-                </Link>
-              </>
-            ) : null}
 
             {profile ? <UserMenu profile={profile} /> : null}
 
@@ -268,6 +258,24 @@ export function AppNav({ profile, pendingApprovalCount = 0 }: AppNavProps) {
                 {item.label}
               </Link>
             ))}
+            {showAdmin ? (
+              <>
+                <Link
+                  href="/admin"
+                  className={linkClass("/admin")}
+                  aria-current={isNavActive(pathname, "/admin") ? "page" : undefined}
+                >
+                  Admin {pendingBadge}
+                </Link>
+                <Link
+                  href="/admin/stats"
+                  className={linkClass("/admin/stats")}
+                  aria-current={isNavActive(pathname, "/admin/stats") ? "page" : undefined}
+                >
+                  Analytics
+                </Link>
+              </>
+            ) : null}
           </div>
         </nav>
       </div>

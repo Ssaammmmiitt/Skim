@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type {
   DashboardTheme,
   DigestFormat,
+  DigestFontStyle,
+  DigestSummaryStyle,
   DigestTheme,
 } from "@/lib/auth/types";
 import { useThemeStore } from "@/store/theme-store";
@@ -13,6 +15,8 @@ export type PreferencesDraft = {
   topic_filters: string[];
   email_enabled: boolean;
   dashboard_theme: DashboardTheme;
+  font_style: DigestFontStyle;
+  summary_style: DigestSummaryStyle;
 };
 
 type PreferencesState = {
@@ -35,6 +39,8 @@ const emptyDraft: PreferencesDraft = {
   topic_filters: [],
   email_enabled: true,
   dashboard_theme: "dark",
+  font_style: "sans",
+  summary_style: "prose",
 };
 
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
@@ -98,6 +104,8 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
           topic_filters: draft.topic_filters.length ? draft.topic_filters : null,
           email_enabled: draft.email_enabled,
           dashboard_theme: draft.dashboard_theme,
+          font_style: draft.font_style,
+          summary_style: draft.summary_style,
         }),
       });
 

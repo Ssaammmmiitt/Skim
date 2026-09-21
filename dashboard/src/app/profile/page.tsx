@@ -4,7 +4,7 @@ import { ProfileCard } from "@/components/profile/ProfileCard";
 import { ReadingStats } from "@/components/profile/ReadingStats";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/auth/types";
-import { getDashboardStats } from "@/lib/topics-stats";
+import { getDashboardStats, getUserStreak } from "@/lib/topics-stats";
 
 export const metadata = { title: "Profile | Skim" };
 
@@ -29,24 +29,36 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  // Fetch some aggregate stats. For bookmarks we query directly, 
-  // chat queries from sum, streak from getDashboardStats.
-  const [bookmarksRes, chatRes, dashboardStats] = await Promise.all([
+  // Fetch aggregate stats in parallel.
+  // streak: use per-user activity log (Option A — personal login streak)
+  const [bookmarksRes, chatRes, dashboardStats, userStreak] = await Promise.all([
     supabase.from("bookmarks").select("id", { count: "exact", head: true }).eq("user_id", user.id),
     supabase.from("chat_usage").select("query_count").eq("user_id", user.id),
     getDashboardStats(supabase),
+    getUserStreak(supabase, user.id),
   ]);
 
   const bookmarksCount = bookmarksRes.count ?? 0;
   const chatQueries = (chatRes.data ?? []).reduce((sum, row) => sum + row.query_count, 0);
 
-  // We could query distinct topics from bookmarks or chat, but for now we'll 
-  // just show a static or placeholder metric for "topics read". Let's assume 7 for the demo.
+  // topicsRead: count distinct topics across the user's bookmarked articles
+  const { data: bookmarkedTopics } = await supabase
+    .from("bookmarks")
+    .select("articles(topic)")
+    .eq("user_id", user.id);
+
+  const uniqueTopics = new Set(
+    (bookmarkedTopics ?? [])
+      .map((row: any) => row.articles?.topic)
+      .filter(Boolean)
+  );
+  const topicsRead = uniqueTopics.size;
+
   const stats = {
     bookmarks: bookmarksCount,
-    streak: dashboardStats.streak,
+    streak: userStreak,
     chatQueries,
-    topicsRead: 7, 
+    topicsRead,
   };
 
   return (

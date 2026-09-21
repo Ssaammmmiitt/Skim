@@ -14,6 +14,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.display_name ?? "");
   const [saving, setSaving] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const joinDate = new Date(profile.created_at).toLocaleDateString(undefined, {
     year: "numeric",
@@ -39,12 +40,14 @@ export function ProfileCard({ profile }: ProfileCardProps) {
     <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-6 sm:flex-row sm:items-start sm:p-8">
       {/* Avatar */}
       <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-border bg-surface-raised text-2xl font-normal text-foreground sm:h-24 sm:w-24 sm:text-3xl">
-        {profile.avatar_url ? (
+        {profile.avatar_url && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={profile.avatar_url}
             alt="Avatar"
             className="h-full w-full rounded-full object-cover"
+            referrerPolicy="no-referrer"
+            onError={() => setImgError(true)}
           />
         ) : (
           (profile.display_name ?? profile.email)[0].toUpperCase()

@@ -93,6 +93,14 @@ def run_pipeline(personal_mode: bool = False, personal_email: str | None = None)
         if not subscribers:
             raise ValueError("No digest subscribers configured")
 
+        # Initialize the unified LLM client (handles Gemini/Groq balancing)
+        try:
+            from pipeline.agent.llm_client import LLMClient
+            llm_client = LLMClient()
+        except Exception as exc:
+            logger.warning("Failed to initialize LLMClient for summary styles: %s", exc)
+            llm_client = None
+
         sent_count = 0
         for subscriber in subscribers:
             html = compose_digest(
@@ -104,6 +112,9 @@ def run_pipeline(personal_mode: bool = False, personal_email: str | None = None)
                 format_name=subscriber.get("format"),
                 topic_filters=subscriber.get("topic_filters"),
                 max_stories=subscriber.get("max_stories"),
+                font_style=subscriber.get("font_style"),
+                summary_style=subscriber.get("summary_style"),
+                llm_client=llm_client,
             )
             if send_email(
                 subject=subject,

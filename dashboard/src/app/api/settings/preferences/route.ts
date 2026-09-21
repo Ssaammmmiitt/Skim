@@ -50,6 +50,8 @@ export async function PUT(request: Request) {
         : existing?.topic_filters,
     email_enabled: body.email_enabled ?? existing?.email_enabled,
     dashboard_theme: body.dashboard_theme ?? existing?.dashboard_theme,
+    font_style: body.font_style ?? existing?.font_style,
+    summary_style: body.summary_style ?? existing?.summary_style,
   });
 
   const payload = {
@@ -74,6 +76,31 @@ export async function PUT(request: Request) {
   if (write.error) {
     console.error("preferences PUT:", write.error.message);
     return NextResponse.json({ error: write.error.message }, { status: 400 });
+  }
+
+  // If the user is disabling email, also deactivate their digest_subscribers row
+  if (validated.email_enabled === false) {
+    const { error: subErr } = await auth.ctx.supabase
+      .from("digest_subscribers")
+      .update({ active: false })
+      .eq("user_id", auth.ctx.user.id);
+
+    if (subErr) {
+      // Non-fatal — preferences already saved; log and continue
+      console.warn("Could not deactivate digest_subscribers row:", subErr.message);
+    }
+  }
+
+  // If re-enabling email, reactivate their digest_subscribers row
+  if (validated.email_enabled === true) {
+    const { error: subErr } = await auth.ctx.supabase
+      .from("digest_subscribers")
+      .update({ active: true })
+      .eq("user_id", auth.ctx.user.id);
+
+    if (subErr) {
+      console.warn("Could not reactivate digest_subscribers row:", subErr.message);
+    }
   }
 
   return NextResponse.json({ preferences: write.data });

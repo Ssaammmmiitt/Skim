@@ -26,13 +26,32 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient();
   const status = new URL(request.url).searchParams.get("status") ?? "pending";
-  const { data: users } = await admin
-    .from("profiles")
-    .select("*")
-    .eq("status", status)
-    .order("created_at", { ascending: true });
+  
+  let query = admin.from("profiles").select("*").order("created_at", { ascending: true });
+  if (status !== "all") {
+    query = query.eq("status", status);
+  }
+  
+  const { data: users } = await query;
 
-  return NextResponse.json({ users: users ?? [] });
+  // For users, also fetch their digest subscription status so the UI can show if digests are active
+  const { data: digestPrefs } = await admin
+    .from("user_digest_preferences")
+    .select("user_id, email_enabled");
+    
+  const { data: digestSubs } = await admin
+    .from("digest_subscribers")
+    .select("user_id, active");
+    
+  const prefsMap = new Map(digestPrefs?.map(p => [p.user_id, p.email_enabled]) ?? []);
+  const subsMap = new Map(digestSubs?.map(s => [s.user_id, s.active]) ?? []);
+
+  const usersWithDigestStatus = (users ?? []).map(u => ({
+    ...u,
+    digest_active: prefsMap.get(u.id) !== false && subsMap.get(u.id) === true
+  }));
+
+  return NextResponse.json({ users: usersWithDigestStatus });
 }
 
 export async function POST(request: Request) {
@@ -44,15 +63,16 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const userId = body.userId as string;
-  const action = body.action as "approve" | "reject";
-  if (!userId || !["approve", "reject"].includes(action)) {
+  const action = body.action as "approve" | "reject" | "suspend" | "reactivate" | "halt_digest" | "resume_digest";
+  
+  if (!userId || !["approve", "reject", "suspend", "reactivate", "halt_digest", "resume_digest"].includes(action)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
   const admin = createAdminClient();
   const { data: target } = await admin
     .from("profiles")
-    .select("email, display_name")
+    .select("email, display_name, status")
     .eq("id", userId)
     .maybeSingle();
 
@@ -60,7 +80,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (action === "approve") {
+  if (action === "approve" || action === "reactivate") {
     const { count } = await admin
       .from("profiles")
       .select("id", { count: "exact", head: true })
@@ -69,7 +89,7 @@ export async function POST(request: Request) {
 
     if ((count ?? 0) >= 10) {
       return NextResponse.json(
-        { error: "Member cap reached (10 users). Remove a member before approving." },
+        { error: "Member cap reached (10 users). Remove a member before approving or reactivating." },
         { status: 409 }
       );
     }
@@ -78,28 +98,40 @@ export async function POST(request: Request) {
       .from("profiles")
       .update({
         status: "active",
-        approved_at: new Date().toISOString(),
-        approved_by: user.id,
+        ...(action === "approve" ? { approved_at: new Date().toISOString(), approved_by: user.id } : {})
       })
       .eq("id", userId);
 
-    await admin.from("digest_subscribers").upsert(
-      { user_id: userId, email: target.email, active: true },
-      { onConflict: "email" }
-    );
-    await admin
-      .from("user_digest_preferences")
-      .upsert({ user_id: userId }, { onConflict: "user_id" });
+    if (action === "approve") {
+      await admin.from("digest_subscribers").upsert(
+        { user_id: userId, email: target.email, active: true },
+        { onConflict: "email" }
+      );
+      await admin
+        .from("user_digest_preferences")
+        .upsert({ user_id: userId }, { onConflict: "user_id" });
 
-    void notifyUserApproved({
-      email: target.email,
-      display_name: target.display_name,
-    });
-  } else {
+      void notifyUserApproved({
+        email: target.email,
+        display_name: target.display_name,
+      });
+    }
+  } else if (action === "reject") {
     await admin
       .from("profiles")
       .update({ status: "rejected", approved_by: user.id })
       .eq("id", userId);
+  } else if (action === "suspend") {
+    await admin
+      .from("profiles")
+      .update({ status: "suspended" })
+      .eq("id", userId);
+  } else if (action === "halt_digest") {
+    await admin.from("digest_subscribers").update({ active: false }).eq("user_id", userId);
+    await admin.from("user_digest_preferences").update({ email_enabled: false }).eq("user_id", userId);
+  } else if (action === "resume_digest") {
+    await admin.from("digest_subscribers").update({ active: true }).eq("user_id", userId);
+    await admin.from("user_digest_preferences").update({ email_enabled: true }).eq("user_id", userId);
   }
 
   return NextResponse.json({ ok: true });

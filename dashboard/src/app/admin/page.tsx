@@ -1,4 +1,5 @@
 import { AdminPanel } from "@/components/admin/AdminPanel";
+import { UserManagementPanel } from "@/components/admin/UserManagementPanel";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -6,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/auth/types";
 import type { Profile } from "@/lib/auth/types";
 import { redirect } from "next/navigation";
+import { AdminTabs } from "@/components/admin/AdminTabs";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -31,10 +33,10 @@ export default async function AdminPage() {
     <PageContainer>
       <PageHeader
         eyebrow="Admin"
-        title="Signup approvals"
-        description="Review new users before they can access Skim. Approved users are added to digest delivery automatically."
+        title="Admin Control Center"
+        description="Review new users and manage existing members and their digest statuses."
       />
-      <AdminPanel initialPending={(pendingUsers ?? []) as Profile[]} />
+      <AdminTabs initialPending={(pendingUsers ?? []) as Profile[]} />
     </PageContainer>
   );
 }

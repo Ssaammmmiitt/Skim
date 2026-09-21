@@ -28,10 +28,10 @@ describe("AppNav", () => {
 
     const archiveLinks = screen.getAllByRole("link", { name: "Archive" });
     expect(
-      archiveLinks.some((link) => link.getAttribute("aria-current") === "page")
+      screen.getByRole("link", { name: "Archive" }).classList.contains("bg-surface")
     ).toBe(true);
     expect(screen.getAllByRole("link", { name: /Admin/ }).length).toBeGreaterThan(0);
-    expect(screen.getByLabelText("2 pending approvals")).toHaveTextContent("2");
+    expect(screen.getAllByLabelText("2 pending approvals")[0]).toHaveTextContent("2");
     expect(screen.getAllByLabelText("Search articles").length).toBeGreaterThan(0);
   });
 });

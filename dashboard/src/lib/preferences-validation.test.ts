@@ -19,6 +19,8 @@ describe("validatePreferences", () => {
       topic_filters: ["ai_ml"],
       email_enabled: false,
       dashboard_theme: "light",
+      font_style: "sans",
+      summary_style: "prose",
     });
   });
 

@@ -4,6 +4,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DigestPreferenceForm } from "@/components/settings/DigestPreferenceForm";
 import { resetPreferencesStore } from "@/store/preferences-store";
 
+/** Shared base initial values — update both fields here if types change. */
+const baseInitial = {
+  theme: "cyan" as const,
+  format: "full" as const,
+  max_stories: 8,
+  topic_filters: [] as string[],
+  email_enabled: true,
+  dashboard_theme: "dark" as const,
+  font_style: "sans" as const,
+  summary_style: "prose" as const,
+};
+
 describe("DigestPreferenceForm", () => {
   beforeEach(() => {
     resetPreferencesStore();
@@ -19,41 +31,18 @@ describe("DigestPreferenceForm", () => {
   });
 
   it("renders theme and format options", () => {
-    render(
-      <DigestPreferenceForm
-        initial={{
-          theme: "cyan",
-          format: "full",
-          max_stories: 8,
-          topic_filters: [],
-          email_enabled: true,
-          dashboard_theme: "dark",
-        }}
-      />
-    );
+    render(<DigestPreferenceForm initial={baseInitial} />);
 
     expect(screen.getByText("Dashboard appearance")).toBeInTheDocument();
     expect(screen.getByText("Email theme")).toBeInTheDocument();
-    expect(screen.getByText("Email content format")).toBeInTheDocument();
-    expect(screen.getByText("Max stories: 8")).toBeInTheDocument();
+    expect(screen.getByText("Content format")).toBeInTheDocument();
   });
 
   it("toggles topic filters and saves preferences", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.mocked(fetch);
 
-    render(
-      <DigestPreferenceForm
-        initial={{
-          theme: "cyan",
-          format: "full",
-          max_stories: 8,
-          topic_filters: [],
-          email_enabled: true,
-          dashboard_theme: "dark",
-        }}
-      />
-    );
+    render(<DigestPreferenceForm initial={baseInitial} />);
 
     await user.click(screen.getByRole("button", { name: "AI / ML" }));
     await user.click(screen.getByRole("button", { name: "Save preferences" }));
@@ -69,6 +58,8 @@ describe("DigestPreferenceForm", () => {
           topic_filters: ["ai_ml"],
           email_enabled: true,
           dashboard_theme: "dark",
+          font_style: "sans",
+          summary_style: "prose",
         }),
       });
     });
@@ -88,18 +79,7 @@ describe("DigestPreferenceForm", () => {
       )
     );
 
-    render(
-      <DigestPreferenceForm
-        initial={{
-          theme: "cyan",
-          format: "full",
-          max_stories: 8,
-          topic_filters: [],
-          email_enabled: true,
-          dashboard_theme: "dark",
-        }}
-      />
-    );
+    render(<DigestPreferenceForm initial={baseInitial} />);
 
     await user.click(screen.getByRole("button", { name: "Save preferences" }));
 

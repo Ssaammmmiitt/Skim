@@ -156,3 +156,60 @@ export async function getDashboardStats(supabase: SupabaseClient) {
 
   return { todayCount, streak, topTopic, latestDate };
 }
+
+/**
+ * Compute the personal reading streak for a specific user.
+ * Reads from user_activity_log (one row per day the user visited).
+ * Returns the number of consecutive days ending today or yesterday.
+ */
+export async function getUserStreak(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<number> {
+  try {
+    // Fetch last 60 activity dates for this user, descending
+    const { data, error } = await supabase
+      .from("user_activity_log")
+      .select("activity_date")
+      .eq("user_id", userId)
+      .order("activity_date", { ascending: false })
+      .limit(60);
+
+    if (error) {
+      console.warn("[getUserStreak] query error:", error.message);
+      return 0;
+    }
+
+    const dates = (data ?? []).map((r: { activity_date: string }) =>
+      r.activity_date.split("T")[0]
+    );
+
+    if (dates.length === 0) return 0;
+
+    const today = new Date().toISOString().split("T")[0];
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = yesterdayDate.toISOString().split("T")[0];
+
+    // Streak is only active if user visited today or yesterday
+    if (dates[0] !== today && dates[0] !== yesterday) return 0;
+
+    let streak = 0;
+    const check = new Date(dates[0] + "T12:00:00Z");
+
+    for (const d of dates) {
+      const expected = check.toISOString().split("T")[0];
+      if (d === expected) {
+        streak++;
+        check.setUTCDate(check.getUTCDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  } catch (err) {
+    console.warn("[getUserStreak] unexpected error:", err);
+    return 0;
+  }
+}

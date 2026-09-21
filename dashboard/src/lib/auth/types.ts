@@ -12,9 +12,23 @@ export type Profile = {
   approved_at: string | null;
 };
 
-export type DigestTheme = "cyan" | "classic" | "minimal";
+export type DigestTheme =
+  | "cyan"
+  | "classic"
+  | "minimal"
+  | "rose"
+  | "amber"
+  | "violet"
+  | "slate";
+
 export type DigestFormat = "full" | "brief" | "headlines";
 export type DashboardTheme = "light" | "dark";
+
+/** Font stack used in the digest email. */
+export type DigestFontStyle = "sans" | "serif" | "mono";
+
+/** How article content is formatted in the digest email. */
+export type DigestSummaryStyle = "prose" | "bullet_points" | "card";
 
 export type DigestPreferences = {
   user_id: string;
@@ -24,6 +38,8 @@ export type DigestPreferences = {
   topic_filters: string[] | null;
   email_enabled: boolean;
   dashboard_theme: DashboardTheme;
+  font_style: DigestFontStyle;
+  summary_style: DigestSummaryStyle;
   updated_at: string;
 };
 

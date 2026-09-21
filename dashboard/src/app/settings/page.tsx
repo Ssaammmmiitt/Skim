@@ -19,7 +19,7 @@ export default async function SettingsPage() {
       <PageHeader
         eyebrow="Settings"
         title="Preferences"
-        description="Customize your dashboard appearance and daily digest email  -  theme, format, topics, and delivery."
+        description="Customize your dashboard appearance and daily digest email — theme, font, format, topics, and delivery."
       />
       <DigestPreferenceForm
         initial={{
@@ -31,6 +31,8 @@ export default async function SettingsPage() {
           dashboard_theme: normalizeDashboardTheme(
             preferences?.dashboard_theme ?? "dark"
           ),
+          font_style: preferences?.font_style ?? "sans",
+          summary_style: preferences?.summary_style ?? "prose",
         }}
       />
     </PageContainer>

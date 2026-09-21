@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Lock, Sparkles } from "lucide-react";
@@ -16,6 +17,7 @@ type SideRailProps = {
 };
 
 export function SideRail({ profile, pendingApprovalCount = 0 }: SideRailProps) {
+  const [imgError, setImgError] = useState(false);
   const pathname = usePathname();
   const showAdmin = profile && isAdmin(profile as Profile);
   const isOnboarding = pathname === "/onboarding";
@@ -85,23 +87,23 @@ export function SideRail({ profile, pendingApprovalCount = 0 }: SideRailProps) {
         {/* Admin links */}
         {showAdmin ? (
           <div className="mt-4 border-t border-surface-raised pt-4">
-            {pendingApprovalCount > 0 ? (
-              <Link
-                href="/admin"
-                aria-current={pathname === "/admin" ? "page" : undefined}
-                className={cn(
-                  "flex items-center justify-between rounded-full px-4 py-2.5 text-sm font-normal transition-all duration-200",
-                  pathname === "/admin"
-                    ? "border border-hairline bg-surface text-on-canvas"
-                    : "text-secondary hover:bg-surface/60 hover:text-on-canvas"
-                )}
-              >
-                <span>Admin</span>
+            <Link
+              href="/admin"
+              aria-current={pathname === "/admin" ? "page" : undefined}
+              className={cn(
+                "flex items-center justify-between rounded-full px-4 py-2.5 text-sm font-normal transition-all duration-200",
+                pathname === "/admin"
+                  ? "border border-hairline bg-surface text-on-canvas"
+                  : "text-secondary hover:bg-surface/60 hover:text-on-canvas"
+              )}
+            >
+              <span>Admin</span>
+              {pendingApprovalCount > 0 && (
                 <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-mono font-medium text-canvas">
                   {pendingApprovalCount > 9 ? "9+" : pendingApprovalCount}
                 </span>
-              </Link>
-            ) : null}
+              )}
+            </Link>
             <Link
               href="/admin/stats"
               aria-current={pathname.startsWith("/admin/stats") ? "page" : undefined}
@@ -122,9 +124,22 @@ export function SideRail({ profile, pendingApprovalCount = 0 }: SideRailProps) {
       {profile ? (
         <div className="shrink-0 border-t border-surface-raised p-4">
           <div className="flex items-center gap-3 rounded-full border border-hairline bg-surface/50 px-3 py-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-raised text-xs font-mono font-medium text-foreground">
-              {(profile.display_name ?? profile.email ?? "?")[0].toUpperCase()}
-            </div>
+            {profile.avatar_url && !imgError ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="h-7 w-7 shrink-0 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-raised text-xs font-mono font-medium text-foreground"
+              >
+                {(profile.display_name ?? profile.email ?? "?")[0].toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-normal text-on-canvas">
                 {profile.display_name ?? profile.email}

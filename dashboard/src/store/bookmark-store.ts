@@ -2,14 +2,17 @@ import { create } from "zustand";
 
 type BookmarkStore = {
   bookmarkedIds: Set<number>;
+  initialized: boolean;
   setInitial: (ids: number[]) => void;
   toggle: (articleId: number) => Promise<void>;
 };
 
 export const useBookmarkStore = create<BookmarkStore>((set, get) => ({
   bookmarkedIds: new Set(),
-  
-  setInitial: (ids: number[]) => set({ bookmarkedIds: new Set(ids) }),
+  initialized: false,
+
+  setInitial: (ids: number[]) =>
+    set({ bookmarkedIds: new Set(ids), initialized: true }),
 
   toggle: async (articleId: number) => {
     const { bookmarkedIds } = get();

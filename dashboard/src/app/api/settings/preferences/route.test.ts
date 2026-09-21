@@ -19,6 +19,8 @@ describe("preferences API validation", () => {
       topic_filters: ["ai_ml"],
       email_enabled: false,
       dashboard_theme: "dark",
+      font_style: "sans",
+      summary_style: "prose",
     });
   });
 
