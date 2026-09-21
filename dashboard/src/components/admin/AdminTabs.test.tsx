@@ -14,6 +14,7 @@ describe("AdminTabs", () => {
       status: "pending",
       created_at: new Date().toISOString(),
       approved_at: null,
+      avatar_url: null,
     },
   ];
 
