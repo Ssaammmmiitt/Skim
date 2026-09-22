@@ -128,6 +128,14 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
         }
       }
       set({ status: "Preferences saved.", dirty: false, saving: false });
+      
+      // We only want to show toast on the client side
+      if (typeof window !== "undefined") {
+        import("@/components/ui/Toast").then(({ toast }) => {
+          toast.success("Preferences saved successfully!");
+        });
+      }
+
       return true;
     } catch (err) {
       set({

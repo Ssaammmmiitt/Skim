@@ -48,7 +48,13 @@ export function UserManagementPanel() {
     });
 
     if (response.ok) {
-      toast.success("Action successful.");
+      let successMsg = "Action successful.";
+      if (action === "suspend") successMsg = "User suspended successfully.";
+      if (action === "reactivate") successMsg = "User reactivated successfully.";
+      if (action === "halt_digest") successMsg = "Digest halted for user.";
+      if (action === "resume_digest") successMsg = "Digest resumed for user.";
+
+      toast.success(successMsg);
       await loadUsers();
       router.refresh();
       return;

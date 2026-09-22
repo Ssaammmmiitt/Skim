@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { User, Mail, Calendar, Check, Edit2 } from "lucide-react";
 import type { Profile } from "@/lib/auth/types";
+import { toast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/tailwind-ui";
 
@@ -11,6 +13,7 @@ type ProfileCardProps = {
 };
 
 export function ProfileCard({ profile }: ProfileCardProps) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.display_name ?? "");
   const [saving, setSaving] = useState(false);
@@ -32,7 +35,10 @@ export function ProfileCard({ profile }: ProfileCardProps) {
     setSaving(false);
     if (res.ok) {
       setEditing(false);
-      window.location.reload();
+      toast.success("Profile updated successfully!");
+      router.refresh();
+    } else {
+      toast.error("Failed to update profile.");
     }
   }
 
