@@ -9,6 +9,7 @@ from pipeline.config import SUMMARY_MAX_CHARS, USER_AGENT
 from pipeline.models import Article
 from pipeline.resilience import retry_with_backoff
 from pipeline.sources.base import SourceAdapter
+from pipeline.url_filters import looks_like_html
 
 
 class RSSAdapter(SourceAdapter):
@@ -65,7 +66,10 @@ class RSSAdapter(SourceAdapter):
         if not summary:
             return None
 
-        text = BeautifulSoup(summary, "html.parser").get_text(separator=" ")
+        if looks_like_html(summary):
+            text = BeautifulSoup(summary, "html.parser").get_text(separator=" ")
+        else:
+            text = summary
         text = " ".join(text.split())
         if not text:
             return None

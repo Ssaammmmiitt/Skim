@@ -6,7 +6,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pipeline.agent.llm_client import LLMProviderError
-from pipeline.agent.reasoning import ArticleAgent, chunked, run_agent_reasoning
+from pipeline.agent.reasoning import (
+    DEFAULT_CLASSIFY_LIMIT,
+    ArticleAgent,
+    chunked,
+    run_agent_reasoning,
+)
 from pipeline.db import (
     get_articles_by_urls,
     get_connection,
@@ -126,6 +131,182 @@ def test_classify_batch_returns_empty_for_no_articles():
     agent.llm.chat_with_tools.assert_not_called()
 
 
+def test_classify_batch_routes_to_groq_under_high_demand_without_dropping():
+    """Quality-first: high demand switches to Groq but still classifies every article."""
+    articles = [
+        {"id": i, "title": f"Story {i}", "source": "techcrunch", "summary": "s"}
+        for i in range(1, 16)
+    ]
+    mock_llm = MagicMock()
+    mock_router = MagicMock()
+    mock_router.using_fallback = True
+    mock_llm._model_router = mock_router
+    mock_llm._gemini_exhausted = False
+
+    agent = ArticleAgent(llm=mock_llm, batch_size=5, batch_delay_seconds=0)
+    prefer_flags: list[bool] = []
+
+    def fake_classify(batch, prefer_groq=False):
+        prefer_flags.append(prefer_groq)
+        return [
+            {
+                "article_id": article["id"],
+                "topic": "ai_ml",
+                "importance_score": 7,
+                "provider": "groq" if prefer_groq else "gemini",
+            }
+            for article in batch
+        ]
+
+    with patch.object(agent, "_classify_single_batch", side_effect=fake_classify):
+        result = agent.classify_batch(articles)
+
+    assert len(result) == 15
+    assert all(prefer_flags), "expected Groq routing once Gemini is in high demand"
+    assert {r["article_id"] for r in result} == {a["id"] for a in articles}
+
+
+def test_classify_batch_uses_heuristic_when_both_llms_fail(test_run_id):
+    articles = _insert_and_fetch(
+        [
+            _make_article(
+                f"{test_run_id}-both-fail",
+                "OpenAI launches GPT-5 for developers",
+                "Major LLM release with new API.",
+                source="techcrunch",
+            )
+        ]
+    )
+    mock_llm = MagicMock()
+    mock_llm.chat_with_tools.side_effect = [
+        LLMProviderError("gemini down"),
+        LLMProviderError("groq down"),
+    ]
+    mock_llm._model_router = MagicMock(using_fallback=False)
+    mock_llm._gemini_exhausted = False
+
+    agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
+    result = agent.classify_batch(articles)
+
+    assert len(result) == 1
+    assert result[0]["provider"] == "heuristic"
+    assert result[0]["topic"] == "ai_ml"
+    assert float(result[0]["importance_score"]) >= 5
+    stored = get_articles_by_urls([articles[0]["url"]])[0]
+    assert stored["topic"] == "ai_ml"
+    assert stored["importance_score"] is not None
+
+
+def test_classify_batch_fills_partial_llm_batch_with_heuristic(test_run_id):
+    articles = _insert_and_fetch(
+        [
+            _make_article(
+                f"{test_run_id}-partial-a",
+                "Critical CVE-2026-1234 in Linux",
+                "Security researchers disclose remote exploit.",
+                source="bleeping_computer",
+            ),
+            _make_article(
+                f"{test_run_id}-partial-b",
+                "Kubernetes 1.32 improves networking",
+                "Cloud infra release notes for operators.",
+                source="infoq",
+            ),
+        ]
+    )
+    mock_llm = MagicMock()
+    mock_llm.chat_with_tools.return_value = {
+        "provider": "gemini",
+        "content": None,
+        "tool_calls": [
+            {
+                "name": "classify_article",
+                "arguments": {
+                    "article_id": articles[0]["id"],
+                    "topic": "cybersecurity",
+                    "importance_score": 9,
+                    "reasoning": "Critical CVE",
+                },
+            }
+        ],
+    }
+    mock_llm._model_router = MagicMock(using_fallback=False)
+    mock_llm._gemini_exhausted = False
+
+    agent = ArticleAgent(llm=mock_llm, batch_size=2, batch_delay_seconds=0)
+    result = agent.classify_batch(articles)
+
+    assert len(result) == 2
+    by_id = {row["article_id"]: row for row in result}
+    assert by_id[articles[0]["id"]]["topic"] == "cybersecurity"
+    assert by_id[articles[0]["id"]].get("provider") == "gemini"
+    assert by_id[articles[1]["id"]]["provider"] == "heuristic"
+    assert by_id[articles[1]["id"]]["topic"] == "cloud_infra"
+
+
+def test_classify_batch_escalates_gemini_failure_to_groq(test_run_id):
+    articles = _insert_and_fetch(
+        [
+            _make_article(
+                f"{test_run_id}-escalate",
+                "Anthropic Claude update",
+                "New AI model features for engineers.",
+                source="techcrunch",
+            )
+        ]
+    )
+    mock_llm = MagicMock()
+    mock_llm.chat_with_tools.side_effect = [
+        LLMProviderError("gemini 503"),
+        {
+            "provider": "groq",
+            "content": None,
+            "tool_calls": [
+                {
+                    "name": "classify_article",
+                    "arguments": {
+                        "article_id": articles[0]["id"],
+                        "topic": "ai_ml",
+                        "importance_score": 8,
+                        "reasoning": "Model launch",
+                    },
+                }
+            ],
+        },
+    ]
+    mock_llm._model_router = MagicMock(using_fallback=False)
+    mock_llm._gemini_exhausted = False
+
+    agent = ArticleAgent(llm=mock_llm, batch_delay_seconds=0)
+    result = agent.classify_batch(articles)
+
+    assert len(result) == 1
+    assert result[0]["provider"] == "groq"
+    assert result[0]["topic"] == "ai_ml"
+    assert mock_llm.chat_with_tools.call_count == 2
+    assert mock_llm.chat_with_tools.call_args_list[1].kwargs.get("prefer_groq") is True
+
+
+def test_run_agent_reasoning_caps_classify_input():
+    articles = [
+        {"id": i, "source": "hackernews", "title": f"t{i}", "summary": "s"}
+        for i in range(1, 80)
+    ]
+    agent = ArticleAgent(llm=MagicMock(), batch_delay_seconds=0)
+
+    with (
+        patch.object(agent, "classify_batch") as mock_classify,
+        patch.object(agent, "generate_insights_for_top_articles"),
+        patch(
+            "pipeline.agent.reasoning.get_todays_classified_articles", return_value=[]
+        ),
+    ):
+        run_agent_reasoning(articles, agent=agent)
+
+    capped = mock_classify.call_args[0][0]
+    assert len(capped) == DEFAULT_CLASSIFY_LIMIT
+
+
 def test_classify_batch_updates_db_with_mock_llm(test_run_id):
     articles = _insert_and_fetch(
         [
@@ -169,7 +350,12 @@ def test_classify_batch_keeps_progress_when_providers_fail(test_run_id):
     articles = _insert_and_fetch(
         [
             _make_article(f"{test_run_id}-quota-1", "First article", "Summary one."),
-            _make_article(f"{test_run_id}-quota-2", "Second article", "Summary two."),
+            _make_article(
+                f"{test_run_id}-quota-2",
+                "OpenAI ships new LLM API",
+                "Major AI platform update for builders.",
+                source="techcrunch",
+            ),
         ]
     )
 
@@ -191,15 +377,23 @@ def test_classify_batch_keeps_progress_when_providers_fail(test_run_id):
             ],
         },
         LLMProviderError("Both Gemini and Groq failed"),
+        LLMProviderError("Groq also failed"),
     ]
+    mock_llm._model_router = MagicMock(using_fallback=False)
+    mock_llm._gemini_exhausted = False
 
     agent = ArticleAgent(llm=mock_llm, batch_size=1, batch_delay_seconds=0)
     result = agent.classify_batch(articles)
 
-    assert len(result) == 1
-    assert result[0]["article_id"] == articles[0]["id"]
+    assert len(result) == 2
+    by_id = {row["article_id"]: row for row in result}
+    assert by_id[articles[0]["id"]]["topic"] == "ai_ml"
+    assert by_id[articles[1]["id"]]["provider"] == "heuristic"
     stored = get_articles_by_urls([articles[0]["url"]])[0]
     assert stored["topic"] == "ai_ml"
+    stored_b = get_articles_by_urls([articles[1]["url"]])[0]
+    assert stored_b["topic"] is not None
+    assert stored_b["importance_score"] is not None
 
 
 def test_generate_insights_keeps_progress_when_providers_fail(test_run_id):

@@ -25,6 +25,14 @@ def test_configure_logging_respects_log_level_env(monkeypatch):
     assert logging.getLogger().level == logging.ERROR
 
 
+def test_configure_logging_quiets_httpx_and_trafilatura():
+    configure_logging("INFO")
+    assert logging.getLogger("httpx").level == logging.WARNING
+    assert logging.getLogger("httpcore").level == logging.WARNING
+    assert logging.getLogger("trafilatura").level == logging.WARNING
+    assert logging.getLogger("trafilatura.xml").level == logging.WARNING
+
+
 def test_configure_logging_applies_structured_formatter():
     configure_logging()
     handler = logging.getLogger().handlers[0]

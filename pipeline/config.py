@@ -43,6 +43,12 @@ def configure_logging(level: str | int | None = None) -> None:
         for handler in root.handlers:
             handler.setLevel(level)
             handler.setFormatter(formatter)
-        return
+    else:
+        logging.basicConfig(level=level, format=LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
 
-    logging.basicConfig(level=level, format=LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
+    # httpx/trafilatura are extremely chatty at INFO during enrich (one line per URL).
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("trafilatura").setLevel(logging.WARNING)
+    logging.getLogger("trafilatura.core").setLevel(logging.WARNING)
+    logging.getLogger("trafilatura.xml").setLevel(logging.WARNING)

@@ -94,6 +94,11 @@ def get_connection() -> PgConnection:
                 raise
 
 
+def _strip_nul(value: str | None) -> str | None:
+    # Postgres text columns reject NUL (0x00) bytes.
+    return value.replace("\x00", "") if value else value
+
+
 def insert_articles(articles: list[Article]) -> int:
     if not articles:
         return 0
@@ -111,12 +116,12 @@ def insert_articles(articles: list[Article]) -> int:
                     RETURNING id
                     """,
                     (
-                        article.title,
-                        normalize_url(str(article.url)),
+                        _strip_nul(article.title),
+                        _strip_nul(normalize_url(str(article.url))),
                         article.source,
                         article.published_at,
-                        article.summary,
-                        article.raw_text,
+                        _strip_nul(article.summary),
+                        _strip_nul(article.raw_text),
                     ),
                 )
                 if cur.fetchone():

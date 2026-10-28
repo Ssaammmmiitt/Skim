@@ -266,16 +266,48 @@ class LLMClient:
         tool_choice: str | dict[str, Any] | None = None,
         *,
         groq_model_override: str | None = None,
+        prefer_groq: bool = False,
     ) -> dict[str, Any]:
+        """Chat with tool calling.
+
+        Fallback order (quality-first):
+        1. Gemini primary (+ model/key rotation)
+        2. Groq when Gemini is exhausted, forced via prefer_groq, or already in
+           sustained high-demand fallback mode for this call
+        """
+        if prefer_groq or self._should_prefer_groq():
+            logger.info("Using Groq provider for tool call (prefer_groq=%s)", prefer_groq)
+            return self._groq_chat(
+                messages, tools, tool_choice, model=groq_model_override
+            )
+
         if self._pool is not None and self._pool.all_exhausted:
-            return self._groq_chat(messages, tools, tool_choice, model=groq_model_override)
+            return self._groq_chat(
+                messages, tools, tool_choice, model=groq_model_override
+            )
 
         if self._injected_gemini is not None:
             return self._gemini_with_retries(
-                self._injected_gemini, messages, tools, tool_choice, groq_model_override=groq_model_override
+                self._injected_gemini,
+                messages,
+                tools,
+                tool_choice,
+                groq_model_override=groq_model_override,
             )
 
-        return self._gemini_with_pool(messages, tools, tool_choice, groq_model_override=groq_model_override)
+        return self._gemini_with_pool(
+            messages, tools, tool_choice, groq_model_override=groq_model_override
+        )
+
+    def _should_prefer_groq(self) -> bool:
+        """Escalate to Groq after sustained Gemini high-demand, skipping model thrash."""
+        router = self._model_router
+        if not router.using_fallback:
+            return False
+        # Already on Gemini fallback models; if demand remains elevated, Groq
+        # usually produces better structured tool results than more 503 retries.
+        with router._lock:
+            return router._consecutive_high_demand >= (HIGH_DEMAND_SWITCH_THRESHOLD * 2)
 
     def _gemini_with_retries(
         self,

@@ -34,6 +34,11 @@ async def _fetch_and_extract_single(client: httpx.AsyncClient, article: Article)
     try:
         response = await client.get(article.url, timeout=10.0, follow_redirects=True)
         response.raise_for_status()
+        content_type = response.headers.get("content-type", "").lower()
+        if content_type and "html" not in content_type and "xml" not in content_type:
+            logger.info(f"Skipping non-HTML content ({content_type}) at {article.url}")
+            article.raw_text = base_snippet
+            return
         html = response.text
         
         # 1. Trafilatura

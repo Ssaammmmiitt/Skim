@@ -28,6 +28,7 @@ def test_ingest_continues_when_one_adapter_fails():
         patch(
             "pipeline.ingest._build_adapters", return_value=[bad_adapter, good_adapter]
         ),
+        patch("pipeline.ingest.enrich_articles"),
         patch("pipeline.ingest.insert_articles", return_value=1) as mock_insert,
         patch("pipeline.ingest.get_todays_new_articles", return_value=[]),
         patch("pipeline.ingest.get_articles_by_urls", return_value=[]),
@@ -36,6 +37,47 @@ def test_ingest_continues_when_one_adapter_fails():
 
     mock_insert.assert_called_once_with([good_article])
     assert result == []
+
+
+def test_ingest_filters_junk_urls_before_enrich():
+    keep = Article(
+        title="Real story",
+        url="https://techcrunch.com/2026/09/25/real-story/",
+        source="techcrunch",
+        published_at=datetime.now(timezone.utc),
+        summary="summary",
+    )
+    junk = Article(
+        title="Coupon",
+        url="https://www.wired.com/story/hoka-coupon-code",
+        source="wired",
+        published_at=datetime.now(timezone.utc),
+        summary="save now",
+    )
+    youtube = Article(
+        title="Video",
+        url="https://youtube.com/watch?v=abc",
+        source="hackernews",
+        published_at=datetime.now(timezone.utc),
+        summary="watch",
+    )
+    adapter = Mock()
+    adapter.name = "mixed"
+    adapter.fetch.return_value = [keep, junk, youtube]
+
+    with (
+        patch("pipeline.ingest._build_adapters", return_value=[adapter]),
+        patch("pipeline.ingest.enrich_articles") as mock_enrich,
+        patch("pipeline.ingest.insert_articles", return_value=1) as mock_insert,
+        patch("pipeline.ingest.get_todays_new_articles", return_value=[]),
+        patch("pipeline.ingest.get_articles_by_urls", return_value=[]),
+    ):
+        ingest_all_sources(limit=5)
+
+    mock_enrich.assert_called_once()
+    enriched = mock_enrich.call_args[0][0]
+    assert [str(a.url) for a in enriched] == [str(keep.url)]
+    mock_insert.assert_called_once_with([keep])
 
 
 @pytest.mark.integration
@@ -75,6 +117,7 @@ def test_ingest_dedupes_on_immediate_rerun():
 
     with (
         patch("pipeline.ingest._build_adapters", return_value=[good_adapter]),
+        patch("pipeline.ingest.enrich_articles"),
         patch("pipeline.ingest.get_todays_new_articles", return_value=[]),
         patch("pipeline.ingest.get_articles_by_urls", side_effect=fake_get_articles_by_urls),
         patch("pipeline.ingest.insert_articles", side_effect=fake_insert)

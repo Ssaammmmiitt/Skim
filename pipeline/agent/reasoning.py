@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Iterator
 
 from pipeline.agent.llm_client import LLMClient, LLMProviderError, GROQ_MODEL_SELECTION
+from pipeline.agent.heuristic_classify import heuristic_classify_batch
 from pipeline.agent.prompts import (
     build_classification_messages,
     build_insight_messages,
@@ -23,6 +24,7 @@ from pipeline.db import (
     update_article_classification,
     update_article_insight,
 )
+from pipeline.url_filters import prioritize_for_classify
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +41,13 @@ MIN_INSIGHT_CANDIDATES = DEFAULT_DIGEST_SIZE + 2
 SELECTION_MIN_IMPORTANCE = 5.0
 SELECTION_MAX_POOL = 30
 
-# Gemini free tier: 20 requests/day per project. With 5 keys that's 100 Gemini
-# calls + unlimited Groq fallback.  Budget: ~50 classify (10 batches of 5)
-# + ~12 insight + 1 select ≈ 63 calls, leaving headroom for retries.
+# Quality-first: classify a broad preferred set. Time is secondary to coverage.
+# When Gemini is stressed we do NOT abort early — we fall back to Groq, then
+# heuristic classification, so every capped article still gets a score/topic.
 DEFAULT_CLASSIFY_LIMIT = 50
+
+# Gemini free tier budgeting (approximate): ~50 classify batches of 5 ≈ 10 calls
+# + ~12 insight + 1 select, with Groq absorbing overflow under high demand.
 DEFAULT_INSIGHT_LIMIT = 12
 
 # Parallel insight workers  -  bounded to avoid hitting RPM limits.
@@ -97,51 +102,141 @@ class ArticleAgent:
         self.batch_delay_seconds = batch_delay_seconds
 
     def classify_batch(self, articles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Classify articles with quality-first dual fallbacks.
+
+        1. Gemini (normal path)
+        2. Groq when Gemini is high-demand / fails a batch
+        3. Heuristic keyword scoring for any articles still missing results
+
+        We never abort the remaining queue solely because Gemini is busy — output
+        coverage matters more than wall-clock time.
+        """
         if not articles:
             return []
 
         classified: list[dict[str, Any]] = []
         classified_ids: set[int] = set()
         batches = list(chunked(articles, self.batch_size))
+        prefer_groq = False
 
         for batch_index, batch in enumerate(batches):
-            try:
-                batch_results = self._classify_single_batch(batch)
-            except LLMProviderError as exc:
+            if self._is_high_demand() and not prefer_groq:
+                prefer_groq = True
                 logger.warning(
-                    "Classification stopped after %d/%d articles: %s",
-                    len(classified),
-                    len(articles),
-                    exc,
+                    "Fallback #1 (Groq): Gemini high demand — routing remaining "
+                    "classify batches to Groq"
                 )
-                return classified
+
+            batch_results = self._classify_batch_with_fallbacks(
+                batch, prefer_groq=prefer_groq
+            )
+            if any(r.get("provider") == "groq" for r in batch_results):
+                prefer_groq = True
 
             classified.extend(batch_results)
             classified_ids.update(result["article_id"] for result in batch_results)
 
             if batch_index < len(batches) - 1 and self.batch_delay_seconds:
-                time.sleep(self.batch_delay_seconds)
+                # Slightly longer pause under pressure; still finish the queue.
+                delay = (
+                    max(self.batch_delay_seconds, 2.0)
+                    if prefer_groq
+                    else self.batch_delay_seconds
+                )
+                time.sleep(delay)
 
         missing = [
             article for article in articles if article["id"] not in classified_ids
         ]
         for index, article in enumerate(missing):
-            try:
-                retry_results = self._classify_single_batch([article])
-            except LLMProviderError as exc:
-                logger.warning("Retry pass stopped: %s", exc)
-                return classified
-
+            retry_results = self._classify_batch_with_fallbacks(
+                [article], prefer_groq=True
+            )
             classified.extend(retry_results)
             classified_ids.update(result["article_id"] for result in retry_results)
 
             if index < len(missing) - 1 and self.batch_delay_seconds:
                 time.sleep(self.batch_delay_seconds)
 
+        still_missing = [
+            article for article in articles if article["id"] not in classified_ids
+        ]
+        if still_missing:
+            logger.warning(
+                "Fallback #2 (heuristic): classifying %d remaining articles",
+                len(still_missing),
+            )
+            heuristic_results = self._persist_heuristic_results(still_missing)
+            classified.extend(heuristic_results)
+
         return classified
 
+    def _is_high_demand(self) -> bool:
+        router = getattr(self.llm, "_model_router", None)
+        if router is not None and getattr(router, "using_fallback", False):
+            return True
+        if getattr(self.llm, "_gemini_exhausted", False):
+            return True
+        return False
+
+    def _classify_batch_with_fallbacks(
+        self,
+        batch: list[dict[str, Any]],
+        *,
+        prefer_groq: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Try LLM classify; on failure escalate Gemini → Groq → heuristic."""
+        try:
+            results = self._classify_single_batch(batch, prefer_groq=prefer_groq)
+        except LLMProviderError as exc:
+            if not prefer_groq:
+                logger.warning(
+                    "Fallback #1 (Groq): Gemini classify failed (%s); retrying batch",
+                    exc,
+                )
+                try:
+                    results = self._classify_single_batch(batch, prefer_groq=True)
+                except LLMProviderError as groq_exc:
+                    logger.warning(
+                        "Fallback #2 (heuristic): Groq classify failed (%s)",
+                        groq_exc,
+                    )
+                    return self._persist_heuristic_results(batch)
+            else:
+                logger.warning(
+                    "Fallback #2 (heuristic): Groq classify failed (%s)",
+                    exc,
+                )
+                return self._persist_heuristic_results(batch)
+
+        covered_ids = {result["article_id"] for result in results}
+        uncovered = [article for article in batch if article["id"] not in covered_ids]
+        if uncovered:
+            logger.warning(
+                "Fallback #2 (heuristic): filling %d/%d uncovered articles in batch",
+                len(uncovered),
+                len(batch),
+            )
+            results.extend(self._persist_heuristic_results(uncovered))
+        return results
+
+    def _persist_heuristic_results(
+        self, articles: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        results = heuristic_classify_batch(articles)
+        for args in results:
+            update_article_classification(
+                article_id=args["article_id"],
+                topic=args["topic"],
+                importance_score=args["importance_score"],
+            )
+        return results
+
     def _classify_single_batch(
-        self, batch: list[dict[str, Any]]
+        self,
+        batch: list[dict[str, Any]],
+        *,
+        prefer_groq: bool = False,
     ) -> list[dict[str, Any]]:
         response = self.llm.chat_with_tools(
             messages=build_classification_messages(batch),
@@ -150,10 +245,12 @@ class ArticleAgent:
                 "type": "function",
                 "function": {"name": "classify_article"},
             },
+            prefer_groq=prefer_groq,
         )
 
         batch_ids = {article["id"] for article in batch}
         batch_results = []
+        provider = response.get("provider") or ("groq" if prefer_groq else "gemini")
         for tool_call in response["tool_calls"]:
             try:
                 args = self._validate_classification(tool_call["arguments"], batch_ids)
@@ -165,13 +262,15 @@ class ArticleAgent:
                 topic=args["topic"],
                 importance_score=args["importance_score"],
             )
+            args["provider"] = provider
             batch_results.append(args)
 
         if len(batch_results) < len(batch):
             logger.warning(
-                "Classified %d/%d articles in batch",
+                "Classified %d/%d articles in batch via %s",
                 len(batch_results),
                 len(batch),
+                provider,
             )
 
         return batch_results
@@ -513,8 +612,16 @@ def run_agent_reasoning(
     agent = agent or ArticleAgent()
 
     if new_articles:
-        logger.info("Pass 1: classifying %d articles", len(new_articles))
-        agent.classify_batch(new_articles)
+        capped = prioritize_for_classify(new_articles, DEFAULT_CLASSIFY_LIMIT)
+        if len(capped) < len(new_articles):
+            logger.info(
+                "Pass 1: capping classify from %d → %d articles (preferred sources first)",
+                len(new_articles),
+                len(capped),
+            )
+        else:
+            logger.info("Pass 1: classifying %d articles", len(capped))
+        agent.classify_batch(capped)
     else:
         logger.info("Pass 1: no new articles to classify")
 

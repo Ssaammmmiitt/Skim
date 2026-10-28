@@ -85,6 +85,24 @@ def test_fetch_truncates_long_summary(mock_get):
 
 
 @patch("pipeline.sources.rss.requests.get")
+def test_fetch_plain_summary_skips_beautifulsoup(mock_get):
+    plain_xml = (
+        "<?xml version='1.0'?><rss version='2.0'><channel><item>"
+        "<title>Plain</title><link>https://example.com/plain</link>"
+        "<description>just plain text no tags</description>"
+        "</item></channel></rss>"
+    )
+    response = Mock()
+    response.raise_for_status = Mock()
+    response.content = plain_xml.encode()
+    mock_get.return_value = response
+
+    articles = RSSAdapter("https://example.com/feed.xml", "testfeed").fetch()
+
+    assert articles[0].summary == "just plain text no tags"
+
+
+@patch("pipeline.sources.rss.requests.get")
 def test_fetch_invalid_xml_returns_empty_list(mock_get):
     response = Mock()
     response.raise_for_status = Mock()

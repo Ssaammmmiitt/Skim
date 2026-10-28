@@ -642,6 +642,40 @@ def test_model_router_success_on_primary_clears_fallback():
     assert router.models_for_request() == [GEMINI_MODEL]
 
 
+def test_chat_with_tools_prefer_groq_skips_gemini(monkeypatch):
+    client = LLMClient(gemini_client=MagicMock(), groq_client=MagicMock())
+    client._groq_chat = MagicMock(
+        return_value={"provider": "groq", "content": None, "tool_calls": []}
+    )
+    client._gemini_with_retries = MagicMock(
+        side_effect=AssertionError("Gemini should not be called")
+    )
+
+    result = client.chat_with_tools(
+        [{"role": "user", "content": "hi"}],
+        tools=[],
+        prefer_groq=True,
+    )
+
+    assert result["provider"] == "groq"
+    client._groq_chat.assert_called_once()
+
+
+def test_should_prefer_groq_after_sustained_high_demand():
+    client = LLMClient(gemini_client=MagicMock(), groq_client=MagicMock())
+    client._model_router.reset()
+    try:
+        assert not client._should_prefer_groq()
+
+        for _ in range(HIGH_DEMAND_SWITCH_THRESHOLD * 2):
+            client._model_router.record_high_demand_failure()
+
+        assert client._model_router.using_fallback
+        assert client._should_prefer_groq()
+    finally:
+        client._model_router.reset()
+
+
 def test_chat_with_tools_switches_gemini_model_on_high_demand(monkeypatch):
     gemini_client = MagicMock()
     gemini_client.models.generate_content.side_effect = [

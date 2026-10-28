@@ -11,6 +11,7 @@ from pipeline.sources.devto import DevToAdapter
 from pipeline.sources.lobsters import LobstersAdapter
 from pipeline.sources.rss import RSSAdapter
 from pipeline.sources.extractor import enrich_articles
+from pipeline.url_filters import is_junk_url
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +51,26 @@ def ingest_all_sources(limit: int = 30) -> list[dict[str, Any]]:
         logger.info("No articles fetched from any source.")
         return []
 
-    # 2. Filter (English-only & Deduplication against DB)
-    english_articles = [a for a in all_articles if is_likely_english(a.title) and is_likely_english(a.summary)]
+    # 2. Filter (English-only, junk URLs, then dedupe against DB)
+    english_articles = [
+        a
+        for a in all_articles
+        if is_likely_english(a.title) and is_likely_english(a.summary)
+    ]
     if len(all_articles) != len(english_articles):
-        logger.info("Filtered %d non-English/spam articles", len(all_articles) - len(english_articles))
-    all_articles = english_articles
+        logger.info(
+            "Filtered %d non-English articles",
+            len(all_articles) - len(english_articles),
+        )
+
+    filtered_articles = [a for a in english_articles if not is_junk_url(str(a.url))]
+    junk_dropped = len(english_articles) - len(filtered_articles)
+    if junk_dropped:
+        logger.info(
+            "Filtered %d junk URLs (promo/coupon/youtube/etc) before enrich",
+            junk_dropped,
+        )
+    all_articles = filtered_articles
 
     urls = [str(a.url) for a in all_articles]
     existing_articles = get_articles_by_urls(urls)
