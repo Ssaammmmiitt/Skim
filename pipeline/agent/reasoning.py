@@ -241,15 +241,15 @@ class ArticleAgent:
         response = self.llm.chat_with_tools(
             messages=build_classification_messages(batch),
             tools=[CLASSIFY_ARTICLE],
-            tool_choice={
-                "type": "function",
-                "function": {"name": "classify_article"},
-            },
+            # A named tool_choice makes OpenAI-style APIs (Groq) emit exactly one
+            # call; "required" allows one classify_article call per article.
+            tool_choice="required",
             prefer_groq=prefer_groq,
         )
 
         batch_ids = {article["id"] for article in batch}
         batch_results = []
+        seen_ids: set[int] = set()
         provider = response.get("provider") or ("groq" if prefer_groq else "gemini")
         for tool_call in response["tool_calls"]:
             try:
@@ -257,6 +257,12 @@ class ArticleAgent:
             except (ValueError, KeyError, TypeError) as exc:
                 logger.warning("Skipping invalid classification result: %s", exc)
                 continue
+            if args["article_id"] in seen_ids:
+                logger.warning(
+                    "Skipping duplicate classification for article %d", args["article_id"]
+                )
+                continue
+            seen_ids.add(args["article_id"])
             update_article_classification(
                 article_id=args["article_id"],
                 topic=args["topic"],

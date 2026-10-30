@@ -237,6 +237,7 @@ def test_classify_batch_fills_partial_llm_batch_with_heuristic(test_run_id):
     result = agent.classify_batch(articles)
 
     assert len(result) == 2
+    assert mock_llm.chat_with_tools.call_args.kwargs["tool_choice"] == "required"
     by_id = {row["article_id"]: row for row in result}
     assert by_id[articles[0]["id"]]["topic"] == "cybersecurity"
     assert by_id[articles[0]["id"]].get("provider") == "gemini"

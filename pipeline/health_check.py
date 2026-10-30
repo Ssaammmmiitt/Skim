@@ -52,12 +52,20 @@ def build_health_report(lookback_days: int = DEFAULT_LOOKBACK_DAYS) -> HealthRep
         report.add_issue("No pipeline runs recorded in the database")
         return report
 
+    latest_success = max(
+        (run["run_date"] for run in report.pipeline_runs if run.get("status") == "success"),
+        default=None,
+    )
+
     for run in report.pipeline_runs:
         if run.get("status") == "failed":
-            report.add_issue(
-                f"Pipeline run on {run['run_date']} failed"
-                + (f": {run.get('error_message')}" if run.get("error_message") else "")
+            message = f"Pipeline run on {run['run_date']} failed" + (
+                f": {run.get('error_message')}" if run.get("error_message") else ""
             )
+            if latest_success and run["run_date"] < latest_success:
+                report.add_warning(f"{message} (recovered on {latest_success})")
+            else:
+                report.add_issue(message)
         elif run.get("status") == "partial":
             report.add_warning(
                 f"Pipeline run on {run['run_date']} completed with partial success"

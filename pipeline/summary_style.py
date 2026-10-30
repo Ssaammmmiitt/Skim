@@ -50,6 +50,42 @@ def _build_article_inputs(stories: list[dict[str, Any]]) -> list[dict[str, Any]]
     ]
 
 
+def _parse_bullets_response(raw: str) -> list[Any]:
+    """Parse the bullet JSON array, salvaging individual items if the array is malformed."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else ""
+        text = text.rsplit("```", 1)[0]
+
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            return parsed
+    except json.JSONDecodeError as exc:
+        logger.warning(
+            "[summary_style] malformed bullet JSON (%s); salvaging items. Excerpt: %r",
+            exc,
+            text[max(0, exc.pos - 120) : exc.pos + 120],
+        )
+
+    decoder = json.JSONDecoder()
+    items: list[Any] = []
+    pos = text.find("{")
+    while pos != -1:
+        try:
+            item, end = decoder.raw_decode(text, pos)
+        except json.JSONDecodeError:
+            pos = text.find("{", pos + 1)
+            continue
+        if isinstance(item, dict) and "id" in item and "bullets" in item:
+            items.append(item)
+        pos = text.find("{", end)
+
+    if not items:
+        raise ValueError("LLM response contained no parseable bullet items")
+    return items
+
+
 def _call_llm_for_bullets(
     stories: list[dict[str, Any]], llm_client: Any
 ) -> list[dict[str, Any]]:
@@ -70,10 +106,7 @@ def _call_llm_for_bullets(
     try:
         # Support both Gemini and Groq client interfaces
         raw_response = _invoke_llm(llm_client, prompt)
-        parsed = json.loads(raw_response)
-
-        if not isinstance(parsed, list):
-            raise ValueError("LLM response is not a JSON array")
+        parsed = _parse_bullets_response(raw_response)
 
         # Index bullets by position (1-based id in the prompt)
         bullet_map: dict[int, list[str]] = {}

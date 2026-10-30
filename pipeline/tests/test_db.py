@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -20,6 +21,43 @@ def test_encode_db_password_encodes_at_sign_in_password():
 def test_encode_db_password_leaves_simple_password_unchanged():
     url = "postgresql://postgres:secret@db.example.supabase.co:5432/postgres"
     assert _encode_db_password(url) == url
+
+
+def test_insert_articles_strips_nul_bytes_before_execute():
+    conn = MagicMock()
+    cur = conn.cursor.return_value.__enter__.return_value
+    cur.fetchone.return_value = (1,)
+    article = Article(
+        title="Ti\x00tle",
+        url="https://example.com/a",
+        source="hn",
+        summary="sum\x00mary",
+        raw_text="%PDF\x00\x00body",
+    )
+
+    with patch("pipeline.db.get_connection", return_value=conn):
+        assert insert_articles([article]) == 1
+
+    params = cur.execute.call_args.args[1]
+    assert params[0] == "Title"
+    assert params[4] == "summary"
+    assert params[5] == "%PDFbody"
+    assert all("\x00" not in p for p in params if isinstance(p, str))
+    conn.commit.assert_called_once()
+    conn.close.assert_called_once()
+
+
+def test_insert_articles_keeps_none_fields():
+    conn = MagicMock()
+    cur = conn.cursor.return_value.__enter__.return_value
+    cur.fetchone.return_value = None
+    article = Article(title="T", url="https://example.com/b", source="hn")
+
+    with patch("pipeline.db.get_connection", return_value=conn):
+        assert insert_articles([article]) == 0
+
+    params = cur.execute.call_args.args[1]
+    assert params[4] is None and params[5] is None
 
 
 def _make_article(path: str) -> Article:
